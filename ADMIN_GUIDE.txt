@@ -1,0 +1,219 @@
+STATE ISSUE 2.4.1 ADMIN GUIDE UPDATE
+------------------------------------
+The MESSAGES tab is now an operational Work Queue. Use SETUP -> Display Name to set
+the name attached to new messages and comments. The name is optional and is not a login
+or verified identity. It is stored with each new entry, so changing the setting does not
+change historical attribution. Section 6 (Recent Changes) and section 11 of this guide
+have been corrected to match this — they previously still described the old per-computer
+Officer/Worker role picker, which no longer exists.
+
+Work items require a title and details. Choose a category and priority, and optionally
+link an inmate and/or request. Open work is shown by default. Use filters to find work,
+add comments to preserve updates, and mark completed items Resolved with an optional
+resolution note. Resolved items remain in history and can be reopened. Comments can also
+be added to inmate profiles, requests, and individual issuance-history entries.
+
+When upgrading, retain the server database and use the normal backup process before
+replacing program files. The application adds the comments collection and display-name
+setting automatically when reading existing state. Verify the backup with VERIFY_BACKUP.bat
+before relying on it. After upgrading, manually test one comment on each record type, create
+and resolve a work item, check record links, and verify backup/restore using a test copy.
+No automated browser test is claimed for these UI workflows.
+
+STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.3.0)
+
+WHAT CHANGED IN 2.3.0
+----------------------
+- Added VERIFY_BACKUP.bat and the matching "server.py --verify" check: confirms a
+  backup file is not damaged and shows what's in it, without changing anything.
+  This is the repeatable restore test — see section 4.
+- Restoring a backup (section 5) now starts with verifying the file first.
+
+WHAT CHANGED IN 2.2.0
+---------------------
+- Expanded the automated server/API test suite from 18 to 27 tests.
+- Added checks for real-world-shaped state data, HTTP save conflicts, invalid payloads,
+  application bootstrap delivery, service-worker delivery, and backup database integrity.
+- Reviewed the supplied October 9 JSON export's structure and used anonymized patterns
+  to build representative tests. The real backup and its personal records are not included
+  in this release.
+- See README.txt for the full implementation plan, version history, and test limitations.
+
+==================================================
+
+0. FIRST TIME ON A NEW COMPUTER
+-------------------------------
+  1. Copy the whole State Issue folder to the host computer — the one that will run the
+     server (for example C:\StateIssue). This can be any computer that is normally on,
+     not necessarily an officer's.
+  2. Double-click SETUP_NEW_COMPUTER.bat. It installs Python if needed, opens the network port,
+     and checks the program. If it asks for administrator rights, right-click the file,
+     choose "Run as administrator", and run it again.
+  3. Double-click START_STATE_ISSUE.bat.
+
+1. STARTING AND STOPPING
+------------------------
+Start: double-click START_STATE_ISSUE.bat on the host computer.
+  - A browser opens on the host computer, at its own address ("This computer" in the
+    server window). Always use that window/tab on this computer — do not switch it to
+    the network address, or this computer loses the ability to work offline (see
+    section 1a).
+  - The server window shows the address other computers use, for example http://192.168.1.20:8787
+  - If the server stops because of an error, it now restarts itself automatically (up to
+    5 times in a row). If it fails a 6th time in a row, it stops trying and waits for you.
+Stop: click the server window and press Ctrl+C, or close the window.
+  - While the server is stopped, other computers cannot use State Issue. The host
+    computer itself still can (see section 1a) and will catch up automatically once
+    the server is running again.
+  - Keep the server window open during the day. Do not close it to "save" anything. Saving is automatic.
+
+Other computers: open a browser and type the address from the server window, or edit
+OPEN_STATE_ISSUE.bat on that computer to contain the address and double-click it. Bookmark it.
+Other computers need nothing installed. Opening Stateissue.html from a folder does NOT work:
+the page must be opened from the server address so it can share data.
+If the address changes (the host computer got a new network address), update the bookmark.
+To keep the address fixed, ask whoever manages the network to give the host computer a fixed address.
+
+1a. WORKING OFFLINE (host computer only)
+-----------------------------------------
+Only the host computer — opened at its own address, not the network address — keeps working
+if the server program stops or the network drops. Changes made there are saved on that
+computer first: the status at the top turns orange and reads "Saved on this computer —
+will sync." As soon as the server can be reached again, those changes are sent to it
+automatically. Nothing is lost.
+Other computers work exactly as before: if they cannot reach the server, they can see the
+last data they loaded but cannot save until it is back.
+If the status stays orange for a long time, check that the server window is still open
+and the network is connected. If it ever turns into a red message reading "RECONNECT
+CONFLICT," go to SETUP — it means a change was made somewhere else while this computer
+was offline, and the two could not be combined automatically. SETUP explains how to save
+and review the stranded changes; nothing is deleted automatically.
+
+2. WHAT THE PROGRAM SAVES
+-------------------------
+All data is in one file: state_issue_v2.db, in the same folder as the program.
+DO NOT DELETE, MOVE OR RENAME it while the server is stopped unless you are restoring a backup.
+
+3. AUTOMATIC BACKUPS
+--------------------
+The server backs itself up automatically:
+  - Daily files: backups\daily_YYYY-MM-DD.db. The last 30 days are kept.
+  - Monthly files: backups\monthly_YYYY-MM.db. The last 12 months are kept.
+  - Checks happen every hour while the server runs, and when it starts.
+  - A backup is only made if the server is running. If it has been off for a day,
+    the backup is made the next time it starts.
+
+Each day, copy the newest daily file to a flash drive or another computer. Automatic backups
+are on the same computer as the data. A copy elsewhere protects against a failed or stolen computer.
+
+4. VERIFYING A BACKUP (do this regularly - it is quick and changes nothing)
+-----------------------------------------------------------------------
+Double-click VERIFY_BACKUP.bat, then drag a file from the backups folder onto it
+when asked (or just drop the file directly onto the VERIFY_BACKUP.bat icon in
+Windows Explorer, which skips the prompt). It opens the backup read-only, checks
+it is not damaged, and prints what is in it: the date of the last change saved,
+and a count of inmates, items, requests, issues, stock transactions, reminders
+and inventory checks. Nothing is changed or restored - it only reads the file.
+
+PASSED means the backup is safe to use if you ever need it.
+FAILED means that specific file is damaged - try an older one from the backups
+folder, and tell the support person which date failed.
+
+This is the repeatable restore test: run it on your newest daily backup once a
+month (for example, the first time you open the program each month) so you know
+your backups are actually good before you ever need one. It takes under a minute
+and does not touch the live database, so there is no harm in running it often.
+
+5. RESTORING A BACKUP (an actual recovery - not the same as verifying one)
+---------------------------------------------------------------------------
+Only do this if the data is damaged or lost.
+  a. Stop the server (Ctrl+C).
+  b. Copy the current state_issue_v2.db somewhere safe, for example into a folder named "damaged".
+  c. Copy the backup file you want from the backups folder into the program folder.
+  d. Rename the copy to exactly:  state_issue_v2.db
+  e. Start the server. Check the Setup tab and the dashboard.
+Check the date on the backup you choose. Anything saved after that date is not in it.
+Run VERIFY_BACKUP.bat on the backup file BEFORE step c, so you know it is good
+before you commit to using it.
+
+6. RECENT CHANGES (AUDIT LOG)
+-----------------------------
+SETUP -> Recent Changes shows the last 500 saves: date, time, the configured display name of
+whoever saved it (set in SETUP -> Display Name; shows as — if none was set), the computer
+address, and what changed (for example "issues: 2 added"). It does not show inmate or personal
+names. The display name is not a login — anyone can change it — so use it as a general guide,
+not proof of who made a change. Use it to spot unexpected changes. Records of the log are kept
+in the database and are not removed by the program.
+
+The DASHBOARD also has a "Today's Changes" board — the same log, narrowed to just today, so it
+is quick to review at a glance. It updates by itself as changes are saved, on any computer, with
+no need to reload the page.
+
+7. EXCEL (CSV) EXPORTS
+----------------------
+SETUP -> Export to Excel: press a button, then open the file in Excel.
+REPORTS -> EXPORT REPORT (CSV): exports the report currently on screen.
+These files contain personal information. Store them only on the host computer or a secure drive,
+and delete copies you no longer need.
+
+8. INVENTORY AND DAILY USE
+--------------------------
+  - Use the Monthly Inventory Check every month. It is recorded in stock history.
+  - Low-stock levels are set in SETUP. The dashboard shows an alert when stock reaches the minimum.
+
+9. IF SOMETHING GOES WRONG
+--------------------------
+"Could not start" or a red error in the server window:
+  - Make sure Python 3.8 or newer is installed. Do not change any other files.
+  - Write down the exact message and send it to the program's support person.
+"DATA NOT SAVED" or "CHANGED ON ANOTHER COMPUTER" on screen:
+  - Do not keep entering work. Press Refresh or reopen the page so the current copy loads.
+  - If the message keeps returning, check that the server window is still running.
+"DATA NOT LOADED" message:
+  - The saved data could not be read. Changes are turned off to protect the data. Contact the
+    support person before doing anything else. Do not restore a backup without advice.
+  - Once you have advice, run VERIFY_BACKUP.bat on the backup you plan to use (section 4) before
+    restoring it, so you restore a good copy the first time.
+Nothing appears on other computers: check the address, check that the server window is running,
+and check the network connection on that computer. If the address works on the host computer
+but not on others, run SETUP_NEW_COMPUTER.bat as administrator to open the port.
+
+LIVE UPDATES
+  Changes made on one computer appear on the others within about a second. If someone has a
+  form open, the update waits until the form is closed. A short message appears when new data arrives.
+  If the screen shows "SERVER CONNECTION LOST", that computer cannot reach the host computer.
+  Check the server window. (The host computer itself does not show this message — see
+  section 1a, WORKING OFFLINE.)
+
+10. UPDATING THE PROGRAM
+-----------------------
+  1. Stop the server.
+  2. Copy the whole program folder to a safe place (this includes the database).
+  3. Replace the program files with the new ones. Do not replace or delete state_issue_v2.db.
+  4. Double-click START_STATE_ISSUE.bat. The database updates itself when needed.
+  5. Check the version in the header and run a test: find an inmate, view a report, export a CSV.
+  6. Keep the old copy for at least a month.
+
+11. WORK QUEUE AND COMMENTS
+----------------------------
+  - Open the Work Queue tab (formerly MESSAGES). Set your name once in SETUP -> Display Name;
+    it is attached to new work items and comments you add. It is optional, and it is not a
+    login — anyone can change it.
+  - To create a work item: enter a title and details, choose a category and priority, and
+    optionally link it to a request and/or an inmate. Press CREATE WORK ITEM.
+  - Open work is shown by default. Use the filters to see all items, resolved items, or search
+    by text, priority, or category.
+  - Mark an item RESOLVED when the work is done (an optional resolution note can be added).
+    Resolved items stay in history and can be reopened if needed.
+  - Comments can be added directly on a work item, and separately on inmate profiles, requests,
+    and individual issuance-history entries (via the COMMENTS button on each issue row). Use
+    comments to record updates or context without changing the underlying record.
+  - Nothing in the Work Queue or comments can be deleted from the program. Anyone with access
+    can read all of it. Keep entries factual and appropriate, and do not use them for anything
+    that must be kept private.
+
+12. REQUIREMENTS
+----------------
+  - Host computer: Windows with Python 3.8 or newer. SETUP_NEW_COMPUTER.bat installs it.
+  - Other computers: any Windows computer with a web browser. Nothing else.
+  - Nothing else is installed. The program does not need internet access.

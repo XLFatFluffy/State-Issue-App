@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>State Issue</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:20px;color:#1b2430;background:#eef1f4}
+header{background:#1f3a5f;color:#fff;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:28px}
+#status{text-align:right;font-size:17px;line-height:1.4}
+#saved{font-weight:bold}.ok{color:#9be59b}.bad{background:#c00;color:#fff;padding:4px 8px;border-radius:4px}.pending{background:#9a5b00;color:#fff;padding:4px 8px;border-radius:4px}
+#backupWarn{color:#ffd27a;font-weight:bold}
+nav{display:flex;background:#d5dce4}
+nav button{flex:1;font-size:21px;font-weight:bold;padding:17px 6px;border:0;border-right:1px solid #aab4c0;background:#d5dce4;color:#1b2430;cursor:pointer}
+nav button.on{background:#fff;border-bottom:6px solid #1f3a5f}
+main{max-width:1180px;margin:18px auto;padding:0 14px}
+section{display:none;background:#fff;padding:22px;border:1px solid #c3ccd6;border-radius:6px}
+section.on{display:block}
+h2{margin:0 0 18px} h3{margin-top:24px}
+.row{display:flex;flex-wrap:wrap;margin-bottom:6px}.row>*{margin:0 12px 10px 0}
+.grid,.statgrid{display:flex;flex-wrap:wrap;margin:0 -6px}
+.grid>*{flex:1 1 220px;margin:0 6px 12px;min-width:0}.statgrid>*{flex:1 1 190px;margin:0 6px 12px}
+.card{border:1px solid #c3ccd6;border-radius:6px;padding:14px;background:#fafbfd;margin-bottom:8px}
+label{font-weight:bold;display:block;margin-bottom:5px}
+input[type=text],input[type=number],input[type=date],input:not([type]),select,textarea{font-size:20px;padding:10px;border:2px solid #8896a6;border-radius:4px;width:100%;background:#fff}
+textarea{min-height:90px;resize:vertical}
+input:focus,select:focus,textarea:focus,.btn:focus,nav button:focus{outline:3px solid #f2a900}
+.btn{font-size:20px;font-weight:bold;padding:12px 20px;border:0;border-radius:4px;background:#1f3a5f;color:#fff;cursor:pointer}
+.btn.green{background:#2e7d32}.btn.red{background:#b71c1c}.btn.grey{background:#5f6b7a}.btn.orange{background:#9a5b00}
+.btn.small{font-size:17px;padding:8px 12px}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #d5dce4;vertical-align:top}
+th{background:#eef1f4}.n{text-align:right!important}
+.clickrow{cursor:pointer}.clickrow:hover{background:#f1f5f9}
+.empty{padding:26px;text-align:center;color:#5f6b7a;border:2px dashed #b4bec9;border-radius:6px}
+.note{color:#4a5563;font-size:17px}
+.warnbox{background:#fff4d6;border:2px solid #d9a400;border-radius:6px;padding:14px;margin-bottom:14px}.dashAction{border-left:6px solid #1f3a5f}.dashAction.warn{border-left-color:#9a5b00}.dashAction.danger{border-left-color:#b71c1c}.dashAction.ok{border-left-color:#2e7d32}.doneRow{opacity:.65}.tiny{font-size:15px}
+.badge{display:inline-block;padding:4px 9px;border-radius:12px;background:#dce7f4;font-size:16px;font-weight:bold}
+.badge.green{background:#d9f0dc}.badge.red{background:#f5d5d5}.badge.orange{background:#f4e1c4}
+.stat{background:#f4f7fa;border:1px solid #c3ccd6;border-radius:6px;padding:15px}.stat b{font-size:32px;display:block;margin-top:6px}
+.neg{color:#b71c1c;font-weight:bold}
+.modal{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.modal.on{display:flex}.modalbox{background:white;width:100%;max-width:900px;max-height:92vh;overflow:auto;border-radius:7px;padding:22px;box-shadow:0 5px 30px rgba(0,0,0,.3)}
+.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modalhead h2{margin:0}
+.itemline{display:flex;flex-wrap:wrap;align-items:flex-end;margin:0 -4px 10px;padding-bottom:8px;border-bottom:1px solid #d5dce4}
+.itemline>*{margin:0 4px 6px;flex:1 1 120px;min-width:0}.itemline .wide{flex:2 1 170px}.itemline .qtyf{flex:0 1 90px}.itemline .btn{flex:0 0 auto}
+#toast{position:fixed;bottom:20px;left:50%;margin-left:-260px;width:520px;max-width:96%;text-align:center;background:#2e7d32;color:#fff;padding:16px 25px;font-size:21px;font-weight:bold;border-radius:6px;display:none;z-index:50;cursor:pointer}
+#toast.bad{background:#b71c1c}
+input[type=checkbox]{width:28px;height:28px;vertical-align:middle;margin-right:10px}
+.propbox{background:#fff4d6;border:2px solid #d9a400;border-radius:6px;padding:12px;margin:12px 0}
+.propbadge{display:inline-block;background:#d9a400;color:#000;font-size:14px;font-weight:bold;padding:2px 8px;border-radius:10px;margin-left:8px}
+hr{border:0;border-top:1px solid #d5dce4;margin:20px 0}
+.reportbox{border:1px solid #c3ccd6;padding:18px;margin-top:15px}
+@media print{nav,.noPrint,header #status,.btn{display:none!important}body{background:white}section{display:none!important;border:0}section.on{display:block!important}.reportbox{border:0}}
+
+.reminderGroup{padding:0;overflow:hidden;margin-bottom:8px;background:#fafbfd}.reminderDrop{width:100%;display:flex;align-items:center;padding:13px 15px;border:0;background:transparent;color:#1b2430;font-size:20px;text-align:left;cursor:pointer}.reminderDrop:hover{background:#f1f5f9}.reminderDrop>span:first-child{width:20px}.reminderDrop>span{margin-right:12px}.reminderDrop .badge{margin-right:0}.reminderDrop .badge{margin-left:auto}.reminderGroupBody{padding:0 10px 10px}.reminderGroupBody table{margin-top:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>STATE ISSUE <span id="verTag" style="font-size:15px;font-weight:normal"></span></h1>
+  <div id="status">Data: <span id="saved" class="ok">✓ Saved</span><br>Last backup: <span id="lastBackup">never</span><br><span id="backupWarn"></span></div>
+</header>
+
+<nav id="tabs">
+<button data-t="dashboard" class="on">DASHBOARD</button>
+<button data-t="inmates">INMATES</button>
+<button data-t="requests">REQUESTS</button>
+<button data-t="inventory">INVENTORY</button>
+<button data-t="reports">REPORTS</button>
+<button data-t="messages">MESSAGES</button>
+<button data-t="setup">SETUP</button>
+</nav>
+
+<main>
+<section id="dashboard" class="on">
+<h2>Dashboard</h2>
+<div class="row noPrint"><button class="btn" id="qaInmate">FIND OR ADD INMATE</button><button class="btn green" id="qaRequest">NEW REQUEST</button><button class="btn grey" id="qaStock">ADD STOCK</button></div>
+<div id="dashboardStats" class="statgrid"></div>
+<div id="dashMessages"></div>
+<div id="dashboardActions"></div>
+<h3>Today's Changes</h3>
+<p class="note">Every change saved by anyone on the network shows up here as it happens, with the configured display name, if one is set. Clears at midnight — see Recent Changes in Setup for older history.</p>
+<div id="dashboardToday"></div>
+<h3>Reminders</h3>
+<div class="row noPrint"><button class="btn green" id="newReminder">+ NEW REMINDER</button><button class="btn grey" id="showCompletedReminders">SHOW COMPLETED</button></div>
+<div id="dashboardReminders"></div>
+</section>
+
+<section id="inmates">
+<h2>Inmates</h2>
+<div class="row">
+<input type="text" id="q" placeholder="Search by name or MDOC number" style="flex:1;min-width:260px">
+<button class="btn" id="go">SEARCH</button>
+<button class="btn green" id="newInmate">+ NEW INMATE</button>
+<button class="btn grey" id="newInmateNoIssue">+ ADD INMATE (NO STATE ISSUE)</button>
+</div>
+<div id="inmateResults"></div>
+</section>
+
+<section id="requests">
+<h2>Requests</h2>
+<div class="row">
+<button class="btn green" id="newRequest">+ NEW REQUEST</button>
+<select id="requestFilter" style="max-width:220px">
+<option value="all">All Requests</option><option value="open">Open (needs decision or issue)</option><option value="fulfilled">Fulfilled</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="denied">Denied</option><option value="partial">Partially Approved</option>
+</select>
+</div>
+<div id="requestList"></div>
+</section>
+
+<section id="inventory">
+<h2>Inventory</h2>
+<div class="statgrid" id="invStats"></div>
+<div class="row">
+<button class="btn green" id="addStock">ADD STOCK</button>
+<button class="btn" id="adjustStock">ADJUST INVENTORY</button>
+<button class="btn grey" id="physicalCount">PHYSICAL COUNT</button>
+<button class="btn orange" id="inventoryCheck">MONTHLY INVENTORY CHECK</button>
+</div>
+<div id="inventoryTable"></div>
+<h3>Stock History (every change is recorded)</h3>
+<select id="invFilter" style="max-width:300px"></select>
+<div id="invHistory"></div>
+</section>
+
+<section id="reports">
+<h2>Reports</h2>
+<div class="row noPrint">
+<button class="btn" id="weeklyReport">WEEKLY REPORT</button>
+<button class="btn" id="monthlyReport">MONTHLY REPORT</button>
+<button class="btn grey" id="customReport">CUSTOM DATES</button>
+<button class="btn grey" id="exReport">EXPORT REPORT (CSV)</button><button class="btn grey" onclick="window.print()">PRINT</button>
+</div>
+<div id="reportOutput"><div class="empty">Choose a report.</div></div>
+</section>
+
+<section id="messages">
+<h2>Work Queue</h2>
+<p class="note">Track outstanding work, link it to existing records, discuss progress, and mark it resolved when complete. The name in Setup is used for new entries; it is attribution, not secure sign-in.</p>
+<div class="row">
+<select id="msgStatusFilter" style="max-width:210px"><option value="open">Open work</option><option value="all">All messages</option><option value="resolved">Resolved</option></select>
+<select id="msgPriorityFilter" style="max-width:210px"><option value="all">All priorities</option><option value="urgent">Urgent</option><option value="high">High</option><option value="normal">Normal</option><option value="low">Low</option></select>
+<select id="msgCategoryFilter" style="max-width:220px"><option value="all">All categories</option><option>State Issue</option><option>Request</option><option>Inventory</option><option>Follow-up</option><option>General</option></select>
+<input type="text" id="msgSearch" placeholder="Search messages" style="flex:1;min-width:180px">
+</div>
+<div class="card" style="background:#eef5ff;border-color:#1f3a5f">
+<h3 style="margin-top:0">Create work item</h3>
+<label>Title<input type="text" id="msgSubject" maxlength="120" placeholder="Short description of the work"></label>
+<div class="grid"><label>Category<select id="msgCategory"><option>State Issue</option><option>Request</option><option>Inventory</option><option>Follow-up</option><option>General</option></select></label>
+<label>Priority<select id="msgPriority"><option value="normal">Normal</option><option value="low">Low</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+<label>Link to request (optional)<select id="msgRequestLink"><option value="">No linked request</option></select></label>
+<label>Link to inmate (optional)<select id="msgInmateLink"><option value="">No linked inmate</option></select></label></div>
+<label>Details<textarea id="msgText" maxlength="2000" placeholder="What needs to happen? Include useful context."></textarea></label>
+<div class="row" style="margin:10px 0 0"><button class="btn green" id="msgSend">CREATE WORK ITEM</button></div>
+</div>
+<div id="msgList"></div>
+<p class="note">Resolved items remain in the history. Anyone with access to the program can read these messages.</p>
+</section>
+
+<section id="setup">
+<h2>Setup & Data</h2>
+<div class="card"><h3 style="margin-top:0">Display Name</h3><p class="note">This name is saved with new messages and comments. It can be left blank. Changing it does not alter older entries.</p><div class="row"><input type="text" id="displayName" maxlength="80" placeholder="Your name" style="max-width:420px"><button class="btn green" id="saveDisplayName">SAVE NAME</button></div></div>
+<div id="offlineStatus"></div>
+<hr>
+<div class="row noPrint">
+<button class="btn green" id="backup">BACKUP DATA</button>
+<button class="btn red" id="restore">RESTORE DATA</button>
+<input type="file" id="file" accept=".json" style="display:none">
+</div>
+<p class="note">Backup creates one file. Save that file to a flash drive. The program saves changes automatically on this computer, but a backup is the only second copy. Back up at least weekly.</p>
+<div class="warnbox noPrint"><b>One-time Firefox setup for automatic backups</b><br>1. Make a folder named <b>StateIssue_Backups</b> (for example on the C: drive).<br>2. In Firefox: Menu &rarr; Options &rarr; General &rarr; Downloads. Choose that folder, and <b>uncheck</b> "Always ask you where to save files."<br>3. Options &rarr; Privacy: do NOT let Firefox clear history when it closes.<br>4. Press TURN ON AUTOMATIC BACKUPS below and follow the questions.<br>5. <b>Once a week</b>, copy the newest file from that folder to the flash drive (right-click the file &rarr; Send to &rarr; your USB drive).</div>
+<div id="safety"></div>
+<hr>
+<h3>Recent Changes</h3>
+<p class="note">Every saved change is logged with the date, the time, the configured display name (if set), and the computer it came from. The log records counts only, not inmate or personal names.</p>
+<div id="auditBox"></div>
+<hr>
+<h3>Export to Excel (CSV files)</h3>
+<p class="note">Each button saves a spreadsheet file you can open in Excel. These files contain personal information. Keep them secure and do not leave them on shared computers.</p>
+<div class="row noPrint"><button class="btn grey" id="exInmates">INMATES</button><button class="btn grey" id="exIssues">ISSUES</button><button class="btn grey" id="exStock">STOCK HISTORY</button><button class="btn grey" id="exInv">CURRENT INVENTORY</button><button class="btn grey" id="exRequests">REQUESTS</button></div>
+<hr>
+<h3>Low-Stock Levels</h3>
+<p class="note">Set a minimum quantity for each item/size. The Dashboard will warn you when stock is at or below that level. A blank or 0 means no low-stock warning.</p>
+<div id="minStockTable"></div>
+<hr>
+<h3>Manage Items</h3>
+<div class="row noPrint"><button class="btn green" id="newItem">+ ADD ITEM</button></div>
+<div id="itemTable"></div>
+<hr>
+<h3>Application Information</h3>
+<div class="note" id="versionNote"></div>
+</section>
+</main>
+
+<div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h2 id="modalTitle"></h2><button class="btn grey small" onclick="closeModal()">CLOSE</button></div><div id="modalBody"></div></div></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+if(!Array.prototype.find){Array.prototype.find=function(f){for(var i=0;i<this.length;i++)if(f(this[i],i,this))return this[i];return undefined}}
+if(!Array.prototype.findIndex){Array.prototype.findIndex=function(f){for(var i=0;i<this.length;i++)if(f(this[i],i,this))return i;return -1}}
+var showCompletedRem=false;
+var APP_VERSION='2.4.1',lastReport=null;
+var KEY='stateIssueData',KEYP='stateIssueData_prev',REVK='stateIssueRev';
+/* This computer works offline ONLY when it opens State Issue at 127.0.0.1 or
+   localhost — which, by design, is only the computer that runs server.py
+   (START_STATE_ISSUE.bat opens it that way automatically). Every other
+   computer opens it by network address and keeps the original behavior:
+   it can view the last data it loaded, but cannot save, while the server
+   is unreachable. Nothing to set up, nothing to get wrong. */
+var IS_MAIN=(location.hostname==='127.0.0.1'||location.hostname==='localhost');
+var SERVER_BOOTSTRAP=window.__STATE_ISSUE_SERVER_STATE__||{state:null,rev:0};
+var db,storageOK=true,loadNote='',freshInstall=false;
+var serverRev=SERVER_BOOTSTRAP.rev||0,saveBusy=false,saveAgain=false;
+var offlinePending=false,offlineConflict=false;
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+/* Keeps this computer's own working copy up to date, so a reboot or a closed
+   tab while the server is down does not lose anything already entered here. */
+function persistLocalCopy(pending){
+ if(!IS_MAIN)return;
+ lsSet('stateIssueLocalDB',JSON.stringify(db));
+ lsSet('stateIssueLocalBaseRev',String(serverRev));
+ lsSet('stateIssueLocalPending',pending?'1':'');
+}
+function clearLocalCopy(){lsDel('stateIssueLocalDB');lsDel('stateIssueLocalBaseRev');lsDel('stateIssueLocalPending')}
+var COLL=['inmates','requests','requestItems','issues','txns','items','deletions','reminders','inventoryChecks','messages','comments'];
+var STD=['L','XL','2X','3X','4X','5X','6X'],PCOL=['Green/White','Black/White'];
+function pantsSizes(){var r=[];PCOL.forEach(function(c){STD.forEach(function(z){r.push(z+' - '+c)})});return r}
+function upgrade(d){
+ var p=d.items.filter(function(x){return x.id==='pants'})[0];
+ if(p&&!p.sizes.some(function(z){return z.indexOf(' - ')>-1})){
+  var used=d.txns.some(function(t){return t.itemId==='pants'})||d.issues.some(function(t){return t.itemId==='pants'})||d.requestItems.some(function(t){return t.itemId==='pants'});
+  p.sizes=used?p.sizes.concat(pantsSizes()):pantsSizes();
+ }
+ if(p&&!d.items.some(function(x){return x.id==='shorts'}))d.items.splice(d.items.indexOf(p)+1,0,{id:'shorts',name:'Shorts',category:'Clothing',sizes:STD.slice(),active:true});
+}
+function seed(){
+ var std=['L','XL','2X','3X','4X','5X','6X'];
+ return {version:3,rev:0,seq:{},
+  items:[
+   {id:'shirt',name:'Shirt',category:'Clothing',sizes:std.slice(),active:true},
+   {id:'pants',name:'Pants',category:'Clothing',sizes:pantsSizes(),active:true},
+   {id:'shorts',name:'Shorts',category:'Clothing',sizes:std.slice(),active:true},
+   {id:'boxers',name:'Boxers',category:'Clothing',sizes:std.slice(),active:true},
+   {id:'towel',name:'Towel',category:'Linen',sizes:[],active:true},
+   {id:'jacket',name:'Jacket',category:'Clothing',sizes:std.slice(),active:true},
+   {id:'shoes',name:'Shoes',category:'Footwear',sizes:['8','9','10','11','12','13','14'],active:true},
+   {id:'showershoes',name:'Shower Shoes',category:'Footwear',sizes:['L','XL','XXL'],active:true}],
+  inmates:[],requests:[],requestItems:[],issues:[],txns:[],deletions:[],reminders:[],inventoryChecks:[],settings:{lastBackup:null,minStock:{},displayName:''},comments:[]};
+}
+function validData(d){return !!d&&typeof d==='object'&&Array.isArray(d.inmates)&&Array.isArray(d.items)&&Array.isArray(d.txns)&&Array.isArray(d.requests)&&Array.isArray(d.issues)}
+/* Erase an inmate's personal data. Issue records and inventory stay (without name/MDOC link). */
+function purgeInmateData(d,id){
+ var rids=d.requests.filter(function(r){return r.inmateId===id}).map(function(r){return r.id});
+ d.requestItems=d.requestItems.filter(function(x){return rids.indexOf(x.requestId)<0});
+ d.requests=d.requests.filter(function(r){return r.inmateId!==id});
+ d.comments=d.comments.filter(function(c){return !(c.parentType==='inmate'&&c.parentId===id)&&!(c.parentType==='request'&&rids.indexOf(c.parentId)>-1)});
+ d.reminders=d.reminders.filter(function(r){return r.inmateId!==id});
+ var iids=[];
+ d.issues.forEach(function(x){if(x.inmateId===id){iids.push(x.id);x.inmateId='';if(x.notes&&/MDOC/i.test(x.notes))x.notes='Removed inmate'}});
+ d.txns.forEach(function(t){if(t.issueId&&iids.indexOf(t.issueId)>-1&&t.notes)t.notes=t.notes.replace(/to MDOC\s+\S+/i,'to removed inmate').replace(/MDOC\s+\S+/ig,'removed inmate')});
+}
+/* Older data had an Archive of departed inmates. Archive no longer exists: erase it. */
+function migrateArchive(d){
+ if(Array.isArray(d.archive)&&d.archive.length){d.archive.forEach(function(a){purgeInmateData(d,a.id)})}
+ delete d.archive;delete d.deletions;
+}
+function fixup(d){
+ COLL.forEach(function(k){if(!Array.isArray(d[k]))d[k]=[]});
+ upgrade(d);
+ d.seq=d.seq||{};['inmate','request','issue','txn','item','ri'].forEach(function(k){if(typeof d.seq[k]!=='number')d.seq[k]=1000});
+ d.settings=d.settings||{lastBackup:null};d.settings.minStock=d.settings.minStock||{};if(typeof d.settings.displayName!=='string')d.settings.displayName='';d.comments=d.comments||[];d.messages=d.messages||[];d.reminders=d.reminders||[];d.inventoryChecks=d.inventoryChecks||[];
+ d.comments.forEach(function(c){if(!c.id)c.id='C'+Date.now()+Math.floor(Math.random()*10000);if(!c.at)c.at=c.date||iso();if(typeof c.author!=='string')c.author='';});
+ d.messages.forEach(function(m){if(!m.status)m.status='open';if(!m.priority)m.priority='normal';if(!m.category)m.category='General';if(!m.created)m.created=m.at||iso();if(!m.author)m.author=m.from||'';if(!Array.isArray(m.links))m.links=m.requestId?[{type:'request',id:m.requestId}]:[];if(!m.title)m.title=m.subject||'';if(!m.body)m.body=m.text||'';if(!m.comments)m.comments=[];});
+ d.inmates.forEach(function(i){i.sizes=i.sizes||{}});
+ migrateArchive(d);
+ d.requests.forEach(function(r){var it=d.requestItems.filter(function(x){return x.requestId===r.id});if(it.length)r.status=calcStatus(it)});
+ d.rev=serverRev||d.rev||0;return d;
+}
+function fixupSafe(d){
+  try{return fixup(d)}catch(e){
+    storageOK=false;
+    loadNote='The server data could not be read. Changes are DISABLED to protect the saved data. Contact the State Issue administrator.';
+    return fixup(seed());
+  }
+}
+function load(){
+  if(IS_MAIN&&lsGet('stateIssueLocalPending')==='1'){
+    var raw=lsGet('stateIssueLocalDB');
+    var localBaseRev=parseInt(lsGet('stateIssueLocalBaseRev')||'0',10);
+    var serverRevNow=SERVER_BOOTSTRAP.state?(SERVER_BOOTSTRAP.rev||0):localBaseRev;
+    if(raw&&serverRevNow===localBaseRev){
+      /* Nothing was saved to the server while this computer was offline
+         (the normal case). Resume exactly where this computer left off. */
+      try{
+        var localDb=JSON.parse(raw);
+        serverRev=localBaseRev;
+        offlinePending=true;
+        return fixupSafe(localDb);
+      }catch(e){
+        loadNote='This computer had unsaved offline changes that could not be read back. Contact the State Issue administrator.';
+      }
+    }else if(raw){
+      /* The server moved on while this computer had unsynced local
+         changes. Do not guess which side wins: show the server's saved
+         copy and flag it so the local changes can be reviewed by hand
+         in SETUP before anything more is entered here. */
+      offlineConflict=true;
+    }
+  }
+  if(!SERVER_BOOTSTRAP.state){
+    freshInstall=true;
+    return fixupSafe(seed());
+  }
+  try{
+    return fixupSafe(JSON.parse(JSON.stringify(SERVER_BOOTSTRAP.state)));
+  }catch(e){
+    storageOK=false;
+    loadNote='The server data could not be read. Changes are DISABLED to protect the saved data. Contact the State Issue administrator.';
+    return fixupSafe(seed());
+  }
+}
+var savedEl=document.getElementById('saved');
+function setSaved(state,msg){
+  var cls=state===true?'ok':state==='pending'?'pending':'bad';
+  savedEl.className=cls;
+  savedEl.textContent=state===true?'✓ Saved':(msg||(state==='pending'?'⚠ Saved on this computer — will sync':'⚠ DATA NOT SAVED'));
+}
+/* Offline queueing applies only on the host computer (IS_MAIN). When this
+   computer cannot reach the server, the change is still kept — written to
+   this browser's local storage immediately — instead of being refused.
+   trySyncPending() (below, wired into the live-update loop) pushes it to
+   the server automatically as soon as the server can be reached again. */
+function saveOffline(){
+  db.rev=serverRev;
+  offlinePending=true;
+  persistLocalCopy(true);
+  setSaved('pending');
+  return true;
+}
+function save(){
+  if(!storageOK){setSaved(false,'⚠ DATA NOT LOADED — NOT SAVED');return false}
+  if(offlineConflict){setSaved(false,'⚠ RECONNECT CONFLICT — SEE SETUP');return false}
+  if(!navigator.onLine){
+    if(IS_MAIN)return saveOffline();
+    setSaved(false,'⚠ SERVER CONNECTION LOST');return false;
+  }
+  saveAgain=true;
+  if(saveBusy){setSaved(IS_MAIN&&offlinePending?'pending':true);return true}
+  saveBusy=true;
+  function send(){
+    saveAgain=false;
+    var nextRev=serverRev+1;
+    db.rev=nextRev;
+    var payload=JSON.stringify({baseRev:serverRev,state:db,who:displayName()});
+    fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:payload,cache:'no-store'})
+      .then(function(r){
+        if(!r.ok){
+          if(r.status===409) throw new Error('CONFLICT');
+          throw new Error('SAVE');
+        }
+        return r.json();
+      })
+      .then(function(res){
+        serverRev=res.rev||nextRev;
+        db.rev=serverRev;
+        offlinePending=false;
+        persistLocalCopy(false);
+        setSaved(true);
+        saveBusy=false;
+        loadTodayActivity();
+        if(saveAgain) { saveBusy=true; send(); }
+      })
+      .catch(function(err){
+        saveBusy=false;
+        if(IS_MAIN&&err.message!=='CONFLICT'){
+          /* navigator.onLine said we had a connection, but the request
+             itself failed (the server process is down, for example).
+             Fall back to the same local queue used for a full outage. */
+          saveOffline();
+          return;
+        }
+        setSaved(false,err.message==='CONFLICT'?'⚠ CHANGED ON ANOTHER COMPUTER':'⚠ DATA NOT SAVED');
+        if(err.message==='CONFLICT'){
+          alert('This State Issue data was changed on another computer. Your latest change was not saved. The current server data will be loaded when you reopen State Issue.');
+        }
+      });
+  }
+  send();
+  return true;
+}
+/* Called once the connection to the server is confirmed again. Pushes this
+   computer's queued offline changes using the same save path as any other
+   save — the base revision recorded when this computer went offline is
+   either still current (normal case: push succeeds) or it is not (see
+   load(), above, and the conflict note in SETUP). */
+function trySyncPending(){
+  if(!IS_MAIN||!offlinePending||offlineConflict||saveBusy)return;
+  fetch('/api/ping',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(res){
+    if(res.rev!==serverRev){
+      offlineConflict=true;
+      setSaved(false,'⚠ RECONNECT CONFLICT — SEE SETUP');
+      toast('This computer\'s offline changes could not sync automatically — the server data changed too. Open SETUP to review.',true);
+      return;
+    }
+    saveAgain=true;save();
+  }).catch(function(){});
+}
+/* ---------- LIVE UPDATES: the server holds a request open and answers as soon as anyone saves ---------- */
+var liveFails=0,applying=false;
+function setConn(ok){
+  if(ok){
+    if(IS_MAIN&&offlinePending)trySyncPending();
+    else if(savedEl.textContent.indexOf('CONNECTION LOST')>-1)setSaved(true);
+  }else if(IS_MAIN&&offlinePending){setSaved('pending');}
+  else setSaved(false,'⚠ SERVER CONNECTION LOST');
+}
+function isEditing(){return $('modal').className.indexOf('on')>-1||saveBusy}
+/* Only replace the data while nobody is typing in a form or a save is in progress. */
+function applyServerUpdate(){
+  if(!storageOK||applying||isEditing())return;
+  applying=true;
+  fetch('/api/state',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('state');return r.json()}).then(function(res){
+    if(!res||!res.state||res.rev<=serverRev||isEditing())return;
+    serverRev=res.rev;
+    db=fixupSafe(JSON.parse(JSON.stringify(res.state)));
+    db.rev=serverRev;
+    renderAll();
+    loadTodayActivity();
+    toast('Updated with changes from another computer.');
+  }).catch(function(){}).then(function(){applying=false});
+}
+function liveLoop(){
+  fetch('/api/changes?since='+serverRev+'&wait=25',{cache:'no-store'})
+   .then(function(r){if(!r.ok)throw new Error('changes');return r.json()})
+   .then(function(res){
+     liveFails=0;setConn(true);
+     var behind=res.rev>serverRev;
+     if(behind)applyServerUpdate();
+     setTimeout(liveLoop,behind?500:0);
+   })
+   .catch(function(){liveFails++;setConn(false);setTimeout(liveLoop,Math.min(30000,1000*liveFails))});
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function pad(n){return n<10?'0'+n:''+n}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function today(){return ymd(new Date())}
+function addDays(s,n){var m=s.split('-');return ymd(new Date(+m[0],+m[1]-1,+m[2]+n))}
+function isDate(v){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec((v||'').trim());if(!m)return false;var y=+m[1],mo=+m[2],d=+m[3],t=new Date(y,mo-1,d);return y>=2000&&y<=2100&&t.getFullYear()===y&&t.getMonth()===mo-1&&t.getDate()===d}
+function fmt(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||'');return m?m[2]+'/'+m[3]+'/'+m[1]:'—'}
+function posInt(v){v=String(v==null?'':v).trim();return /^\d+$/.test(v)?parseInt(v,10):NaN}
+function iso(){return new Date().toISOString()}
+function $(id){return document.getElementById(id)}
+function isEnter(e){return e.key==='Enter'||e.keyCode===13}
+var toastT;
+function toast(msg,bad){var t=$('toast');t.textContent=msg;t.className=bad?'bad':'';t.style.display='block';clearTimeout(toastT);toastT=setTimeout(function(){t.style.display='none'},bad?9000:4500)}
+$('toast').onclick=function(){this.style.display='none'};
+function openModal(title,html){$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modal').className='modal on'}
+window.closeModal=function(){$('modal').className='modal'};
+function inmateById(id){return db.inmates.find(function(x){return x.id===id})}
+function activeInmate(id){return db.inmates.some(function(x){return x.id===id})}
+function itemById(id){return db.items.find(function(x){return x.id===id})}
+function itemName(id){var it=itemById(id);return it?it.name:id}
+function next(type){db.seq[type]=(db.seq[type]||1000)+1;return db.seq[type]}
+function dateInput(id,label,value){return '<label>'+label+'<input type="date" id="'+id+'" placeholder="YYYY-MM-DD" value="'+(value===''?'':(value||today()))+'"></label>'}
+function options(arr,selected){return arr.map(function(x){return '<option value="'+esc(x)+'"'+(String(x)===String(selected)?' selected':'')+'>'+esc(x===''?'— choose —':x)+'</option>'}).join('')}
+function words(q){return q.trim().toLowerCase().split(/\s+/).filter(Boolean)}
+function matches(i,ws){var h=(i.mdoc+' '+i.first+' '+i.last+' '+(i.zone||'')).toLowerCase();return ws.every(function(w){return h.indexOf(w)>-1})}
+function byName(a,b){return (a.last+a.first).toLowerCase()<(b.last+b.first).toLowerCase()?-1:1}
+
+Array.prototype.forEach.call(document.querySelectorAll('#tabs button'),function(b){
+ b.onclick=function(){
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs button'),function(x){x.className=''});
+  Array.prototype.forEach.call(document.querySelectorAll('main section'),function(x){x.className=''});
+  b.className='on';$(b.getAttribute('data-t')).className='on';renderAll();if(b.getAttribute('data-t')==='setup')loadAudit();if(b.getAttribute('data-t')==='dashboard')loadTodayActivity();
+ };
+});
+
+/* ---------- INMATES ---------- */
+function renderInmates(){
+ var ws=words($('q').value),box=$('inmateResults');
+ if(!db.inmates.length){box.innerHTML='<div class="empty">No active inmates yet. Press + NEW INMATE to add one.</div>';return}
+ var all=db.inmates.filter(function(i){return matches(i,ws)}).sort(byName);
+ if(!all.length){box.innerHTML='<div class="empty">No match found. Check the spelling or number.</div>';return}
+ var list=all.slice(0,100);
+ box.innerHTML='<table><thead><tr><th>MDOC</th><th>Name</th><th>Zone</th><th>Shirt</th><th>Pants</th><th>Pants Color</th><th>Shoe</th></tr></thead><tbody>'+
+ list.map(function(i){return '<tr class="clickrow" data-id="'+esc(i.id)+'"><td>'+esc(i.mdoc)+'</td><td>'+esc(i.last+', '+i.first)+(i.hasProperty?'<span class="propbadge">PROPERTY</span>':'')+'</td><td>'+esc(i.zone)+'</td><td>'+esc(i.sizes.shirt||'—')+'</td><td>'+esc(i.sizes.pants||'—')+'</td><td>'+esc(i.sizes.pantsColor||'—')+'</td><td>'+esc(i.sizes.shoe||'—')+'</td></tr>'}).join('')+
+ '</tbody></table>'+(all.length>100?'<p class="note">Showing the first 100 of '+all.length+'. Type more of the name or number to narrow the list.</p>':'');
+ Array.prototype.forEach.call(box.querySelectorAll('.clickrow'),function(r){r.onclick=function(){showInmate(r.getAttribute('data-id'))}});
+}
+$('go').onclick=renderInmates;
+$('q').onkeydown=function(e){if(isEnter(e))renderInmates()};
+var SZ=['','L','XL','2X','3X','4X','5X','6X'];
+function inmateForm(i){
+ i=i||{mdoc:'',first:'',last:'',zone:'',intakeDate:today(),sizes:{}};
+ return '<div class="grid"><label>MDOC Number<input id="imdoc" value="'+esc(i.mdoc)+'"></label><label>First Name<input id="ifirst" value="'+esc(i.first)+'"></label><label>Last Name<input id="ilast" value="'+esc(i.last)+'"></label><label>Current Zone<input id="izone" value="'+esc(i.zone)+'" placeholder="Example: A-2"></label>'+dateInput('iintake','Intake Date',i.intakeDate)+'</div>'+
+ '<h3>Intake Sizes</h3><div class="grid"><label>Shirt<select id="ishirt">'+options(SZ,i.sizes.shirt)+'</select></label><label>Pants Size<select id="ipants">'+options(SZ,i.sizes.pants)+'</select></label><label>Pants Color<select id="ipcolor">'+options([''].concat(PCOL),i.sizes.pantsColor)+'</select></label><label>Shorts Size<select id="ishorts">'+options(SZ,i.sizes.shorts)+'</select></label><label>Boxers<select id="iboxers">'+options(SZ,i.sizes.boxers)+'</select></label><label>Shoe Size<select id="ishoe">'+options(['','8','9','10','11','12','13','14'],i.sizes.shoe)+'</select></label><label>Shower Shoes<select id="ishowershoes">'+options(['','L','XL','XXL'],i.sizes.showershoes)+'</select></label></div>'+
+ '<div class="propbox"><label style="margin:0"><input type="checkbox" id="ihasprop"'+(i.hasProperty?' checked':'')+'> This inmate has PROPERTY being stored</label></div><label>Notes (if property is stored, describe it here)<textarea id="inotes">'+esc(i.notes||'')+'</textarea></label><div class="row" style="margin-top:18px"><button class="btn green" id="saveInmate">SAVE INMATE</button></div>';
+}
+function histTable(id,limit,canVoid){
+ var h=db.issues.filter(function(x){return x.inmateId===id}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:(a.id<b.id?1:-1)});
+ if(!h.length)return '<div class="empty">No issue history.</div>';
+ return '<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th>Qty</th><th>Zone then</th><th>Request</th><th>Reason</th><th>Comments / Actions</th></tr></thead><tbody>'+h.slice(0,limit||500).map(function(x){var v=x.voided;return '<tr'+(v?' style="color:#888;text-decoration:line-through"':'')+'><td>'+fmt(x.date)+'</td><td>'+esc(itemName(x.itemId))+'</td><td>'+esc(x.size||'—')+'</td><td>'+x.qty+'</td><td>'+esc(x.zone||'—')+'</td><td>'+esc(x.requestId?x.requestId:x.type||'—')+'</td><td>'+(v?'VOIDED: '+esc(x.voidReason||''):esc(x.reason||'—'))+'</td>'+'<td><button class="btn small grey" onclick="showIssueComments(\''+x.id+'\')">COMMENTS ('+commentList('issue',x.id).length+')</button>'+(canVoid&&!v?' <button class="btn small orange" onclick="voidIssue(\''+x.id+'\')">VOID</button>':'')+'</td></tr>'}).join('')+'</tbody></table>'+(limit&&h.length>limit?'<p class="note">Showing the '+limit+' most recent.</p>':'');
+}
+window.showInmate=function(id){
+ var i=inmateById(id);if(!i)return;var act=i.status==='active';
+ openModal(i.first+' '+i.last,
+ '<div class="card"><b>MDOC:</b> '+esc(i.mdoc)+'<br><b>Current Zone:</b> '+esc(i.zone||'—')+'<br><b>Intake Date:</b> '+fmt(i.intakeDate)+(i.hasProperty?'<br><b class="neg">⚠ HAS STORED PROPERTY</b>':'')+(i.notes?'<br><b>Notes:</b> '+esc(i.notes):'')+'</div>'+
+ '<h3>Intake Sizes</h3><table><tr><th>Shirt</th><th>Pants</th><th>Pants Color</th><th>Shorts</th><th>Boxers</th><th>Shoe</th><th>Shower Shoes</th></tr><tr><td>'+esc(i.sizes.shirt||'—')+'</td><td>'+esc(i.sizes.pants||'—')+'</td><td>'+esc(i.sizes.pantsColor||'—')+'</td><td>'+esc(i.sizes.shorts||'—')+'</td><td>'+esc(i.sizes.boxers||'—')+'</td><td>'+esc(i.sizes.shoe||'—')+'</td><td>'+esc(i.sizes.showershoes||'—')+'</td></tr></table>'+
+ (act?'<div class="row" style="margin-top:15px"><button class="btn" onclick="editInmate(\''+id+'\')">EDIT PROFILE</button><button class="btn green" onclick="newRequestFor(\''+id+'\')">NEW REQUEST</button><button class="btn orange" onclick="intakeIssue(\''+id+'\')">RECORD INTAKE ISSUE</button><button class="btn red" onclick="removeInmate(\''+id+'\')">REMOVE FROM ROSTER</button></div>':'')+
+ '<h3>Issue History</h3>'+histTable(id,0,true)+commentsHTML('inmate',id));
+};
+window.editInmate=function(id){var i=inmateById(id);openModal('Edit Inmate',inmateForm(i));$('saveInmate').onclick=function(){saveInmate(i)}};
+function saveInmate(existing,skip){
+ var m=$('imdoc').value.trim().toUpperCase(),f=$('ifirst').value.trim(),l=$('ilast').value.trim(),z=$('izone').value.trim(),d=$('iintake').value.trim();
+ if(!m||!f||!l){toast('MDOC number, first name and last name are required.',true);return}
+ if(!z){toast('Enter the current zone.',true);return}
+ if($('ihasprop').checked&&!$('inotes').value.trim()){toast('Property is checked. Describe the property in Notes.',true);return}
+ if($('ipants').value&&!$('ipcolor').value){toast('Choose the pants color (Green/White or Black/White).',true);return}
+ if(!isDate(d)){toast('Intake date must look like 2026-09-30.',true);return}
+ if(db.inmates.some(function(x){return x.mdoc===m&&(!existing||x.id!==existing.id)})){toast('That MDOC number is already on the active roster.',true);return}
+  var obj=existing||{id:'i'+next('inmate'),dateAdded:iso(),status:'active'};
+ obj.mdoc=m;obj.first=f;obj.last=l;obj.zone=z;obj.intakeDate=d;obj.notes=$('inotes').value.trim();obj.hasProperty=$('ihasprop').checked;
+ obj.sizes={shirt:$('ishirt').value,pants:$('ipants').value,pantsColor:$('ipcolor').value,shorts:$('ishorts').value,boxers:$('iboxers').value,shoe:$('ishoe').value,showershoes:$('ishowershoes').value};
+ if(!existing)db.inmates.push(obj);
+ if(!save()){if(!existing)db.inmates.pop();toast('DATA NOT SAVED. Do not continue — see the red message at the top.',true);return}
+ closeModal();renderAll();toast(existing?'Inmate updated.':'Inmate added.');
+ if(!existing&&!skip&&confirm('Record the intake issue for '+f+' '+l+' now?'))window.intakeIssue(obj.id);
+}
+$('newInmateNoIssue').onclick=function(){openModal('New Inmate (no state issue)',inmateForm());$('saveInmate').onclick=function(){saveInmate(null,true)}};
+$('newInmate').onclick=function(){openModal('New Inmate',inmateForm());$('saveInmate').onclick=function(){saveInmate(null)}};
+window.newRequestFor=function(id){closeModal();openRequest(id)};
+window.removeInmate=function(id){
+ var i=inmateById(id);if(!i)return;
+ openModal('Remove '+i.first+' '+i.last,(i.hasProperty?'<div class="warnbox"><b>⚠ PROPERTY REMINDER</b><br>This inmate has stored property. Make sure it is returned or sent with him before he leaves.<br><b>Notes:</b> '+esc(i.notes||'(none written)')+'</div>':'')+'<p><b>His name, MDOC number, sizes, notes, requests and reminders will be permanently erased.</b></p><p>What was issued to him stays in the issue history, reports and inventory, but is no longer linked to his name. This cannot be undone.</p><div class="row" style="margin-top:18px"><button class="btn red" id="doRemove">REMOVE FROM ROSTER</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');
+ $('doRemove').onclick=function(){
+  if(!confirm('Remove '+i.first+' '+i.last+' and ERASE his personal information?\n\n'+(i.hasProperty?'REMINDER: HE HAS STORED PROPERTY.\n\n':'')+'Issued items stay in the books. This cannot be undone.'))return;
+  if(!tx(function(){var idx=db.inmates.findIndex(function(x){return x.id===id});if(idx<0)throw new Error('gone');db.inmates.splice(idx,1);purgeInmateData(db,id)}))return;
+  closeModal();renderAll();toast('Inmate removed. Issue records kept for the books.');
+ };
+};
+
+/* ---------- save helper: undo everything if saving fails ---------- */
+function tx(fn){
+ var snap=JSON.stringify(db);
+ try{fn()}catch(e){db=JSON.parse(snap);toast('Something went wrong. Nothing was changed.',true);return false}
+ if(!save()){db=JSON.parse(snap);toast('DATA NOT SAVED. Nothing was changed.',true);return false}
+ return true;
+}
+function getInventory(itemId,size){return db.txns.filter(function(t){return t.itemId===itemId&&t.size===size}).reduce(function(a,t){return a+t.qty},0)}
+function sizesOf(it){return it&&it.sizes.length?it.sizes:['N/A']}
+function fillSizes(sel,it,pref){sel.innerHTML=sizesOf(it).map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('');if(pref&&sizesOf(it).indexOf(pref)>-1)sel.value=pref}
+function activeItems(){return db.items.filter(function(x){return x.active})}
+function itemOpts(){return activeItems().map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>'}).join('')}
+
+/* ---------- DASHBOARD / REMINDERS ---------- */
+function reminderStatus(r){return r.status||'open'}
+function reminderOpen(r){return reminderStatus(r)!=='completed'&&reminderStatus(r)!=='cancelled'}
+function reminderLabel(t){return t==='outstanding'?'OUTSTANDING ISSUE':t==='inventory'?'INVENTORY ALERT':t==='request'?'REQUEST':'MANUAL'}
+function reminderForIssue(inmateId,itemId,size){return db.reminders.filter(function(r){return r.type==='outstanding'&&reminderOpen(r)&&r.inmateId===inmateId&&r.itemId===itemId&&r.size===size})[0]}
+function upsertOutstanding(inmateId,itemId,size,qty,requestId,notes){
+ if(qty<1)return;
+ var r=reminderForIssue(inmateId,itemId,size);
+ if(r){r.qtyOwed=qty;r.requestId=requestId||r.requestId;r.message='Issue '+qty+' '+itemName(itemId)+' ('+size+') when stock is available.';r.updated=iso();return r}
+ r={id:'RM'+next('reminder'),type:'outstanding',status:'open',priority:'high',created:iso(),dueDate:'',inmateId:inmateId,itemId:itemId,size:size,qtyOwed:qty,requestId:requestId||'',message:'Issue '+qty+' '+itemName(itemId)+' ('+size+') when stock is available.',notes:notes||'',completedDate:'',completedAction:''};db.reminders.push(r);return r
+}
+function clearOutstandingIfSatisfied(inmateId,itemId,size){
+ var r=reminderForIssue(inmateId,itemId,size);if(r){r.status='completed';r.completedDate=today();r.completedAction='Automatically completed after the outstanding quantity was fully issued.';return true}return false
+}
+function lowStockLevel(itemId,size){return parseInt(db.settings.minStock[itemId+'|'+size]||0,10)||0}
+function lowStockRows(){var a=[];activeItems().forEach(function(it){sizesOf(it).forEach(function(sz){var min=lowStockLevel(it.id,sz),q=getInventory(it.id,sz);if(min>0&&q<=min)a.push({itemId:it.id,size:sz,qty:q,min:min})})});return a}
+function openReminderForm(existing){
+ var r=existing||{};
+ var imOpts='<option value="">— none —</option>'+db.inmates.slice().sort(byName).map(function(i){return '<option value="'+esc(i.id)+'"'+(r.inmateId===i.id?' selected':'')+'>'+esc(i.last+', '+i.first+' — '+i.mdoc)+'</option>'}).join('');
+ var itOpts='<option value="">— none —</option>'+activeItems().map(function(it){return '<option value="'+esc(it.id)+'"'+(r.itemId===it.id?' selected':'')+'>'+esc(it.name)+'</option>'}).join('');
+ openModal(existing?'Edit Reminder':'New Reminder','<div class="grid"><label>Reminder<input id="rmMsg" value="'+esc(r.message||'')+'"></label><label>Priority<select id="rmPri">'+options(['high','normal','low'],r.priority||'normal')+'</select></label></div><div class="grid">'+dateInput('rmDue','Due Date',r.dueDate||'')+'<label>Inmate<select id="rmInmate">'+imOpts+'</select></label><label>Item<select id="rmItem">'+itOpts+'</select></label><label>Size<select id="rmSize"></select></label></div><label>Notes<textarea id="rmNotes">'+esc(r.notes||'')+'</textarea></label><div class="row"><button class="btn green" id="saveReminder">SAVE REMINDER</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');
+ function bind(){var it=itemById($('rmItem').value);fillSizes($('rmSize'),it,r.size);}
+ $('rmItem').onchange=bind;bind();
+ $('saveReminder').onclick=function(){var msg=$('rmMsg').value.trim(),due=$('rmDue').value.trim();if(!msg){toast('Enter a reminder.',true);return}if(due&&!isDate(due)){toast('Due date must look like 2026-09-30.',true);return}if(tx(function(){if(existing){existing.message=msg;existing.priority=$('rmPri').value;existing.dueDate=due;existing.inmateId=$('rmInmate').value;existing.itemId=$('rmItem').value;existing.size=$('rmSize').value;existing.notes=$('rmNotes').value.trim();existing.updated=iso()}else db.reminders.push({id:'RM'+next('reminder'),type:'manual',status:'open',priority:$('rmPri').value,created:iso(),dueDate:due,inmateId:$('rmInmate').value,itemId:$('rmItem').value,size:$('rmSize').value,qtyOwed:0,requestId:'',message:msg,notes:$('rmNotes').value.trim(),completedDate:'',completedAction:''})})){closeModal();renderAll();toast(existing?'Reminder updated.':'Reminder created.')}};
+}
+function reminderAction(id,action){var r=db.reminders.find(function(x){return x.id===id});if(!r)return;if(action==='edit'){openReminderForm(r);return}if(action==='complete'){if(tx(function(){r.status='completed';r.completedDate=today();r.completedAction='Completed manually.'})){renderAll();toast('Reminder completed.')}return}if(action==='cancel'){if(tx(function(){r.status='cancelled';r.completedDate=today();r.completedAction='Cancelled manually.'})){renderAll();toast('Reminder cancelled.')}}}
+function dashboardReminderRows(showCompleted){
+ var list=db.reminders.filter(function(r){return showCompleted?true:reminderOpen(r)});
+ if(!list.length)return '<div class="empty">No '+(showCompleted?'reminders':'open reminders')+'.</div>';
+ var groups={};
+ list.forEach(function(r){
+   var i=r.inmateId?inmateById(r.inmateId):null;
+   var key=r.inmateId||'__none__';
+   if(!groups[key])groups[key]={inmate:i,rows:[]};
+   groups[key].rows.push(r);
+ });
+ var keys=Object.keys(groups).sort(function(a,b){
+   var A=groups[a].inmate,B=groups[b].inmate;
+   if(!A)return -1;if(!B)return 1;return byName(A,B);
+ });
+ return '<div class="reminderGroups"><div class="note" style="margin:0 0 8px 2px"><b>REMINDERS BY INMATE</b> — click a name to view their items</div>'+keys.map(function(key,gn){
+   var g=groups[key],i=g.inmate,name=i?(i.first+' '+i.last):'General Reminder';
+   var openCount=g.rows.filter(function(x){return reminderOpen(x)}).length;
+   var totalCount=g.rows.length;
+   g.rows.sort(function(a,b){
+     var ad=a.dueDate||'9999-12-31',bd=b.dueDate||'9999-12-31';
+     return ad<bd?-1:ad>bd?1:(a.priority==='high'?-1:b.priority==='high'?1:0);
+   });
+   var body='<div class="reminderGroupBody" id="remBody'+gn+'" style="display:none"><table><thead><tr><th>Status</th><th>Priority</th><th>Reminder</th><th>Due</th><th></th></tr></thead><tbody>'+g.rows.map(function(r){
+     var over=r.dueDate&&r.dueDate<today()&&reminderOpen(r);
+     return '<tr class="'+(reminderOpen(r)?'':'doneRow')+'"><td><span class="badge '+(reminderOpen(r)?'':(r.status==='completed'?'green':'red'))+'">'+(reminderOpen(r)?'Open':(r.status==='completed'?'Done':'Cancelled'))+'</span></td><td>'+esc((r.priority||'normal').toUpperCase())+(over?' <span class="neg">OVERDUE</span>':'')+'</td><td><b>'+esc(reminderLabel(r.type))+'</b><br>'+esc(r.message||'')+(r.type==='outstanding'?'<br><span class="note">Owed: '+r.qtyOwed+' × '+esc(itemName(r.itemId))+' ('+esc(r.size)+')</span>':'')+'</td><td>'+esc(r.dueDate?fmt(r.dueDate):'When available')+'</td><td>'+(r.type==='outstanding'&&reminderOpen(r)&&i?'<button class="btn green small" onclick="issueOutstanding(\''+r.id+'\')">ISSUE</button> ':'')+(reminderOpen(r)?'<button class="btn small" onclick="reminderAction(\''+r.id+'\',\'edit\')">EDIT</button> <button class="btn grey small" onclick="reminderAction(\''+r.id+'\',\'complete\')">DONE</button> <button class="btn red small" onclick="reminderAction(\''+r.id+'\',\'cancel\')">CANCEL</button>':'')+'</td></tr>';
+   }).join('')+'</tbody></table></div>';
+   return '<div class="reminderGroup card"><button type="button" class="reminderDrop" onclick="toggleReminderGroup('+gn+')" aria-expanded="false"><span class="reminderArrow">▶</span><span class="reminderName">'+esc(name)+'</span><span class="badge '+(openCount?'orange':'green')+'">'+openCount+' open'+(showCompleted?' / '+totalCount+' total':'')+'</span></button>'+body+'</div>';
+ }).join('')+'</div>';
+}
+window.toggleReminderGroup=function(n){
+ var b=$('remBody'+n);if(!b)return;
+ var btn=b.previousElementSibling,arrow=btn.querySelector('.reminderArrow');
+ var open=b.style.display!=='none';
+ b.style.display=open?'none':'block';
+ if(arrow)arrow.textContent=open?'▶':'▼';
+ btn.setAttribute('aria-expanded',String(!open));
+};
+$('newReminder').onclick=function(){openReminderForm()};$('showCompletedReminders').onclick=function(){showCompletedRem=!showCompletedRem;renderDashboard()};
+function dashboardRequestGroups(kind){
+ var list=db.requests.filter(function(r){
+   if(!activeInmate(r.inmateId))return false;
+   if(kind==='pending')return reqNeedsDecision(r);
+   if(kind==='approved')return reqNeedsIssue(r);
+   return false;
+ });
+ if(!list.length)return '<div class="empty">None.</div>';
+ var groups={};
+ list.forEach(function(r){var key=r.inmateId||'__none__';if(!groups[key])groups[key]={inmate:inmateById(r.inmateId),rows:[]};groups[key].rows.push(r)});
+ var keys=Object.keys(groups).sort(function(a,b){var A=groups[a].inmate,B=groups[b].inmate;if(!A)return 1;if(!B)return -1;return byName(A,B)});
+ return keys.map(function(key,n){var g=groups[key],i=g.inmate,name=i?(i.first+' '+i.last):'Removed inmate';
+   var body='<div class="reminderGroupBody" id="dashReqBody'+kind+n+'" style="display:none"><table><thead><tr><th>Date</th><th>Request</th><th>Status</th><th>Items</th><th></th></tr></thead><tbody>'+g.rows.map(function(r){
+     var items=db.requestItems.filter(function(x){return x.requestId===r.id});
+     var summary=items.map(function(x){return esc(itemName(x.itemId))+' ('+esc(x.size)+') ×'+x.qty+(x.decision!=='approved'?' — '+(x.decision==='denied'?'denied':'needs decision'):'')+(x.issuedQty?' — '+x.issuedQty+' issued':'')}).join('<br>');
+     return '<tr><td>'+fmt(r.date)+'</td><td>'+esc(r.id)+'</td><td>'+statusBadge(r.status)+'</td><td>'+summary+'</td><td><button class="btn small" onclick="viewRequest(\''+r.id+'\')">OPEN</button></td></tr>';
+   }).join('')+'</tbody></table></div>';
+   return '<div class="reminderGroup card"><button type="button" class="reminderDrop" onclick="toggleDashboardGroup(\''+kind+'\','+n+')" aria-expanded="false"><span class="reminderArrow">▶</span><span class="reminderName">'+esc(name)+'</span><span class="badge orange">'+g.rows.length+' request'+(g.rows.length===1?'':'s')+'</span></button>'+body+'</div>';
+ }).join('');
+}
+window.toggleDashboardGroup=function(kind,n){var b=$('dashReqBody'+kind+n);if(!b)return;var btn=b.previousElementSibling,arrow=btn.querySelector('.reminderArrow'),open=b.style.display!=='none';b.style.display=open?'none':'block';if(arrow)arrow.textContent=open?'▶':'▼';btn.setAttribute('aria-expanded',String(!open));};
+function renderDashboard(){
+ var pending=db.requests.filter(function(r){return activeInmate(r.inmateId)&&reqNeedsDecision(r)}).length;
+ var awaiting=db.requestItems.filter(function(x){var rq=db.requests.filter(function(r){return r.id===x.requestId})[0];return rq&&activeInmate(rq.inmateId)&&x.decision==='approved'&&x.issuedQty<x.qty}).length;
+ var low=lowStockRows().length;
+ var rem=db.reminders.filter(function(r){return reminderOpen(r)}).length;
+ $('dashboardStats').innerHTML='<div class="stat">REQUESTS NEEDING A DECISION<b>'+pending+'</b></div><div class="stat">APPROVED ITEMS TO ISSUE<b>'+awaiting+'</b></div><div class="stat">LOW-STOCK ALERTS<b>'+low+'</b></div><div class="stat">OPEN REMINDERS<b>'+rem+'</b></div>';
+ var action='';
+ if(pending)action+='<div class="card"><h3 style="margin-top:0">REQUESTS NEEDING A DECISION ('+pending+')</h3>'+dashboardRequestGroups('pending')+'</div>';
+ if(awaiting)action+='<div class="card"><h3 style="margin-top:0">APPROVED / NOT FULLY ISSUED ('+awaiting+')</h3>'+dashboardRequestGroups('approved')+'</div>';
+ if(low){action+='<div class="card"><h3 style="margin-top:0">LOW STOCK ('+low+')</h3><table><thead><tr><th>Item</th><th>Size</th><th>Stock</th><th>Minimum</th></tr></thead><tbody>'+lowStockRows().map(function(x){return '<tr><td>'+esc(itemName(x.itemId))+'</td><td>'+esc(x.size)+'</td><td class="neg"><b>'+x.qty+'</b></td><td>'+x.min+'</td></tr>'}).join('')+'</tbody></table></div>'}
+ $('dashboardActions').innerHTML=action||'<div class="empty">No requests or low-stock alerts need attention.</div>';
+ $('dashboardReminders').innerHTML=dashboardReminderRows(showCompletedRem);
+}
+
+window.issueOutstanding=function(id){var r=db.reminders.find(function(x){return x.id===id});if(!r)return;var i=inmateById(r.inmateId),avail=getInventory(r.itemId,r.size),q=Math.min(r.qtyOwed,avail);if(!i||i.status!=='active'){toast('This inmate is not on the active roster.',true);return}if(!q){toast('No stock is currently available.',true);return}openModal('Issue Outstanding Item','<div class="card"><b>'+esc(i.first+' '+i.last)+'</b><br>'+esc(itemName(r.itemId))+' — '+esc(r.size)+'<br>Owed: <b>'+r.qtyOwed+'</b><br>In stock: <b>'+avail+'</b></div><label>Quantity to issue<input type="number" id="outQty" min="1" max="'+q+'" value="'+q+'"></label><div class="row"><button class="btn green" id="doOut">RECORD ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');$('doOut').onclick=function(){
+  if(busy)return;
+  var q2=posInt($('outQty').value);if(isNaN(q2)||q2<1||q2>r.qtyOwed||q2>getInventory(r.itemId,r.size)){toast('Enter a quantity within the available stock and amount owed.',true);return}
+  if(r.requestId){var lri=db.requestItems.find(function(x){return x.requestId===r.requestId&&x.itemId===r.itemId&&x.size===r.size});if(!lri||lri.decision!=='approved'||lri.qty-lri.issuedQty<q2){toast('This reminder no longer matches its request. Open the request and check it.',true);return}}
+  if(!confirm('Record '+q2+' '+itemName(r.itemId)+' ('+r.size+') for '+i.first+' '+i.last+'?'))return;
+  busy=true;
+  var ok=tx(function(){var iss={id:'I'+next('issue'),requestId:r.requestId||'',type:'Outstanding',inmateId:i.id,date:today(),zone:i.zone,itemId:r.itemId,size:r.size,qty:q2,reason:'Outstanding issue',notes:'Reminder '+r.id};db.issues.push(iss);db.txns.push({id:'T'+next('txn'),date:today(),itemId:r.itemId,size:r.size,qty:-q2,type:'Issue',issueId:iss.id,notes:'Outstanding issue to MDOC '+i.mdoc});r.qtyOwed-=q2;if(r.requestId){var ri=db.requestItems.find(function(x){return x.requestId===r.requestId&&x.itemId===r.itemId&&x.size===r.size});if(ri)ri.issuedQty+=q2}if(r.qtyOwed<=0){r.qtyOwed=0;r.status='completed';r.completedDate=today();r.completedAction='Fully issued from outstanding reminder.'}});
+  busy=false;if(ok){closeModal();renderAll();toast('Outstanding issue recorded.')}
+ }}
+function inventoryCheck(){
+ var rows=[];activeItems().forEach(function(it){sizesOf(it).forEach(function(sz){rows.push({itemId:it.id,size:sz,system:getInventory(it.id,sz),physical:''})})});
+ if(!rows.length){toast('No active inventory items.',true);return}
+ openModal('Monthly Inventory Check','<p class="note">Enter the physical count for every item/size. The system quantity is shown for comparison. Nothing changes until you review the differences and choose to apply them.</p><div class="row"><button class="btn grey small" id="fillSystem">FILL SYSTEM COUNTS</button></div><div style="overflow:auto"><table><thead><tr><th>Item</th><th>Size</th><th>System</th><th>Physical</th><th>Difference</th></tr></thead><tbody>'+rows.map(function(x,n){return '<tr data-ic="'+n+'"><td>'+esc(itemName(x.itemId))+'</td><td>'+esc(x.size)+'</td><td class="icsys">'+x.system+'</td><td><input class="icphys" type="number" min="0" value="" style="min-width:100px"></td><td class="icdiff">—</td></tr>'}).join('')+'</tbody></table></div><div class="row" style="margin-top:14px"><button class="btn green" id="reviewCheck">REVIEW DIFFERENCES</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');
+ $('fillSystem').onclick=function(){Array.prototype.forEach.call(document.querySelectorAll('.icphys'),function(el,n){el.value=rows[n].system});updateDiffs()};
+ function updateDiffs(){Array.prototype.forEach.call(document.querySelectorAll('tr[data-ic]'),function(tr,n){var v=posInt(tr.querySelector('.icphys').value);tr.querySelector('.icdiff').textContent=isNaN(v)?'—':(v-rows[n].system>0?'+':'')+(v-rows[n].system)})}
+ Array.prototype.forEach.call(document.querySelectorAll('.icphys'),function(el){el.oninput=updateDiffs});
+ $('reviewCheck').onclick=function(){var counts=[],missing=false;Array.prototype.forEach.call(document.querySelectorAll('.icphys'),function(el,n){var v=posInt(el.value);if(isNaN(v)){missing=true;return}counts.push({itemId:rows[n].itemId,size:rows[n].size,system:rows[n].system,physical:v,diff:v-rows[n].system})});if(missing){toast('Enter a physical count for every row.',true);return}var dif=counts.filter(function(x){return x.diff!==0});var html='<h3>Inventory Check Summary</h3><p>Checked '+counts.length+' item/size records. '+(dif.length?'There are <b>'+dif.length+' differences</b>.':'All counts match the system.')+'</p>'+(dif.length?'<table><thead><tr><th>Item</th><th>Size</th><th>System</th><th>Physical</th><th>Difference</th></tr></thead><tbody>'+dif.map(function(x){return '<tr><td>'+esc(itemName(x.itemId))+'</td><td>'+esc(x.size)+'</td><td>'+x.system+'</td><td>'+x.physical+'</td><td class="'+(x.diff<0?'neg':'')+'">'+(x.diff>0?'+':'')+x.diff+'</td></tr>'}).join('')+'</tbody></table>':'')+'<div class="row" style="margin-top:14px"><button class="btn green" id="saveCheck">SAVE CHECK'+(dif.length?' & ADJUST INVENTORY':'')+'</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div><p class="note">Saving with differences records an Inventory Check transaction for each difference. This is the monthly audit trail.</p>';openModal('Review Monthly Inventory Check',html);$('saveCheck').onclick=function(){if(!confirm(dif.length?'Save this inventory check and adjust the system quantities to match the physical count?':'Save this inventory check?'))return;if(tx(function(){var cid='IC'+next('inventoryCheck'),d=today();db.inventoryChecks.push({id:cid,date:d,rows:counts,differences:dif.length});dif.forEach(function(x){db.txns.push({id:'T'+next('txn'),date:d,itemId:x.itemId,size:x.size,qty:x.diff,type:'Inventory Check',checkId:cid,notes:'Monthly physical count: system '+x.system+', physical '+x.physical})})})){closeModal();renderAll();toast(dif.length?'Inventory check saved and inventory adjusted.':'Inventory check saved — all counts matched.')}}}
+}
+$('inventoryCheck').onclick=inventoryCheck;
+window.inventoryCheck=inventoryCheck;window.reminderAction=reminderAction;
+
+/* ---------- INTAKE ISSUE ---------- */
+function prefSize(i,id){var z=(i&&i.sizes)||{},m={shirt:z.shirt,jacket:z.shirt,pants:z.pants,shorts:z.shorts,boxers:z.boxers,shoes:z.shoe,showershoes:z.showershoes}[id]||'';return (id==='pants'&&m&&z.pantsColor)?m+' - '+z.pantsColor:m}
+var INTAKE={shirt:3,pants:2,boxers:3,towel:2,jacket:1,shoes:1,showershoes:1};
+var INTAKE_SIZE={shirt:'shirt',pants:'pants',boxers:'boxers',jacket:'shirt',shoes:'shoe',showershoes:'showershoes'};
+window.intakeIssue=function(id){
+ var i=inmateById(id);if(!i||i.status!=='active')return;
+ var rows=activeItems().map(function(it){var pref=prefSize(i,it.id);
+  return '<div class="itemline intline" data-item="'+esc(it.id)+'"><label class="wide">'+esc(it.name)+'</label><label>Size<select class="isz">'+sizesOf(it).map(function(s){return '<option'+(s===pref?' selected':'')+'>'+esc(s)+'</option>'}).join('')+'</select></label><label class="qtyf">Qty<input class="iq" type="number" min="0" value="'+(INTAKE[it.id]||0)+'"></label></div>'}).join('');
+ closeModal();openModal('Intake Issue — '+i.first+' '+i.last,'<p class="note">Change any quantity. Use 0 for items not issued. Inventory goes down when you press RECORD.</p>'+rows+'<div class="row" style="margin-top:14px"><button class="btn green" id="doIntake">RECORD INTAKE ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');
+ $('doIntake').onclick=function(){
+  var lines=[],need={},bad='';
+  Array.prototype.forEach.call(document.querySelectorAll('.intline'),function(l){var q=posInt(l.querySelector('.iq').value);if(isNaN(q)){bad='Quantities must be whole numbers.';return}if(q>0){var it=l.getAttribute('data-item'),sz=l.querySelector('.isz').value;lines.push({itemId:it,size:sz,qty:q});need[it+'|'+sz]=(need[it+'|'+sz]||0)+q}});
+  if(bad){toast(bad,true);return}
+  if(!lines.length){toast('Enter at least one quantity.',true);return}
+  var shortages=[];lines.forEach(function(l){var av=Math.max(0,getInventory(l.itemId,l.size));if(l.qty>av)shortages.push({itemId:l.itemId,size:l.size,requested:l.qty,available:av,owed:l.qty-av})});
+  if(shortages.length){shortages.forEach(function(x){var line=lines.find(function(l){return l.itemId===x.itemId&&l.size===x.size});if(line)line.qty=x.available})}
+  var msg='Record the intake issue for '+i.first+' '+i.last+'?';if(shortages.length)msg+='\n\nSome items are short. Available stock will be issued now and the remainder will be placed on the Dashboard as an outstanding reminder.';
+  if(!confirm(msg))return;
+  var d=today();
+  if(tx(function(){lines.forEach(function(l){if(l.qty<1)return;var iss={id:'I'+next('issue'),requestId:'',type:'New Arrival',inmateId:i.id,date:d,zone:i.zone,itemId:l.itemId,size:l.size,qty:l.qty,reason:'New Arrival',notes:'Intake issue'};db.issues.push(iss);db.txns.push({id:'T'+next('txn'),date:d,itemId:l.itemId,size:l.size,qty:-l.qty,type:'Issue',issueId:iss.id,notes:'Intake issue to MDOC '+i.mdoc})});shortages.forEach(function(x){upsertOutstanding(i.id,x.itemId,x.size,x.owed,'','Intake shortage')})})){closeModal();renderAll();toast(shortages.length?'Intake recorded; shortages added to Dashboard.':'Intake issue recorded and inventory updated.')}
+ };
+};
+
+window.voidIssue=function(id){
+ var x=db.issues.find(function(z){return z.id===id});if(!x||x.voided)return;var i=inmateById(x.inmateId);
+ openModal('Void Issue','<div class="card">'+esc(itemName(x.itemId))+' ('+esc(x.size)+') × '+x.qty+', issued '+fmt(x.date)+(i?' to '+esc(i.first+' '+i.last):'')+'</div><p>Use this when an issue was recorded by mistake. It <b>puts '+x.qty+' back into inventory</b>. The record stays in the history, marked VOIDED. If the items are NOT back on the shelf, do not void — use ADJUST INVENTORY instead.</p><label>Reason (required)<input id="voidWhy"></label><div class="row" style="margin-top:14px"><button class="btn red" id="doVoid">VOID THIS ISSUE</button><button class="btn grey" id="voidNo">CANCEL</button></div>');
+ $('voidNo').onclick=function(){if(i)showInmate(i.id);else closeModal()};
+ $('doVoid').onclick=function(){
+  var why=$('voidWhy').value.trim();if(!why){toast('Enter the reason.',true);return}
+  if(!confirm('Void this issue and return '+x.qty+' to inventory?'))return;
+  if(tx(function(){var y=db.issues.find(function(z){return z.id===id}),d=today();y.voided=true;y.voidDate=d;y.voidReason=why;
+   db.txns.push({id:'T'+next('txn'),date:d,itemId:y.itemId,size:y.size,qty:y.qty,type:'Issue Voided',issueId:y.id,notes:'Voided '+y.id+': '+why});
+   if(y.requestId){var ri=db.requestItems.find(function(q){return q.requestId===y.requestId&&q.itemId===y.itemId&&q.size===y.size});if(ri)ri.issuedQty=Math.max(0,ri.issuedQty-y.qty)}})){renderAll();toast('Issue voided and inventory restored.');if(i)showInmate(i.id);else closeModal()}
+ };
+};
+
+/* ---------- REQUESTS ---------- */
+var REASONS=['','Turned In','Lost','Damaged','New Arrival','Other'];
+function calcStatus(items){
+ if(items.some(function(x){return x.decision!=='approved'&&x.decision!=='denied'}))return 'pending';
+ if(items.every(function(x){return x.decision==='approved'}))return 'approved';
+ if(items.every(function(x){return x.decision==='denied'}))return 'denied';
+ return 'partial';
+}
+/* A request needs a DECISION only while an item is still pending.
+   It needs ISSUING only while an approved item has quantity not yet handed out.
+   Denied items never need anything. When neither applies, the request is FULFILLED. */
+function reqItems(r){return db.requestItems.filter(function(x){return x.requestId===r.id})}
+function reqNeedsDecision(r){var it=reqItems(r);return it.some(function(x){return x.decision!=='approved'&&x.decision!=='denied'})}
+function reqNeedsIssue(r){return reqItems(r).some(function(x){return x.decision==='approved'&&(x.issuedQty||0)<x.qty})}
+function reqFulfilled(r){return reqItems(r).length>0&&!reqNeedsDecision(r)&&!reqNeedsIssue(r)}
+function fulfilledBadge(r){return reqFulfilled(r)?' <span class="badge green">Fulfilled</span>':''}
+function statusBadge(s){var label=s==='partial'?'Partially Approved':s.charAt(0).toUpperCase()+s.slice(1);return '<span class="badge '+(s==='approved'?'green':s==='denied'?'red':s==='partial'?'orange':'')+'">'+label+'</span>'}
+function pickInmate(){
+ openModal('New Request — Find Inmate','<div class="row"><input type="text" id="pq" placeholder="Name or MDOC number" style="width:420px;max-width:100%"><button class="btn" id="pgo">SEARCH</button></div><div id="pres"></div>');
+ function go(){var ws=words($('pq').value);if(!ws.length){$('pres').innerHTML='<div class="empty">Type a name or MDOC number.</div>';return}
+  var l=db.inmates.filter(function(i){return matches(i,ws)}).sort(byName).slice(0,30);
+  $('pres').innerHTML=l.length?'<table><tbody>'+l.map(function(i){return '<tr><td>'+esc(i.mdoc)+'</td><td>'+esc(i.last+', '+i.first)+'</td><td>'+esc(i.zone)+'</td><td><button class="btn green small" onclick="newRequestFor(\''+i.id+'\')">SELECT</button></td></tr>'}).join('')+'</tbody></table>':'<div class="empty">No match found.</div>'}
+ $('pgo').onclick=go;$('pq').onkeydown=function(e){if(isEnter(e))go()};$('pq').focus();
+}
+$('newRequest').onclick=function(){if(!db.inmates.length){toast('Add an inmate first.',true);return}pickInmate()};
+function lineHTML(ri){
+ ri=ri||{};var iss=ri.issuedQty||0,lock=iss>0,dis=lock?' disabled':'';
+ var its=db.items.filter(function(x){return x.active||x.id===ri.itemId});
+ return '<div class="itemline reqline" data-ri="'+esc(ri.id||'')+'" data-item="'+esc(ri.itemId||'')+'" data-size="'+esc(ri.size||'')+'" data-dec="'+esc(ri.decision||'pending')+'" data-issued="'+iss+'">'+
+ '<label class="wide">Item<select class="ritem"'+dis+'>'+its.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>'}).join('')+'</select></label>'+
+ '<label>Size<select class="rsize"'+dis+'></select></label>'+
+ '<label class="qtyf">Qty<input class="rqty" type="number" min="'+Math.max(1,iss)+'" value="'+(ri.qty||1)+'"></label>'+
+ '<label>Decision<select class="rdec"'+dis+'><option value="pending">Pending</option><option value="approved">Approved</option><option value="denied">Denied</option></select></label>'+
+ '<label>Replaces (old item)<select class="rreason">'+options(REASONS,ri.reason||'')+'</select></label>'+
+ (lock?'<span class="note">'+iss+' issued</span>':'<button class="btn red small removeLine" type="button">REMOVE</button>')+'</div>';
+}
+var reqInmate=null;
+function bindLines(){
+ Array.prototype.forEach.call(document.querySelectorAll('.reqline'),function(line){
+  var it=line.querySelector('.ritem'),first=!line.getAttribute('data-bound');
+  if(first){var pi=line.getAttribute('data-item');if(pi)it.value=pi;fillSizes(line.querySelector('.rsize'),itemById(it.value),line.getAttribute('data-size')||prefSize(reqInmate,it.value));line.querySelector('.rdec').value=line.getAttribute('data-dec');line.setAttribute('data-bound','1')}
+  it.onchange=function(){fillSizes(line.querySelector('.rsize'),itemById(it.value),prefSize(reqInmate,it.value))};
+  var rm=line.querySelector('.removeLine');if(rm)rm.onclick=function(){line.parentNode.removeChild(line)};
+ });
+}
+function recentBox(inmateId){return '<h3>Recent Issue History</h3>'+histTable(inmateId,10)+'<p class="note">You decide. The program does not approve or deny anything for you.</p>'}
+function openRequest(inmateId,reqId){
+ var i=inmateById(inmateId),r=reqId?db.requests.find(function(x){return x.id===reqId}):null;if(!i)return;reqInmate=i;
+ var its=r?db.requestItems.filter(function(x){return x.requestId===r.id}):[];
+ var body='<div class="card"><b>'+esc(i.first+' '+i.last)+'</b> — MDOC '+esc(i.mdoc)+' — Zone '+esc(i.zone||'—')+'</div>'+
+ '<div class="grid">'+dateInput('reqDate','Date',r?r.date:today())+'<label>Request Type<select id="reqType">'+options(['Medical','Administrative','Officer','Inmate Request','Other'],r?r.type:'Inmate Request')+'</select></label><label>Officer Name (if Officer)<input id="reqOfficer" value="'+esc(r?r.officer:'')+'"></label></div>'+
+ '<label>Notes<textarea id="reqNotes">'+esc(r?r.notes:'')+'</textarea></label>'+
+ '<h3>Items Requested</h3><div id="reqLines">'+(its.length?its.map(lineHTML).join(''):lineHTML())+'</div><button class="btn grey small" id="addReqLine" type="button">+ ADD ITEM</button>'+
+ '<div class="row" style="margin-top:18px"><button class="btn green" id="saveRequest">SAVE REQUEST</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>'+recentBox(inmateId);
+ openModal((r?'Edit Request '+r.id:'New Request'),body);bindLines();
+ $('addReqLine').onclick=function(){$('reqLines').insertAdjacentHTML('beforeend',lineHTML());bindLines()};
+ $('saveRequest').onclick=function(){saveRequest(inmateId,r?r.id:null)};
+}
+function saveRequest(inmateId,reqId){
+ var d=$('reqDate').value.trim(),type=$('reqType').value,off=$('reqOfficer').value.trim();
+ if(!isDate(d)){toast('Date must look like 2026-09-30.',true);return}
+ if(type==='Officer'&&!off){toast('Enter the officer name.',true);return}
+ var lines=document.querySelectorAll('.reqline');if(!lines.length){toast('Add at least one item.',true);return}
+ var items=[],seen={},bad='';
+ Array.prototype.forEach.call(lines,function(l){
+  var q=posInt(l.querySelector('.rqty').value),iss=parseInt(l.getAttribute('data-issued'),10)||0,it=l.querySelector('.ritem').value,sz=l.querySelector('.rsize').value;
+  if(isNaN(q)||q<1){bad='Every item needs a quantity of 1 or more.';return}
+  if(q<iss){bad='Quantity cannot be lower than the '+iss+' already issued.';return}
+  if(seen[it+'|'+sz]){bad=itemName(it)+' ('+sz+') is listed twice. Combine them into one line.';return}
+  seen[it+'|'+sz]=1;items.push({id:l.getAttribute('data-ri'),itemId:it,size:sz,qty:q,decision:l.querySelector('.rdec').value,reason:l.querySelector('.rreason').value,issuedQty:iss});
+ });
+ if(bad){toast(bad,true);return}
+ if(!reqId){var dup=db.requests.filter(function(r){return r.inmateId===inmateId&&r.date===d&&db.requestItems.some(function(x){return x.requestId===r.id&&items.some(function(n){return n.itemId===x.itemId&&n.size===x.size&&n.qty===x.qty})})})[0];
+  if(dup&&!confirm('A similar request for this inmate on this date already exists ('+dup.id+').\n\nSave another one anyway?'))return}
+ var rid=reqId;
+ if(tx(function(){
+  var r;if(reqId){r=db.requests.find(function(x){return x.id===reqId});db.requestItems=db.requestItems.filter(function(x){return x.requestId!==reqId});r.edited=iso()}
+  else{r={id:'R'+next('request'),inmateId:inmateId,created:iso()};db.requests.push(r);rid=r.id}
+  r.date=d;r.type=type;r.officer=type==='Officer'?off:'';r.notes=$('reqNotes').value.trim();r.status=calcStatus(items);
+  items.forEach(function(n){n.id=n.id||'RI'+next('ri');n.requestId=r.id;db.requestItems.push(n)});
+  db.reminders.forEach(function(m){if(m.type!=='outstanding'||!reminderOpen(m)||m.requestId!==r.id)return;
+   var ri=db.requestItems.filter(function(x){return x.requestId===r.id&&x.itemId===m.itemId&&x.size===m.size})[0];
+   var left=ri&&ri.decision==='approved'?ri.qty-ri.issuedQty:0;
+   if(left<=0){m.status='cancelled';m.completedDate=today();m.completedAction='Cancelled automatically: the request was changed and nothing more is owed.'}
+   else{m.qtyOwed=left;m.message='Issue '+left+' '+itemName(m.itemId)+' ('+m.size+') when stock is available.';m.updated=iso()}});
+ })){renderAll();toast('Request saved.');viewRequest(rid)}
+}
+function renderRequests(){
+ var filter=$('requestFilter').value;
+ var list=db.requests.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:(parseInt(b.id.slice(1),10)-parseInt(a.id.slice(1),10))}).filter(function(r){return filter==='all'||(filter==='open'?(reqNeedsDecision(r)||reqNeedsIssue(r)):filter==='fulfilled'?reqFulfilled(r):r.status===filter)});
+ if(!list.length){$('requestList').innerHTML='<div class="empty">No requests found.</div>';return}
+ $('requestList').innerHTML='<table><thead><tr><th>#</th><th>Date</th><th>MDOC</th><th>Inmate</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>'+
+ list.slice(0,200).map(function(r){var i=inmateById(r.inmateId);return '<tr><td>'+esc(r.id)+'</td><td>'+fmt(r.date)+'</td><td>'+esc(i?i.mdoc:'—')+'</td><td>'+esc(i?i.first+' '+i.last:'Removed inmate')+'</td><td>'+esc(r.type)+'</td><td>'+statusBadge(r.status)+fulfilledBadge(r)+'</td><td><button class="btn small" onclick="viewRequest(\''+r.id+'\')">OPEN</button></td></tr>'}).join('')+'</tbody></table>'+(list.length>200?'<p class="note">Showing the 200 most recent.</p>':'');
+}
+$('requestFilter').onchange=renderRequests;
+window.viewRequest=function(id){
+ var r=db.requests.find(function(x){return x.id===id});if(!r)return;var i=inmateById(r.inmateId),act=i&&i.status==='active';
+ var rows=db.requestItems.filter(function(x){return x.requestId===id}).map(function(x){return '<tr><td>'+esc(itemName(x.itemId))+'</td><td>'+esc(x.size)+'</td><td>'+x.qty+'</td><td>'+statusBadge(x.decision)+'</td><td>'+esc(x.reason||'—')+'</td><td>'+x.issuedQty+'</td><td>'+(act&&x.decision==='approved'&&x.issuedQty<x.qty?'<button class="btn green small" onclick="issueItem(\''+x.id+'\')">ISSUE</button>':'—')+'</td></tr>'}).join('');
+ openModal('Request '+r.id,'<div class="card"><b>Inmate:</b> '+esc(i?i.first+' '+i.last:'Removed inmate')+'<br><b>MDOC:</b> '+esc(i?i.mdoc:'—')+'<br><b>Date:</b> '+fmt(r.date)+'<br><b>Type:</b> '+esc(r.type)+(r.officer?'<br><b>Officer:</b> '+esc(r.officer):'')+(r.notes?'<br><b>Notes:</b> '+esc(r.notes):'')+'<br><b>Status:</b> '+statusBadge(r.status)+fulfilledBadge(r)+'</div>'+
+ (i?'<div class="row"><button class="btn" onclick="editRequest(\''+id+'\')">EDIT REQUEST / CHANGE DECISIONS</button></div>':'')+
+ '<h3>Requested Items</h3><table><thead><tr><th>Item</th><th>Size</th><th>Requested</th><th>Decision</th><th>Replaces</th><th>Issued</th><th></th></tr></thead><tbody>'+rows+'</tbody></table><p class="note">Approved items come out of inventory only when you press ISSUE.</p>'+(i?recentBox(i.id):'')+commentsHTML('request',id));
+};
+window.editRequest=function(id){var r=db.requests.find(function(x){return x.id===id});if(r){closeModal();openRequest(r.inmateId,id)}};
+var busy=false;
+window.issueItem=function(riId){
+ var ri=db.requestItems.find(function(x){return x.id===riId});if(!ri)return;
+ var r=db.requests.find(function(x){return x.id===ri.requestId}),i=inmateById(r.inmateId),it=itemById(ri.itemId);
+ if(!i||i.status!=='active'){toast('This inmate is not on the active roster.',true);return}
+ var rem=ri.qty-ri.issuedQty,avail=getInventory(it.id,ri.size);
+ var last=db.issues.filter(function(x){return x.inmateId===i.id&&x.itemId===it.id&&x.size===ri.size&&!x.voided}).sort(function(a,b){return a.date<b.date?1:-1}).slice(0,3);
+ openModal('Issue '+it.name,'<div class="card"><b>'+esc(i.first+' '+i.last)+'</b> — MDOC '+esc(i.mdoc)+'<br>'+esc(it.name)+' — Size '+esc(ri.size)+'<br>Approved but not yet issued: <b>'+rem+'</b><br>In stock: <b'+(avail<rem?' class="neg"':'')+'>'+avail+'</b></div>'+
+ (last.length?'<p><b>Previously issued (same item and size):</b> '+last.map(function(x){return fmt(x.date)+' ×'+x.qty}).join(', ')+'</p>':'<p class="note">Never issued this item and size before.</p>')+
+ '<div class="grid"><label>Quantity handed out now<input type="number" id="isQty" min="1" max="'+Math.min(rem,avail)+'" value="'+Math.min(rem,avail)+'"></label></div><div class="row"><button class="btn green" id="doIssue">RECORD ISSUE</button><button class="btn grey" onclick="viewRequest(\''+r.id+'\')">CANCEL</button></div>');
+ $('doIssue').onclick=function(){
+  if(busy)return;var q=posInt($('isQty').value);
+  if(isNaN(q)||q<1||q>rem||q>avail){toast('Enter a quantity from 1 to '+Math.min(rem,avail)+'.',true);return}
+  var d=today(),same=db.issues.some(function(x){return x.inmateId===i.id&&x.itemId===it.id&&x.size===ri.size&&x.date===d&&!x.voided});
+  if(!confirm('Record '+q+' '+it.name+' ('+ri.size+') issued to '+i.first+' '+i.last+'?'+(same?'\n\nNOTE: this inmate already received this item and size TODAY.':'')))return;
+  busy=true;
+  var ok=tx(function(){var iss={id:'I'+next('issue'),requestId:r.id,type:r.type,inmateId:i.id,date:d,zone:i.zone,itemId:it.id,size:ri.size,qty:q,reason:ri.reason||'',notes:''};db.issues.push(iss);db.txns.push({id:'T'+next('txn'),date:d,itemId:it.id,size:ri.size,qty:-q,type:'Issue',issueId:iss.id,notes:'Issued to MDOC '+i.mdoc+' (request '+r.id+')'});var x=db.requestItems.find(function(z){return z.id===riId});x.issuedQty+=q;var remaining=x.qty-x.issuedQty;if(remaining>0){if(avail<rem||reminderForIssue(i.id,it.id,ri.size))upsertOutstanding(i.id,it.id,ri.size,remaining,r.id,'Approved request shortage')}else clearOutstandingIfSatisfied(i.id,it.id,ri.size)});
+  busy=false;if(ok){renderAll();viewRequest(r.id);toast('Issue recorded and inventory updated.')}
+ };
+};
+
+/* ---------- INVENTORY ---------- */
+function renderInventory(){
+ var rows=[],total=0;
+ activeItems().forEach(function(it){sizesOf(it).forEach(function(s){var q=getInventory(it.id,s);total+=q;rows.push('<tr><td>'+esc(it.category)+'</td><td>'+esc(it.name)+'</td><td>'+esc(s)+'</td><td class="n'+(q<0?' neg':'')+'"><b>'+q+'</b>'+(q<0?' ⚠':'')+'</td></tr>')})});
+ var lastCheck=db.inventoryChecks.length?db.inventoryChecks.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0})[0]:null;var monthKey=today().slice(0,7),checkedThisMonth=!!(lastCheck&&lastCheck.date.slice(0,7)===monthKey);$('invStats').innerHTML='<div class="stat">Inventory Units<b>'+total+'</b></div><div class="stat">Item Types<b>'+activeItems().length+'</b></div><div class="stat">Transactions<b>'+db.txns.length+'</b></div><div class="stat">Monthly Check<b>'+(checkedThisMonth?'✓':'DUE')+'</b><span class="note">'+(lastCheck?'Last: '+fmt(lastCheck.date):'Never checked')+'</span></div>';
+ $('inventoryTable').innerHTML='<table><thead><tr><th>Category</th><th>Item</th><th>Size</th><th class="n">Quantity</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+ var f=$('invFilter'),cur=f.value||'all';f.innerHTML='<option value="all">All items</option>'+db.items.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>'}).join('');f.value=cur;if(f.value!==cur)f.value='all';
+ var t=db.txns.filter(function(x){return f.value==='all'||x.itemId===f.value}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:parseInt(b.id.slice(1),10)-parseInt(a.id.slice(1),10)});
+ $('invHistory').innerHTML=t.length?'<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th class="n">Change</th><th>Type</th><th>Notes</th></tr></thead><tbody>'+t.slice(0,150).map(function(x){return '<tr><td>'+fmt(x.date)+'</td><td>'+esc(itemName(x.itemId))+'</td><td>'+esc(x.size)+'</td><td class="n">'+(x.qty>0?'+':'')+x.qty+'</td><td>'+esc(x.type)+'</td><td>'+esc(x.notes||'')+'</td></tr>'}).join('')+'</tbody></table>'+(t.length>150?'<p class="note">Showing the 150 most recent of '+t.length+'.</p>':''):'<div class="empty">No stock changes recorded yet. Use ADD STOCK to enter starting inventory.</div>';
+}
+$('invFilter').onchange=renderInventory;
+function itemSizePicker(p,cb){
+ function bind(){fillSizes($(p+'Size'),itemById($(p+'Item').value));if(cb)cb()}
+ $(p+'Item').onchange=bind;if($(p+'Size'))$(p+'Size').onchange=cb||function(){};bind();
+}
+function stockForm(adjust){
+ if(!activeItems().length){toast('No active items. Add one in SETUP.',true);return}
+ openModal(adjust?'Adjust Inventory':'Add Stock','<div class="grid"><label>Item<select id="stItem">'+itemOpts()+'</select></label><label>Size<select id="stSize"></select></label>'+(adjust?'<label>Add or Remove<select id="stDir"><option value="1">ADD to stock</option><option value="-1">REMOVE from stock</option></select></label>':'')+'<label>Quantity<input type="number" id="stQty" min="1" value="1"></label>'+dateInput('stDate','Date')+'</div><label>'+(adjust?'Reason (required)':'Where did it come from? (optional)')+'<textarea id="stNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn green" id="saveStock">SAVE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');
+ itemSizePicker('st');
+ $('saveStock').onclick=function(){
+  var itemId=$('stItem').value,size=$('stSize').value,q=posInt($('stQty').value),d=$('stDate').value.trim(),n=$('stNotes').value.trim(),dir=adjust?parseInt($('stDir').value,10):1;
+  if(isNaN(q)||q<1){toast('Quantity must be a whole number, 1 or more.',true);return}
+  if(!isDate(d)){toast('Date must look like 2026-09-30.',true);return}
+  if(adjust&&!n){toast('Enter the reason for the adjustment.',true);return}
+  if(dir<0&&q>getInventory(itemId,size)){toast('Cannot remove more than is in stock ('+getInventory(itemId,size)+').',true);return}
+  if(adjust&&!confirm((dir>0?'ADD ':'REMOVE ')+q+' '+itemName(itemId)+' ('+size+') '+(dir>0?'to':'from')+' inventory?'))return;
+  if(tx(function(){db.txns.push({id:'T'+next('txn'),date:d,itemId:itemId,size:size,qty:dir*q,type:adjust?'Adjustment':'Stock Received',notes:n})})){closeModal();renderAll();toast(adjust?'Inventory adjusted.':'Stock added.')}
+ };
+}
+$('addStock').onclick=function(){stockForm(false)};
+$('adjustStock').onclick=function(){stockForm(true)};
+$('physicalCount').onclick=function(){
+ var rows=[];activeItems().forEach(function(it){sizesOf(it).forEach(function(z){rows.push({it:it,s:z})})});
+ if(!rows.length){toast('No active items. Add one in SETUP.',true);return}
+ openModal('Physical Inventory Count','<p class="note">Type what you counted on the shelf. Leave a row EMPTY if you did not count it. Press Enter to jump to the next row.</p><p id="pcSum"></p><table><thead><tr><th>Item</th><th>Size</th><th class="n">Program</th><th>You counted</th><th class="n">Difference</th></tr></thead><tbody>'+rows.map(function(r,k){var sys=getInventory(r.it.id,r.s);return '<tr><td>'+esc(r.it.name)+'</td><td>'+esc(r.s)+'</td><td class="n">'+sys+'</td><td><input type="number" min="0" class="cq" data-k="'+k+'" data-sys="'+sys+'" style="width:110px"></td><td class="n cd"></td></tr>'}).join('')+'</tbody></table><div class="row" style="margin-top:14px"><button class="btn green" id="saveCount">SAVE COUNT</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>');
+ var qs=document.querySelectorAll('.cq');
+ function upd(){var n=0;Array.prototype.forEach.call(qs,function(q){var d=q.parentNode.parentNode.querySelector('.cd');if(q.value.trim()===''){d.textContent='';return}n++;var c=posInt(q.value);if(isNaN(c)){d.textContent='?';return}var df=c-(+q.getAttribute('data-sys'));d.innerHTML=df===0?'OK':'<b class="'+(df<0?'neg':'')+'">'+(df>0?'+':'')+df+'</b>'});$('pcSum').innerHTML='<b>Counted '+n+' of '+qs.length+' rows</b>'}
+ Array.prototype.forEach.call(qs,function(q,k){q.oninput=upd;q.onkeydown=function(e){if(isEnter(e)){e.preventDefault();if(qs[k+1])qs[k+1].focus()}}});
+ upd();qs[0].focus();
+ $('saveCount').onclick=function(){
+  var ch=[],n=0,bad=false;
+  Array.prototype.forEach.call(qs,function(q){if(q.value.trim()==='')return;var c=posInt(q.value);if(isNaN(c)){bad=true;return}n++;var r=rows[+q.getAttribute('data-k')],sys=getInventory(r.it.id,r.s);if(c!==sys)ch.push({id:r.it.id,size:r.s,c:c,sys:sys,df:c-sys})});
+  if(bad){toast('Counts must be whole numbers (0 or more).',true);return}
+  if(!n){toast('Enter at least one count.',true);return}
+  if(!ch.length){closeModal();toast('All '+n+' counts match. No changes needed.');return}
+  if(!confirm(n+' rows counted. '+ch.length+' differ from the program:\n\n'+ch.slice(0,12).map(function(x){return itemName(x.id)+' '+x.size+':  '+x.sys+'  ->  '+x.c}).join('\n')+(ch.length>12?'\n...and '+(ch.length-12)+' more':'')+'\n\nRecord these corrections?'))return;
+  if(tx(function(){var d=today();ch.forEach(function(x){db.txns.push({id:'T'+next('txn'),date:d,itemId:x.id,size:x.size,qty:x.df,type:'Physical Count',notes:'Counted '+x.c+'; program showed '+x.sys})})})){closeModal();renderAll();toast('Count saved. '+ch.length+' corrections recorded.')}
+ };
+};
+
+/* ---------- REPORTS ---------- */
+function report(start,end,title){
+ var is=db.issues.filter(function(x){return x.date>=start&&x.date<=end&&!x.voided});
+ var bi={},bt={},bs={},bc={},tot=0;
+ is.forEach(function(x){var it=itemById(x.itemId),n=it?it.name:x.itemId,t=x.type||'Other',c=it?it.category:'Other';tot+=x.qty;bi[n]=(bi[n]||0)+x.qty;bt[t]=(bt[t]||0)+x.qty;bc[c]=(bc[c]||0)+x.qty;var k=n+' — '+x.size;bs[k]=(bs[k]||0)+x.qty});
+ function tbl(o,h){var k=Object.keys(o).sort();return '<table><thead><tr><th>'+h+'</th><th class="n">Qty</th></tr></thead><tbody>'+(k.length?k.map(function(a){return '<tr><td>'+esc(a)+'</td><td class="n">'+o[a]+'</td></tr>'}).join(''):'<tr><td colspan="2">None</td></tr>')+'</tbody></table>'}
+ var detail=is.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.id<b.id?-1:1)});
+ var detailRows=detail.map(function(x){var i=inmateById(x.inmateId),it=itemById(x.itemId);return '<tr><td>'+fmt(x.date)+'</td><td>'+esc(i?i.mdoc:'—')+'</td><td>'+esc(i?i.first+' '+i.last:'Removed inmate')+'</td><td>'+esc(it?it.name:x.itemId)+'</td><td>'+esc(x.size||'—')+'</td><td>'+x.qty+'</td><td>'+esc(x.type||'Other')+'</td><td>'+esc(x.requestId||'—')+'</td><td>'+esc(x.zone||'—')+'</td></tr>'}).join('');
+ lastReport=detail.map(function(x){var i=inmateById(x.inmateId),it=itemById(x.itemId);return [fmt(x.date),i?i.mdoc:'',i?i.first+' '+i.last:'Removed inmate',it?it.name:x.itemId,x.size||'',x.qty,x.type||'Other',x.requestId||'',x.zone||'']});
+ $('reportOutput').innerHTML='<div class="reportbox"><h3 style="margin-top:0">'+esc(title)+'</h3><p><b>'+fmt(start)+' through '+fmt(end)+'</b></p><div class="stat">TOTAL ITEMS ISSUED<b>'+tot+'</b></div><div class="grid" style="margin-top:12px"><div><h3>By Item</h3>'+tbl(bi,'Item')+'</div><div><h3>By Category</h3>'+tbl(bc,'Category')+'</div><div><h3>By Request Type</h3>'+tbl(bt,'Type')+'</div></div><h3>By Item and Size</h3>'+tbl(bs,'Item / Size')+'<h3>Detailed Issue Log</h3><div style="overflow:auto"><table><thead><tr><th>Date</th><th>MDOC</th><th>Inmate</th><th>Item</th><th>Size</th><th>Qty</th><th>Request Type</th><th>Request</th><th>Zone</th></tr></thead><tbody>'+(detailRows||'<tr><td colspan="9">No items issued during this period.</td></tr>')+'</tbody></table></div></div>';
+}
+$('weeklyReport').onclick=function(){var t=new Date(),s=addDays(today(),-t.getDay());report(s,addDays(s,6),'Weekly Issue Report')};
+$('monthlyReport').onclick=function(){var t=new Date(),s=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-01',e=ymd(new Date(t.getFullYear(),t.getMonth()+1,0));report(s,e,'Monthly Issue Report')};
+$('customReport').onclick=function(){openModal('Custom Date Report','<div class="grid">'+dateInput('rs','Start Date')+dateInput('re','End Date')+'</div><div class="row" style="margin-top:14px"><button class="btn green" id="makeReport">RUN REPORT</button></div>');
+ $('makeReport').onclick=function(){var s=$('rs').value.trim(),e=$('re').value.trim();if(!isDate(s)||!isDate(e)||s>e){toast('Enter two valid dates (start first), like 2026-09-30.',true);return}closeModal();report(s,e,'Custom Issue Report')}};
+
+/* ---------- SETUP / ITEMS ---------- */
+function renderMinStock(){
+ var rows=[];activeItems().forEach(function(it){sizesOf(it).forEach(function(sz){var k=it.id+'|'+sz;rows.push('<tr><td>'+esc(it.name)+'</td><td>'+esc(sz)+'</td><td><input type="number" min="0" value="'+lowStockLevel(it.id,sz)+'" data-min-key="'+esc(k)+'" style="max-width:130px"></td></tr>')})});
+ $('minStockTable').innerHTML=rows.length?'<table><thead><tr><th>Item</th><th>Size</th><th>Minimum</th></tr></thead><tbody>'+rows.join('')+'</tbody></table><div class="row"><button class="btn green" id="saveMinStock">SAVE LOW-STOCK LEVELS</button></div>':'<div class="empty">No active items.</div>';
+ if($('saveMinStock'))$('saveMinStock').onclick=function(){if(tx(function(){Array.prototype.forEach.call(document.querySelectorAll('[data-min-key]'),function(el){var v=posInt(el.value);db.settings.minStock[el.getAttribute('data-min-key')]=isNaN(v)?0:v})})){renderAll();toast('Low-stock levels saved.')}};
+}
+function renderOfflineStatus(){
+ var box=$('offlineStatus');
+ if(!IS_MAIN){box.innerHTML='<div class="note">This computer: <b>standard</b>. It needs the server to make changes, and shows the last data it loaded if the server cannot be reached.</div>';return}
+ if(offlineConflict){
+  box.innerHTML='<div class="warnbox"><b>⚠ RECONNECT CONFLICT</b><br>This computer made changes while it could not reach the server. By the time it reconnected, the server already had newer data saved from somewhere else, so these two copies could not be combined automatically.<br><br>The server\'s saved data is what everyone is currently using — nothing on the server was lost. This computer\'s offline changes are still saved here and have NOT been applied or discarded.<br><br><b>Save a copy of this computer\'s offline changes below, review them against the current data, and re-enter anything still needed by hand.</b> Once you have done that, press DISCARD to clear this warning.</div><div class="row noPrint"><button class="btn green" id="exportOfflineCopy">SAVE OFFLINE CHANGES AS A FILE</button><button class="btn red" id="discardOfflineCopy">DISCARD OFFLINE CHANGES</button></div>';
+  $('exportOfflineCopy').onclick=function(){var raw=lsGet('stateIssueLocalDB');if(!raw){toast('Nothing saved here to export.',true);return}download('StateIssue_OfflineChanges_'+stamp()+'.json',raw);toast('File saved. Review it, then re-enter anything still needed.')};
+  $('discardOfflineCopy').onclick=function(){if(!confirm('Discard this computer\'s offline changes?\n\nOnly do this after saving and reviewing the file. This cannot be undone.'))return;clearLocalCopy();offlineConflict=false;offlinePending=false;toast('Offline changes discarded.');renderAll()};
+  return;
+ }
+ box.innerHTML='<div class="note">This computer: <b>host</b>. If the server program stops or the network drops, this computer keeps working and saves changes here first'+(offlinePending?' — <b>it currently has changes waiting to sync.</b>':'.')+' They sync to the server automatically as soon as it can be reached again.</div>';
+}
+function renderSetup(){
+ $('versionNote').textContent='State Issue — Version '+APP_VERSION+'. Data is stored on the host computer\'s server and shared across authorized workstations. Backups are made automatically on the server each day.';
+ if($('displayName')&&document.activeElement!==$('displayName'))$('displayName').value=displayName();
+ renderOfflineStatus();
+ $('lastBackup').textContent=db.settings.lastBackup?fmt(ymd(new Date(db.settings.lastBackup))):'never';renderSafety();
+ var days=db.settings.lastBackup?Math.floor((new Date()-new Date(db.settings.lastBackup))/86400000):999;
+ $('backupWarn').textContent=days>=999?'⚠ BACK UP NOW':days>=7?'⚠ Backup is '+days+' days old':'';
+ renderMinStock();
+ $('itemTable').innerHTML='<table><thead><tr><th>Item</th><th>Category</th><th>Sizes</th><th>Active</th><th></th></tr></thead><tbody>'+db.items.map(function(it){return '<tr><td>'+esc(it.name)+'</td><td>'+esc(it.category)+'</td><td>'+esc(it.sizes.length?it.sizes.join(', '):'No sizes')+'</td><td>'+(it.active?'Yes':'No')+'</td><td><button class="btn small" onclick="editItem(\''+it.id+'\')">EDIT</button></td></tr>'}).join('')+'</tbody></table>';
+}
+function itemForm(it){
+ it=it||{name:'',category:'',sizes:[],active:true};
+ return '<div class="grid"><label>Item Name<input id="itemName" value="'+esc(it.name)+'"></label><label>Category<input id="itemCat" value="'+esc(it.category)+'"></label></div><label>Sizes (separate with commas; leave empty if none)<input id="itemSizes" value="'+esc(it.sizes.join(', '))+'"></label><label style="margin-top:12px">Active<select id="itemActive"><option value="1"'+(it.active?' selected':'')+'>Yes</option><option value="0"'+(!it.active?' selected':'')+'>No</option></select></label><div class="row" style="margin-top:18px"><button class="btn green" id="saveItem">SAVE ITEM</button></div>';
+}
+$('newItem').onclick=function(){openModal('Add Item',itemForm());$('saveItem').onclick=function(){saveItem(null)}};
+window.editItem=function(id){var it=itemById(id);openModal('Edit Item',itemForm(it));$('saveItem').onclick=function(){saveItem(it)}};
+function saveItem(ex){
+ var name=$('itemName').value.trim(),cat=$('itemCat').value.trim(),sizes=$('itemSizes').value.split(',').map(function(x){return x.trim()}).filter(Boolean),act=$('itemActive').value==='1';
+ if(!name||!cat){toast('Item name and category are required.',true);return}
+ if(db.items.some(function(x){return x.name.toLowerCase()===name.toLowerCase()&&x!==ex})){toast('There is already an item with that name.',true);return}
+ if(sizes.some(function(s,k){return sizes.indexOf(s)!==k})){toast('A size is listed twice.',true);return}
+ if(ex){var cur=sizesOf(ex),lost=cur.filter(function(s){return sizesOf({sizes:sizes}).indexOf(s)<0&&getInventory(ex.id,s)!==0});
+  if(lost.length){toast('Stock still exists for size '+lost[0]+'. Adjust it to 0 first, then remove the size.',true);return}
+  if(!act&&ex.active&&!confirm('Make '+ex.name+' inactive? It will disappear from inventory and new requests.'))return}
+ if(tx(function(){var it=ex||{id:'item'+next('item')};it.name=name;it.category=cat;it.sizes=sizes;it.active=act;if(!ex)db.items.push(it)})){closeModal();renderAll();toast(ex?'Item updated.':'Item added.')}
+}
+
+/* ---------- BACKUP / RESTORE ---------- */
+function stamp(){var d=new Date();return ymd(d)+'_'+pad(d.getHours())+pad(d.getMinutes())}
+function download(name,text){var blob=new Blob([text],{type:'application/json'});if(window.navigator.msSaveBlob){window.navigator.msSaveBlob(blob,name);return}var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(a.href)},4000)}
+function exportText(){var o=JSON.parse(JSON.stringify(db));delete o.rev;o._backup={app:'StateIssue',created:iso(),inmates:db.inmates.length,issues:db.issues.length,txns:db.txns.length,requests:db.requests.length,reminders:db.reminders.length,inventoryChecks:db.inventoryChecks.length};return JSON.stringify(o,null,1)}
+function makeBackup(prefix){download(prefix+stamp()+'.json',exportText())}
+$('backup').onclick=function(){
+ if(tx(function(){db.settings.lastBackup=iso();db.settings.backupRev=db.rev+1})){makeBackup('StateIssue_Backup_');renderSetup();toast('Backup file created. Save it on the flash drive, then check the file is there.')}
+};
+$('restore').onclick=function(){$('file').click()};
+$('file').onchange=function(e){
+ var f=e.target.files[0];if(!f)return;var r=new FileReader();
+ r.onload=function(){
+  var data;try{data=JSON.parse(r.result)}catch(x){data=null}
+  if(!validData(data)){toast('That file is not a valid State Issue backup. Nothing was changed.',true);return}
+  var b=data._backup||{};
+  if(b.txns!==undefined&&(b.txns!==data.txns.length||b.requests!==data.requests.length)){toast('This backup file looks incomplete or damaged. Nothing was changed.',true);return}
+  if(!confirm('WARNING\n\nRestoring will REPLACE all current State Issue data.\n\nBackup file: '+(b.created?fmt(ymd(new Date(b.created))):'unknown date')+'\nActive inmates in file: '+data.inmates.length+'\nActive inmates now: '+db.inmates.length+'\n\nA copy of the current data is saved first.\n\nPress OK to RESTORE or Cancel to stop.'))return;
+  makeBackup('StateIssue_BeforeRestore_');
+  var old=db;db=fixupSafe(data);delete db._backup;db.settings.backupRev=0;
+  if(!save()){db=old;toast('Restore FAILED. Your current data is unchanged.',true);return}
+  renderAll();toast('Restore completed.');
+ };
+ r.readAsText(f);e.target.value='';
+};
+
+function changes(){return db.rev>(db.settings.backupRev||0)}
+function hasData(){return db.inmates.length+db.txns.length>0}
+function autoBackup(){
+ if(!db.settings.autoBackup||!changes()||!hasData())return;var n=iso();
+ if(tx(function(){db.settings.lastBackup=n;db.settings.lastAuto=n;db.settings.backupRev=db.rev+1})){makeBackup('StateIssue_Auto_');renderSetup();toast('Automatic backup saved.')}
+}
+function renderSafety(){
+ var st=db.settings,kb=Math.round(JSON.stringify(db).length/1024),on=!!st.autoBackup;
+ $('safety').innerHTML='<div class="card"><b>Automatic backups:</b> '+(on?'<span class="badge green">ON</span>':'<span class="badge red">OFF</span>')+'<br><b>Last automatic backup:</b> '+(st.lastAuto?fmt(ymd(new Date(st.lastAuto))):'never')+'<br><b>Data size:</b> '+kb+' KB'+(kb>1200?' <span class="neg">— getting full. Tell your support person.</span>':'')+'<div class="row noPrint" style="margin:12px 0 0"><button class="btn '+(on?'grey':'green')+'" id="autoBtn">'+(on?'TURN OFF AUTOMATIC BACKUPS':'TURN ON AUTOMATIC BACKUPS')+'</button></div></div>';
+ $('autoBtn').onclick=function(){
+  if(on){if(confirm('Turn OFF automatic backups?'))tx(function(){db.settings.autoBackup=false});renderSetup();return}
+  if(!confirm('A test backup file will now be saved.\n\nThen look in your StateIssue_Backups folder. Press OK to make the test file.'))return;
+  makeBackup('StateIssue_Test_');
+  if(confirm('Did the test file appear in your backup folder WITHOUT asking where to save it?\n\nOK = Yes, it saved by itself\nCancel = No / it asked me')){if(tx(function(){db.settings.autoBackup=true})){renderSetup();toast('Automatic backups are ON.')}}
+  else toast('Not turned on. Finish the Firefox steps above, then try again.',true);
+ };
+}
+function reminder(){
+ openModal('Backup Reminder','<p style="font-size:22px">Your data has changed since the last backup. <b>Back up now</b> so nothing is lost.</p><div class="row"><button class="btn green" id="rbNow">BACK UP NOW</button><button class="btn grey" onclick="closeModal()">LATER</button></div><p class="note">Turn on automatic backups in SETUP and this happens by itself.</p>');
+ $('rbNow').onclick=function(){$('backup').onclick();closeModal()};
+}
+setInterval(function(){var la=db.settings.lastAuto;if(db.settings.autoBackup&&changes()&&(!la||new Date()-new Date(la)>=7200000))autoBackup()},60000);
+db=load();
+(function(){
+ if(!storageOK||!hasData()||!changes())return;var st=db.settings,act=null;
+ if(st.autoBackup){if(!st.lastAuto||ymd(new Date(st.lastAuto))!==today())act=autoBackup}
+ else if(!st.lastBackup||new Date()-new Date(st.lastBackup)>86400000)act=reminder;
+ if(act)setTimeout(function(){if($('modal').className.indexOf('on')<0||act===autoBackup)act()},1500);
+})();
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+if(IS_MAIN&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('/sw.js')}catch(e){}}
+window.addEventListener('online',function(){if(IS_MAIN)trySyncPending()});
+
+
+/* ---------- Dashboard quick actions ---------- */
+function goTab(t){document.querySelector('#tabs button[data-t="'+t+'"]').click()}
+$('qaInmate').onclick=function(){goTab('inmates')};
+$('qaRequest').onclick=function(){goTab('requests');$('newRequest').onclick()};
+$('qaStock').onclick=function(){goTab('inventory');$('addStock').onclick()};
+$('verTag').textContent='v'+APP_VERSION;
+
+/* ---------- CSV (Excel) export ---------- */
+function csvCell(v){
+  if(typeof v==='number')return String(v);
+  v=v==null?'':String(v);
+  if(/^[=+\-@]/.test(v))v="'"+v;          /* stop spreadsheet formula injection */
+  return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+}
+function downloadCSV(name,headers,rows){
+  var text='\uFEFF'+[headers].concat(rows).map(function(r){return r.map(csvCell).join(',')}).join('\r\n')+'\r\n';
+  var blob=new Blob([text],{type:'text/csv'});
+  if(window.navigator.msSaveBlob){window.navigator.msSaveBlob(blob,name);return}
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href)},4000);
+}
+function byDate(a,b){return a.date<b.date?-1:a.date>b.date?1:0}
+$('exInmates').onclick=function(){
+  downloadCSV('StateIssue_Inmates.csv',['MDOC','Last Name','First Name','Zone','Intake Date','Shirt','Pants','Pants Color','Shorts','Boxers','Shoe','Shower Shoes','Property Stored','Notes'],
+   db.inmates.slice().sort(byName).map(function(i){var z=i.sizes||{};return [i.mdoc,i.last,i.first,i.zone,fmt(i.intakeDate),z.shirt,z.pants,z.pantsColor,z.shorts,z.boxers,z.shoe,z.showershoes,i.hasProperty?'Yes':'No',i.notes]}));
+};
+$('exIssues').onclick=function(){
+  downloadCSV('StateIssue_Issues.csv',['Date','MDOC','Last Name','First Name','Item','Size','Qty','Request Type','Request','Zone','Reason','Voided'],
+   db.issues.slice().sort(byDate).map(function(x){var i=inmateById(x.inmateId);return [fmt(x.date),i?i.mdoc:'',i?i.last:'Removed inmate',i?i.first:'',itemName(x.itemId),x.size,x.qty,x.type,x.requestId,x.zone,x.reason,x.voided?'Yes':'No']}));
+};
+$('exStock').onclick=function(){
+  downloadCSV('StateIssue_Stock_History.csv',['Date','Item','Size','Change','Type','Notes'],
+   db.txns.slice().sort(byDate).map(function(x){return [fmt(x.date),itemName(x.itemId),x.size,x.qty,x.type,x.notes||'']}));
+};
+$('exInv').onclick=function(){
+  var rows=[];activeItems().forEach(function(it){sizesOf(it).forEach(function(s){rows.push([it.category,it.name,s,getInventory(it.id,s)])})});
+  downloadCSV('StateIssue_Inventory.csv',['Category','Item','Size','Quantity'],rows);
+};
+$('exRequests').onclick=function(){
+  var rows=[];db.requests.slice().sort(byDate).forEach(function(r){var i=inmateById(r.inmateId);
+   db.requestItems.filter(function(x){return x.requestId===r.id}).forEach(function(x){rows.push([r.id,fmt(r.date),i?i.mdoc:'',i?i.last:'Removed inmate',i?i.first:'',r.type,r.status,itemName(x.itemId),x.size,x.qty,x.decision,x.issuedQty])})});
+  downloadCSV('StateIssue_Requests.csv',['Request','Date','MDOC','Last Name','First Name','Request Type','Request Status','Item','Size','Qty Requested','Decision','Qty Issued'],rows);
+};
+$('exReport').onclick=function(){
+  if(!lastReport){toast('Run a report first.',true);return}
+  downloadCSV('StateIssue_Report.csv',['Date','MDOC','Inmate','Item','Size','Qty','Request Type','Request','Zone'],lastReport);
+};
+
+/* ---------- Change log (Setup) ---------- */
+function loadAudit(){
+  fetch('/api/audit',{cache:'no-store'}).then(function(r){return r.json()}).then(function(res){
+    var rows=res.rows||[];
+    $('auditBox').innerHTML=rows.length?'<table><thead><tr><th>Date &amp; time</th><th>Logged by</th><th>From computer</th><th>What changed</th></tr></thead><tbody>'+rows.map(function(x){
+      var d=new Date(x.at);return '<tr><td>'+esc(isNaN(d)?x.at:d.toLocaleString())+'</td><td>'+esc(x.who||'—')+'</td><td>'+esc(x.workstation)+'</td><td>'+esc(x.summary)+'</td></tr>'}).join('')+'</tbody></table>'
+     :'<div class="empty">No changes recorded yet.</div>';
+  }).catch(function(){$('auditBox').innerHTML='<div class="note">Could not load the change log. Check the connection to the server.</div>'});
+}
+/* ---------- Today's Changes board (Dashboard) ---------- */
+function loadTodayActivity(){
+  var box=$('dashboardToday');if(!box)return;
+  fetch('/api/audit',{cache:'no-store'}).then(function(r){return r.json()}).then(function(res){
+    var rows=res.rows||[],ts=today();
+    var list=rows.filter(function(x){var d=new Date(x.at);return !isNaN(d)&&ymd(d)===ts});
+    box.innerHTML=list.length?'<table><thead><tr><th>Time</th><th>Logged by</th><th>What changed</th></tr></thead><tbody>'+list.map(function(x){
+      var d=new Date(x.at);return '<tr><td>'+esc(isNaN(d)?x.at:d.toLocaleTimeString())+'</td><td>'+esc(x.who||'—')+'</td><td>'+esc(x.summary)+'</td></tr>'}).join('')+'</tbody></table>'
+     :'<div class="empty">No changes saved yet today.</div>';
+  }).catch(function(){box.innerHTML='<div class="note">Could not load today\'s changes. Check the connection to the server.</div>'});
+}
+
+/* ---------- COMMENTS AND OPERATIONAL MESSAGE QUEUE ---------- */
+function displayName(){return (db.settings&&db.settings.displayName||'').trim()}
+function commentList(type,id){return db.comments.filter(function(c){return c.parentType===type&&c.parentId===id}).sort(function(a,b){return a.at<b.at?-1:a.at>b.at?1:0})}
+function commentsHTML(type,id){
+ var cs=commentList(type,id),field='commentText_'+type+'_'+id;
+ return '<div class="card"><h3 style="margin-top:0">Comments ('+cs.length+')</h3>'+
+ (cs.length?cs.map(function(c){return '<div style="border-top:1px solid #d5dce4;padding:9px 0"><div class="note"><b>'+esc(c.author||'Name not provided')+'</b> · '+esc(fmtDateTime(c.at))+'</div><div>'+esc(c.text).replace(/\n/g,'<br>')+'</div></div>'}).join(''):'<p class="note">No comments yet.</p>')+
+ '<label>Add a comment<textarea id="'+esc(field)+'" maxlength="2000" placeholder="Add useful context or an update"></textarea></label><button class="btn small green" onclick="addComment(\''+type+'\',\''+id+'\',\''+field+'\')">ADD COMMENT</button></div>';
+}
+window.addComment=function(type,id,fieldId){
+ var el=$(fieldId||'commentText'),text=el?el.value.trim():'';
+ if(!text){toast('Write a comment first.',true);return}
+ if(tx(function(){db.comments.push({id:'C'+next('comment'),parentType:type,parentId:id,text:text,author:displayName(),at:iso()})})){
+  toast('Comment added.');if(type==='inmate')showInmate(id);else if(type==='request')viewRequest(id);else if(type==='issue')showIssueComments(id);else if(type==='message')renderMessages();
+ }
+};
+window.showIssueComments=function(id){var x=db.issues.find(function(a){return a.id===id});if(!x)return;openModal('Issue comments',commentsHTML('issue',id));};
+function renderMessages(){
+ var box=$('msgRequestLink');if(box){var selected=box.value;box.innerHTML='<option value="">No linked request</option>'+db.requests.slice().sort(function(a,b){return a.date<b.date?1:-1}).map(function(r){var i=inmateById(r.inmateId);return '<option value="'+esc(r.id)+'">'+esc(r.id+' · '+(i?i.first+' '+i.last:'Removed inmate')+' · '+r.date)+'</option>'}).join('');box.value=selected;}
+ var ibox=$('msgInmateLink');if(ibox){var isel=ibox.value;ibox.innerHTML='<option value="">No linked inmate</option>'+db.inmates.slice().sort(byName).map(function(i){return '<option value="'+esc(i.id)+'">'+esc(i.first+' '+i.last+' · '+i.mdoc)+'</option>'}).join('');ibox.value=isel;}
+ var status=$('msgStatusFilter')?$('msgStatusFilter').value:'open',priority=$('msgPriorityFilter')?$('msgPriorityFilter').value:'all',category=$('msgCategoryFilter')?$('msgCategoryFilter').value:'all',q=($('msgSearch')?$('msgSearch').value:'').toLowerCase();
+ var list=db.messages.slice().sort(function(a,b){return (b.created||b.at||'').localeCompare(a.created||a.at||'')}).filter(function(m){
+  return (status==='all'||(status==='resolved'?(m.status==='resolved'):m.status!=='resolved'))&&(priority==='all'||m.priority===priority)&&(category==='all'||m.category===category)&&(!q||((m.title||m.subject||'')+' '+(m.body||m.text||'')).toLowerCase().indexOf(q)>-1);
+ });
+ $('msgList').innerHTML=list.length?list.slice(0,300).map(function(m){
+  var links=m.links||[],resolved=m.status==='resolved';
+  return '<div class="card" style="border-left:6px solid '+(m.priority==='urgent'?'#b71c1c':m.priority==='high'?'#9a5b00':resolved?'#2e7d32':'#1f3a5f')+'"><div class="row" style="align-items:center"><span class="badge '+(resolved?'green':m.priority==='urgent'?'red':m.priority==='high'?'orange':'')+'">'+esc(resolved?'RESOLVED':m.status.toUpperCase())+'</span><span class="badge">'+esc((m.priority||'normal').toUpperCase())+'</span><span class="badge">'+esc(m.category||'General')+'</span><span class="note">'+esc(m.author||'Name not provided')+' · '+esc(fmtDateTime(m.created||m.at))+'</span></div>'+
+  '<h3 style="margin:8px 0">'+esc(m.title||m.subject||'Untitled work item')+'</h3><div>'+esc(m.body||m.text||'').replace(/\n/g,'<br>')+'</div>'+
+  (links.length?'<p><b>Linked records:</b> '+links.map(function(l){if(l.type==='request'){var r=db.requests.find(function(x){return x.id===l.id}),i=r?inmateById(r.inmateId):null;return '<button class="btn small grey" onclick="viewRequest(\''+esc(l.id)+'\')">'+esc(l.id+(i?' · '+i.first+' '+i.last:''))+'</button>'}if(l.type==='inmate'){var ii=inmateById(l.id);return '<button class="btn small grey" onclick="showInmate(\''+esc(l.id)+'\')">'+esc(ii?ii.first+' '+ii.last:'Inmate record')+'</button>'}return '<span class="badge">'+esc(l.type+' '+l.id)+'</span>'}).join(' ')+'</p>':'')+
+  '<div class="row" style="margin-top:10px">'+(!resolved?'<button class="btn small green" onclick="resolveMessage(\''+m.id+'\')">MARK RESOLVED</button>':'<button class="btn small grey" onclick="reopenMessage(\''+m.id+'\')">REOPEN</button>')+'<button class="btn small" onclick="editMessageLinks(\''+m.id+'\')">LINK RECORD</button></div>'+commentsHTML('message',m.id)+
+  (resolved&&m.resolution?'<p class="note"><b>Resolution:</b> '+esc(m.resolution)+'</p>':'')+'</div>';
+ }).join(''):'<div class="empty">No work items match these filters.</div>';
+}
+window.resolveMessage=function(id){var m=db.messages.find(function(x){return x.id===id});if(!m)return;var note=prompt('Resolution note (optional):',m.resolution||'');if(note===null)return;if(tx(function(){m.status='resolved';m.resolvedAt=iso();m.resolvedBy=displayName();m.resolution=note.trim()})){renderAll();toast('Work item resolved.')}};
+window.reopenMessage=function(id){var m=db.messages.find(function(x){return x.id===id});if(!m)return;if(tx(function(){m.status='open';m.reopenedAt=iso()})){renderAll();toast('Work item reopened.')}};
+window.editMessageLinks=function(id){
+ var m=db.messages.find(function(x){return x.id===id});if(!m)return;
+ var type=prompt('Link type: enter request or inmate. Leave blank to cancel.','request');if(type===null||!type.trim())return;type=type.trim().toLowerCase();
+ if(type!=='request'&&type!=='inmate'){toast('Choose request or inmate.',true);return}
+ var records=type==='request'?db.requests:db.inmates;
+ var choices=records.map(function(r){if(type==='request'){var i=inmateById(r.inmateId);return r.id+' | '+(i?i.first+' '+i.last:'Removed inmate')+' | '+r.date}return r.id+' | '+r.first+' '+r.last+' | '+r.mdoc}).join('\n');
+ var rid=prompt('Enter a '+type+' ID to link, or leave blank to remove links of this type. Available records:\n'+choices,(m.links||[]).filter(function(l){return l.type===type}).map(function(l){return l.id})[0]||'');if(rid===null)return;rid=rid.trim();
+ if(rid&&!records.some(function(r){return r.id===rid})){toast('Record ID not found.',true);return}
+ if(tx(function(){m.links=(m.links||[]).filter(function(l){return l.type!==type});if(rid)m.links.push({type:type,id:rid})})){renderMessages();toast('Record link updated.')}
+};
+['msgStatusFilter','msgPriorityFilter','msgCategoryFilter','msgSearch'].forEach(function(id){$(id).onchange=renderMessages;$(id).oninput=renderMessages});
+$('msgSend').onclick=function(){
+ var text=$('msgText').value.trim(),title=$('msgSubject').value.trim(),category=$('msgCategory').value,priority=$('msgPriority').value,rid=$('msgRequestLink').value,iid=$('msgInmateLink').value;
+ if(!title){toast('Enter a short title.',true);return}if(!text){toast('Enter the work details.',true);return}
+ if(tx(function(){var m={id:'M'+next('message'),created:iso(),author:displayName(),title:title,body:text,category:category,priority:priority,status:'open',links:[],comments:[]};if(rid)m.links.push({type:'request',id:rid});if(iid)m.links.push({type:'inmate',id:iid});db.messages.push(m)})){
+  $('msgText').value='';$('msgSubject').value='';$('msgRequestLink').value='';$('msgInmateLink').value='';renderAll();toast('Work item created.')}
+};
+$('saveDisplayName').onclick=function(){var name=$('displayName').value.trim();if(tx(function(){db.settings.displayName=name})){renderAll();toast(name?'Name saved.':'Name cleared.')}};
+function renderAll(){renderDashboard();renderMessages();renderInmates();renderRequests();renderInventory();renderSetup()}
+renderAll();
+if(!storageOK)setSaved(false);
+else if(offlineConflict)setSaved(false,'⚠ RECONNECT CONFLICT — SEE SETUP');
+else if(offlinePending)setSaved('pending');
+else if(freshInstall)save();
+if(storageOK)liveLoop();
+if(loadNote)setTimeout(function(){alert(loadNote)},200);
+})();
+</script>
+</body>
+</html>

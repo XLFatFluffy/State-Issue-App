@@ -1,0 +1,134 @@
+{
+  "version": 3,
+  "rev": 0,
+  "seq": {},
+  "items": [
+    {
+      "id": "shirt",
+      "name": "Shirt",
+      "category": "Clothing",
+      "sizes": [
+        "L",
+        "XL",
+        "2X",
+        "3X",
+        "4X",
+        "5X",
+        "6X"
+      ],
+      "active": true
+    },
+    {
+      "id": "pants",
+      "name": "Pants",
+      "category": "Clothing",
+      "sizes": [
+        "L - Green/White",
+        "XL - Green/White",
+        "2X - Green/White",
+        "3X - Green/White",
+        "4X - Green/White",
+        "5X - Green/White",
+        "6X - Green/White",
+        "L - Black/White",
+        "XL - Black/White",
+        "2X - Black/White",
+        "3X - Black/White",
+        "4X - Black/White",
+        "5X - Black/White",
+        "6X - Black/White"
+      ],
+      "active": true
+    },
+    {
+      "id": "shorts",
+      "name": "Shorts",
+      "category": "Clothing",
+      "sizes": [
+        "L",
+        "XL",
+        "2X",
+        "3X",
+        "4X",
+        "5X",
+        "6X"
+      ],
+      "active": true
+    },
+    {
+      "id": "boxers",
+      "name": "Boxers",
+      "category": "Clothing",
+      "sizes": [
+        "L",
+        "XL",
+        "2X",
+        "3X",
+        "4X",
+        "5X",
+        "6X"
+      ],
+      "active": true
+    },
+    {
+      "id": "towel",
+      "name": "Towel",
+      "category": "Linen",
+      "sizes": [],
+      "active": true
+    },
+    {
+      "id": "jacket",
+      "name": "Jacket",
+      "category": "Clothing",
+      "sizes": [
+        "L",
+        "XL",
+        "2X",
+        "3X",
+        "4X",
+        "5X",
+        "6X"
+      ],
+      "active": true
+    },
+    {
+      "id": "shoes",
+      "name": "Shoes",
+      "category": "Footwear",
+      "sizes": [
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14"
+      ],
+      "active": true
+    },
+    {
+      "id": "showershoes",
+      "name": "Shower Shoes",
+      "category": "Footwear",
+      "sizes": [
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "active": true
+    }
+  ],
+  "inmates": [],
+  "requests": [],
+  "requestItems": [],
+  "issues": [],
+  "txns": [],
+  "deletions": [],
+  "reminders": [],
+  "inventoryChecks": [],
+  "settings": {
+    "lastBackup": null,
+    "minStock": {}
+  }
+}
