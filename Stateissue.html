@@ -203,6 +203,25 @@
       .clickrow:hover {
         background: #f1f5f9;
       }
+      .record-link {
+        appearance: none;
+        border: 0;
+        padding: 0;
+        background: none;
+        color: #174f86;
+        font: inherit;
+        text-align: left;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+      .record-link:hover {
+        color: #0b3158;
+      }
+      .record-link:focus {
+        outline: 3px solid #f2a900;
+        outline-offset: 2px;
+      }
       .empty {
         padding: 26px;
         text-align: center;
@@ -1738,6 +1757,26 @@
         window.closeModal = function () {
           $("modal").className = "modal";
         };
+        function recordLink(type, id, label) {
+          if (!id) return esc(label || "—");
+          return (
+            '<button type="button" class="record-link" data-record-type="' +
+            esc(type) +
+            '" data-record-id="' +
+            esc(id) +
+            '">' +
+            esc(label || id) +
+            "</button>"
+          );
+        }
+        document.addEventListener("click", function (e) {
+          var target = e.target;
+          if (!target || target.className !== "record-link") return;
+          if (target.getAttribute("data-record-type") === "request")
+            window.viewRequest(target.getAttribute("data-record-id"));
+          else if (target.getAttribute("data-record-type") === "inmate")
+            window.showInmate(target.getAttribute("data-record-id"));
+        });
         function inmateById(id) {
           return db.inmates.find(function (x) {
             return x.id === id;
@@ -1864,9 +1903,9 @@
                   '<tr class="clickrow" data-id="' +
                   esc(i.id) +
                   '"><td>' +
-                  esc(i.mdoc) +
+                  recordLink("inmate", i.id, i.mdoc) +
                   "</td><td>" +
-                  esc(i.last + ", " + i.first) +
+                  recordLink("inmate", i.id, i.last + ", " + i.first) +
                   (i.hasProperty
                     ? '<span class="propbadge">PROPERTY</span>'
                     : "") +
@@ -1893,9 +1932,10 @@
           Array.prototype.forEach.call(
             box.querySelectorAll(".clickrow"),
             function (r) {
-              r.onclick = function () {
-                showInmate(r.getAttribute("data-id"));
-              };
+            r.onclick = function (e) {
+              if (e.target.className === "record-link") return;
+              showInmate(r.getAttribute("data-id"));
+            };
             },
           );
         }
@@ -1987,7 +2027,9 @@
                   "</td><td>" +
                   esc(x.zone || "—") +
                   "</td><td>" +
-                  esc(x.requestId ? x.requestId : x.type || "—") +
+                  (x.requestId
+                    ? recordLink("request", x.requestId)
+                    : esc(x.type || "—")) +
                   "</td><td>" +
                   (v
                     ? "VOIDED: " + esc(x.voidReason || "")
@@ -2587,7 +2629,12 @@
                             esc(itemName(r.itemId)) +
                             " (" +
                             esc(r.size) +
-                            ")</span>"
+                            ")</span>" +
+                            (r.requestId
+                              ? '<br><span class="note">Request: ' +
+                                recordLink("request", r.requestId) +
+                                "</span>"
+                              : "")
                           : "") +
                         "</td><td>" +
                         esc(r.dueDate ? fmt(r.dueDate) : "When available") +
@@ -2623,6 +2670,11 @@
                   " open" +
                   (showCompleted ? " / " + totalCount + " total" : "") +
                   "</span></button>" +
+                  (i
+                    ? '<div style="margin:6px 0 0 10px">' +
+                      recordLink("inmate", i.id, "VIEW INMATE FILE") +
+                      "</div>"
+                    : "") +
                   body +
                   "</div>"
                 );
@@ -2707,7 +2759,7 @@
                       "<tr><td>" +
                       fmt(r.date) +
                       "</td><td>" +
-                      esc(r.id) +
+                      recordLink("request", r.id) +
                       "</td><td>" +
                       statusBadge(r.status) +
                       "</td><td>" +
@@ -2731,6 +2783,11 @@
                 " request" +
                 (g.rows.length === 1 ? "" : "s") +
                 "</span></button>" +
+                (i
+                  ? '<div style="margin:6px 0 0 10px">' +
+                    recordLink("inmate", i.id, "VIEW INMATE FILE") +
+                    "</div>"
+                  : "") +
                 body +
                 "</div>"
               );
@@ -2839,8 +2896,14 @@
           openModal(
             "Issue Outstanding Item",
             '<div class="card"><b>' +
-              esc(i.first + " " + i.last) +
-              "</b><br>" +
+              recordLink("inmate", i.id, i.first + " " + i.last) +
+              "</b> — MDOC " +
+              recordLink("inmate", i.id, i.mdoc) +
+              (r.requestId
+                ? "<br><b>Request:</b> " +
+                  recordLink("request", r.requestId)
+                : "") +
+              "<br>" +
               esc(itemName(r.itemId)) +
               " — " +
               esc(r.size) +
@@ -3627,9 +3690,9 @@
             : [];
           var body =
             '<div class="card"><b>' +
-            esc(i.first + " " + i.last) +
+            recordLink("inmate", i.id, i.first + " " + i.last) +
             "</b> — MDOC " +
-            esc(i.mdoc) +
+            recordLink("inmate", i.id, i.mdoc) +
             " — Zone " +
             esc(i.zone || "—") +
             "</div>" +
@@ -3859,13 +3922,15 @@
                 var i = inmateById(r.inmateId);
                 return (
                   "<tr><td>" +
-                  esc(r.id) +
+                  recordLink("request", r.id) +
                   "</td><td>" +
                   fmt(r.date) +
                   "</td><td>" +
-                  esc(i ? i.mdoc : "—") +
+                  (i ? recordLink("inmate", i.id, i.mdoc) : "—") +
                   "</td><td>" +
-                  esc(i ? i.first + " " + i.last : "Removed inmate") +
+                  (i
+                    ? recordLink("inmate", i.id, i.first + " " + i.last)
+                    : "Removed inmate") +
                   "</td><td>" +
                   esc(r.type) +
                   "</td><td>" +
@@ -3921,9 +3986,11 @@
           openModal(
             "Request " + r.id,
             '<div class="card"><b>Inmate:</b> ' +
-              esc(i ? i.first + " " + i.last : "Removed inmate") +
+              (i
+                ? recordLink("inmate", i.id, i.first + " " + i.last)
+                : "Removed inmate") +
               "<br><b>MDOC:</b> " +
-              esc(i ? i.mdoc : "—") +
+              (i ? recordLink("inmate", i.id, i.mdoc) : "—") +
               "<br><b>Date:</b> " +
               fmt(r.date) +
               "<br><b>Type:</b> " +
@@ -3988,9 +4055,11 @@
           openModal(
             "Issue " + it.name,
             '<div class="card"><b>' +
-              esc(i.first + " " + i.last) +
+              recordLink("inmate", i.id, i.first + " " + i.last) +
               "</b> — MDOC " +
-              esc(i.mdoc) +
+              recordLink("inmate", i.id, i.mdoc) +
+              "<br><b>Request:</b> " +
+              recordLink("request", r.id) +
               "<br>" +
               esc(it.name) +
               " — Size " +
@@ -4193,6 +4262,27 @@
               t
                 .slice(0, 150)
                 .map(function (x) {
+                  var issue = x.issueId
+                      ? db.issues.find(function (z) {
+                          return z.id === x.issueId;
+                        })
+                      : null,
+                    inmate = issue ? inmateById(issue.inmateId) : null,
+                    linkedRecords =
+                      (inmate
+                        ? '<br><b>Inmate:</b> ' +
+                          recordLink("inmate", inmate.id, inmate.mdoc) +
+                          " — " +
+                          recordLink(
+                            "inmate",
+                            inmate.id,
+                            inmate.first + " " + inmate.last,
+                          )
+                        : "") +
+                      (issue && issue.requestId
+                        ? '<br><b>Request:</b> ' +
+                          recordLink("request", issue.requestId)
+                        : "");
                   return (
                     "<tr><td>" +
                     fmt(x.date) +
@@ -4207,6 +4297,7 @@
                     esc(x.type) +
                     "</td><td>" +
                     esc(x.notes || "") +
+                    linkedRecords +
                     "</td></tr>"
                   );
                 })
@@ -4540,9 +4631,11 @@
                 "<tr><td>" +
                 fmt(x.date) +
                 "</td><td>" +
-                esc(i ? i.mdoc : "—") +
+                (i ? recordLink("inmate", i.id, i.mdoc) : "—") +
                 "</td><td>" +
-                esc(i ? i.first + " " + i.last : "Removed inmate") +
+                (i
+                  ? recordLink("inmate", i.id, i.first + " " + i.last)
+                  : "Removed inmate") +
                 "</td><td>" +
                 esc(it ? it.name : x.itemId) +
                 "</td><td>" +
@@ -4552,7 +4645,9 @@
                 "</td><td>" +
                 esc(x.type || "Other") +
                 "</td><td>" +
-                esc(x.requestId || "—") +
+                (x.requestId
+                  ? recordLink("request", x.requestId)
+                  : "—") +
                 "</td><td>" +
                 esc(x.zone || "—") +
                 "</td></tr>"
