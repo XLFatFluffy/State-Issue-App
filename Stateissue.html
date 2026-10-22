@@ -1021,11 +1021,6 @@
           });
           upgrade(d);
           d.seq = d.seq || {};
-          ["inmate", "request", "issue", "txn", "item", "ri"].forEach(
-            function (k) {
-              if (typeof d.seq[k] !== "number") d.seq[k] = 1000;
-            },
-          );
           d.settings = d.settings || { lastBackup: null };
           d.settings.minStock = d.settings.minStock || {};
           if (typeof d.settings.displayName !== "string")
@@ -1063,6 +1058,32 @@
               return x.requestId === r.id;
             });
             if (it.length) r.status = calcStatus(it);
+          });
+          var sequenceSources = {
+            inmate: { collection: "inmates", prefix: "i" },
+            request: { collection: "requests", prefix: "R" },
+            issue: { collection: "issues", prefix: "I" },
+            txn: { collection: "txns", prefix: "T" },
+            item: { collection: "items", prefix: "item" },
+            ri: { collection: "requestItems", prefix: "RI" },
+            reminder: { collection: "reminders", prefix: "RM" },
+            inventoryCheck: { collection: "inventoryChecks", prefix: "IC" },
+            message: { collection: "messages", prefix: "M" },
+            comment: { collection: "comments", prefix: "C" },
+          };
+          Object.keys(sequenceSources).forEach(function (key) {
+            var source = sequenceSources[key],
+              maxId = 0,
+              idPattern = new RegExp("^" + source.prefix + "(\\d+)$");
+            d[source.collection].forEach(function (record) {
+              var match = idPattern.exec(String(record.id || ""));
+              if (match) maxId = Math.max(maxId, parseInt(match[1], 10));
+            });
+            var current = d.seq[key];
+            d.seq[key] = Math.max(
+              typeof current === "number" && isFinite(current) ? current : 1000,
+              maxId,
+            );
           });
           d.rev = serverRev || d.rev || 0;
           return d;

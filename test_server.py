@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Automated checks for the State Issue server. Run:  python test_server.py
 Uses a temporary folder, so it never touches the real database."""
-import os, sys, tempfile, json, threading, unittest, sqlite3, importlib.util
+import os, sys, tempfile, json, threading, unittest, sqlite3, importlib.util, re
 TMP = tempfile.mkdtemp(prefix="si_test_")
 os.environ["STATE_ISSUE_DATA"] = TMP
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -350,14 +350,36 @@ class ClientSourceChecks(unittest.TestCase):
         # A doubled backslash here matches the literal text "\n" instead of an
         # actual newline, so typed line breaks in a work item's Details would
         # not render as <br>. Guards against that regression coming back.
-        self.assertIn("esc(m.body||m.text||'').replace(/\\n/g,'<br>')", self.html)
-        self.assertNotIn("esc(m.body||m.text||'').replace(/\\\\n/g,'<br>')", self.html)
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('esc(m.body||m.text||"").replace(/\\n/g,"<br>")', compact)
+        self.assertNotIn('esc(m.body||m.text||"").replace(/\\\\n/g,"<br>")', compact)
 
     def test_render_setup_populates_display_name_field(self):
-        idx = self.html.index("function renderSetup(){")
-        body = self.html[idx:idx + 400]
-        self.assertIn("$('displayName')", body)
+        compact = re.sub(r"\s+", "", self.html)
+        idx = compact.index("functionrenderSetup(){")
+        body = compact[idx:idx + 500]
+        self.assertIn('$("displayName")', body)
         self.assertIn("displayName()", body)
+
+    def test_fixup_advances_all_id_sequences_from_existing_records(self):
+        compact = re.sub(r"\s+", "", self.html)
+        for source in (
+            'inmate:{collection:"inmates",prefix:"i"}',
+            'request:{collection:"requests",prefix:"R"}',
+            'issue:{collection:"issues",prefix:"I"}',
+            'txn:{collection:"txns",prefix:"T"}',
+            'item:{collection:"items",prefix:"item"}',
+            'ri:{collection:"requestItems",prefix:"RI"}',
+            'reminder:{collection:"reminders",prefix:"RM"}',
+            'inventoryCheck:{collection:"inventoryChecks",prefix:"IC"}',
+            'message:{collection:"messages",prefix:"M"}',
+            'comment:{collection:"comments",prefix:"C"}',
+        ):
+            self.assertIn(source, compact)
+        self.assertIn(
+            'Math.max(typeofcurrent==="number"&&isFinite(current)?current:1000,maxId,)',
+            compact,
+        )
 
 if __name__ == "__main__":
     r = unittest.main(exit=False, verbosity=1)
