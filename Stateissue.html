@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>State Issue</title>
     <style>
       * {
@@ -442,6 +443,311 @@
       .reminderGroupBody table {
         margin-top: 0;
       }
+
+      :root {
+        color-scheme: light;
+        --ink: #1d2d3b;
+        --muted: #526373;
+        --navy: #18384f;
+        --teal: #14766f;
+        --teal-dark: #105e59;
+        --line: #d7e0e6;
+        --surface: #fff;
+        --canvas: #f1f5f7;
+      }
+      body {
+        color: var(--ink);
+        background: var(--canvas);
+        font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+        line-height: 1.45;
+      }
+      header {
+        position: relative;
+        min-height: 78px;
+        padding: 13px max(22px, calc((100vw - 1280px) / 2));
+        background: var(--navy);
+        border-bottom: 4px solid var(--teal);
+      }
+      header h1 {
+        font-size: 24px;
+        letter-spacing: 0.045em;
+      }
+      .brand-subtitle {
+        display: block;
+        margin-top: 2px;
+        color: #d0dde5;
+        font-size: 14px;
+        font-weight: normal;
+        letter-spacing: 0;
+      }
+      #status {
+        color: #e2eaf0;
+        font-size: 14px;
+      }
+      .ok {
+        color: #a9e0bf;
+      }
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        gap: 2px;
+        overflow-x: auto;
+        padding: 0 max(12px, calc((100vw - 1280px) / 2));
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        scrollbar-width: thin;
+      }
+      nav button {
+        flex: 0 0 auto;
+        min-width: 112px;
+        padding: 15px 17px 13px;
+        border: 0;
+        border-bottom: 3px solid transparent;
+        background: #fff;
+        color: #46596a;
+        font-size: 15px;
+        letter-spacing: 0.035em;
+        transition: color 120ms ease, background-color 120ms ease;
+      }
+      nav button:hover {
+        background: #f4f7f8;
+        color: var(--navy);
+      }
+      nav button.on {
+        border-bottom: 3px solid var(--teal);
+        background: #f3f8f7;
+        color: var(--teal-dark);
+      }
+      main {
+        max-width: 1324px;
+        margin: 24px auto 40px;
+        padding: 0 22px;
+      }
+      section {
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: 0 2px 8px rgba(24, 56, 79, 0.045);
+      }
+      h2 {
+        margin-bottom: 22px;
+        color: var(--navy);
+        font-size: 27px;
+        line-height: 1.25;
+      }
+      h3 {
+        margin-top: 28px;
+        color: #294659;
+        font-size: 20px;
+      }
+      .row {
+        align-items: flex-end;
+        margin-bottom: 10px;
+      }
+      .card,
+      .stat,
+      .reminderGroup {
+        border-color: var(--line);
+        border-radius: 8px;
+        background: #fbfcfd;
+      }
+      .card {
+        padding: 18px;
+      }
+      .stat {
+        min-height: 108px;
+        padding: 17px 18px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(24, 56, 79, 0.035);
+      }
+      .stat b {
+        color: var(--navy);
+        font-size: 30px;
+      }
+      label {
+        color: #304656;
+        font-size: 16px;
+      }
+      input[type="text"],
+      input[type="number"],
+      input[type="date"],
+      input:not([type]),
+      select,
+      textarea {
+        min-height: 46px;
+        padding: 10px 12px;
+        border: 1px solid #aebdc8;
+        border-radius: 6px;
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 17px;
+      }
+      textarea {
+        min-height: 100px;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus,
+      .btn:focus,
+      nav button:focus {
+        outline: 3px solid #d2932b;
+        outline-offset: 2px;
+      }
+      .btn {
+        min-height: 46px;
+        padding: 11px 18px;
+        border-radius: 6px;
+        background: var(--navy);
+        font-size: 16px;
+        letter-spacing: 0.025em;
+        transition: background-color 120ms ease, transform 120ms ease;
+      }
+      .btn:hover {
+        background: #244f69;
+      }
+      .btn.green {
+        background: var(--teal);
+      }
+      .btn.green:hover {
+        background: var(--teal-dark);
+      }
+      .btn.grey {
+        background: #536575;
+      }
+      .btn.grey:hover {
+        background: #40515f;
+      }
+      .btn.red {
+        background: #a83737;
+      }
+      .btn.orange {
+        background: #93600c;
+      }
+      .btn.small {
+        min-height: 38px;
+        padding: 8px 12px;
+        font-size: 14px;
+      }
+      th {
+        background: #edf2f5;
+        color: #304656;
+      }
+      th,
+      td {
+        padding: 12px;
+        border-bottom-color: #e1e8ed;
+      }
+      .clickrow:hover,
+      .reminderDrop:hover {
+        background: #f1f7f6;
+      }
+      .empty {
+        border-color: #c4d0d8;
+        background: #fbfcfd;
+        color: var(--muted);
+      }
+      .note {
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .badge {
+        border-radius: 5px;
+        background: #e5edf3;
+        color: #294659;
+        font-size: 14px;
+      }
+      .badge.green {
+        background: #e0f1e7;
+        color: #245b39;
+      }
+      .badge.red {
+        background: #f7e4e2;
+        color: #812e2a;
+      }
+      .badge.orange {
+        background: #f7edda;
+        color: #754c0e;
+      }
+      .warnbox,
+      .propbox {
+        border-radius: 8px;
+      }
+      .modal {
+        background: rgba(15, 30, 42, 0.58);
+      }
+      .modalbox {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 16px 48px rgba(10, 28, 40, 0.25);
+      }
+      .modalhead {
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      #toast {
+        border-radius: 8px;
+        box-shadow: 0 6px 24px rgba(10, 28, 40, 0.2);
+        font-size: 17px;
+      }
+      @media (max-width: 700px) {
+        header {
+          align-items: flex-start;
+          gap: 10px;
+          padding: 13px 16px;
+        }
+        header h1 {
+          font-size: 20px;
+        }
+        #status {
+          max-width: 45%;
+          font-size: 12px;
+        }
+        nav {
+          padding: 0 8px;
+        }
+        nav button {
+          min-width: auto;
+          padding: 13px 14px 11px;
+          font-size: 14px;
+        }
+        main {
+          margin: 14px auto 28px;
+          padding: 0 10px;
+        }
+        section {
+          padding: 19px 15px;
+        }
+        h2 {
+          font-size: 24px;
+        }
+        .row > * {
+          max-width: 100%;
+        }
+        .modal {
+          padding: 10px;
+        }
+        .modalbox {
+          padding: 17px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      @media print {
+        nav {
+          position: static;
+        }
+        section {
+          box-shadow: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -449,6 +755,7 @@
       <h1>
         STATE ISSUE
         <span id="verTag" style="font-size: 15px; font-weight: normal"></span>
+        <span class="brand-subtitle">Clothing &amp; linen issue management</span>
       </h1>
       <div id="status">
         Data: <span id="saved" class="ok">✓ Saved</span><br />Last backup:
