@@ -381,6 +381,25 @@ class ClientSourceChecks(unittest.TestCase):
             compact,
         )
 
+    def test_work_queue_record_links_are_searchable_and_require_a_match(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('id="msgRequestLink"list="msgRequestOptions"', compact)
+        self.assertIn('id="msgInmateLink"list="msgInmateOptions"', compact)
+        self.assertIn('id="msgRequestOptions"></datalist>', compact)
+        self.assertIn('id="msgInmateOptions"></datalist>', compact)
+        self.assertRegex(
+            self.html,
+            r'r\.id\s*\+\s*" · "\s*\+\s*\(i\s*\?\s*i\.first\s*\+\s*" "\s*\+\s*i\.last',
+        )
+        self.assertRegex(
+            self.html,
+            r'i\.first\s*\+\s*" "\s*\+\s*i\.last\s*\+\s*" · "\s*\+\s*i\.mdoc\s*\+\s*" · "\s*\+\s*i\.id',
+        )
+        self.assertIn('dataListRecordId("msgRequestLink","msgRequestOptions")', compact)
+        self.assertIn('dataListRecordId("msgInmateLink","msgInmateOptions")', compact)
+        self.assertIn('if(requestSearch&&!rid)', compact)
+        self.assertIn('if(inmateSearch&&!iid)', compact)
+
 if __name__ == "__main__":
     r = unittest.main(exit=False, verbosity=1)
     sys.exit(0 if r.result.wasSuccessful() else 1)

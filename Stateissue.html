@@ -621,14 +621,22 @@
               </select></label
             >
             <label
-              >Link to request (optional)<select id="msgRequestLink">
-                <option value="">No linked request</option>
-              </select></label
+              >Link to request (optional)<input
+                type="text"
+                id="msgRequestLink"
+                list="msgRequestOptions"
+                autocomplete="off"
+                placeholder="Search request ID or inmate name"
+              /><datalist id="msgRequestOptions"></datalist></label
             >
             <label
-              >Link to inmate (optional)<select id="msgInmateLink">
-                <option value="">No linked inmate</option>
-              </select></label
+              >Link to inmate (optional)<input
+                type="text"
+                id="msgInmateLink"
+                list="msgInmateOptions"
+                autocomplete="off"
+                placeholder="Search name or MDOC number"
+              /><datalist id="msgInmateOptions"></datalist></label
             >
           </div>
           <label
@@ -5183,56 +5191,51 @@
           if (!x) return;
           openModal("Issue comments", commentsHTML("issue", id));
         };
+        function dataListRecordId(inputId, listId) {
+          var value = $(inputId).value,
+            options = $(listId).options;
+          for (var i = 0; i < options.length; i++) {
+            if (options[i].value === value)
+              return options[i].getAttribute("data-id") || "";
+          }
+          return "";
+        }
         function renderMessages() {
-          var box = $("msgRequestLink");
-          if (box) {
-            var selected = box.value;
-            box.innerHTML =
-              '<option value="">No linked request</option>' +
-              db.requests
-                .slice()
-                .sort(function (a, b) {
-                  return a.date < b.date ? 1 : -1;
-                })
-                .map(function (r) {
-                  var i = inmateById(r.inmateId);
-                  return (
-                    '<option value="' +
-                    esc(r.id) +
-                    '">' +
-                    esc(
-                      r.id +
-                        " · " +
-                        (i ? i.first + " " + i.last : "Removed inmate") +
-                        " · " +
-                        r.date,
-                    ) +
-                    "</option>"
-                  );
-                })
-                .join("");
-            box.value = selected;
-          }
-          var ibox = $("msgInmateLink");
-          if (ibox) {
-            var isel = ibox.value;
-            ibox.innerHTML =
-              '<option value="">No linked inmate</option>' +
-              db.inmates
-                .slice()
-                .sort(byName)
-                .map(function (i) {
-                  return (
-                    '<option value="' +
-                    esc(i.id) +
-                    '">' +
-                    esc(i.first + " " + i.last + " · " + i.mdoc) +
-                    "</option>"
-                  );
-                })
-                .join("");
-            ibox.value = isel;
-          }
+          $("msgRequestOptions").innerHTML = db.requests
+            .slice()
+            .sort(function (a, b) {
+              return a.date < b.date ? 1 : -1;
+            })
+            .map(function (r) {
+              var i = inmateById(r.inmateId);
+              return (
+                '<option data-id="' +
+                esc(r.id) +
+                '" value="' +
+                esc(
+                  r.id +
+                    " · " +
+                    (i ? i.first + " " + i.last : "Removed inmate") +
+                    " · " +
+                    r.date,
+                ) +
+                '"></option>'
+              );
+            })
+            .join("");
+          $("msgInmateOptions").innerHTML = db.inmates
+            .slice()
+            .sort(byName)
+            .map(function (i) {
+              return (
+                '<option data-id="' +
+                esc(i.id) +
+                '" value="' +
+                esc(i.first + " " + i.last + " · " + i.mdoc + " · " + i.id) +
+                '"></option>'
+              );
+            })
+            .join("");
           var status = $("msgStatusFilter")
               ? $("msgStatusFilter").value
               : "open",
@@ -5488,14 +5491,24 @@
             title = $("msgSubject").value.trim(),
             category = $("msgCategory").value,
             priority = $("msgPriority").value,
-            rid = $("msgRequestLink").value,
-            iid = $("msgInmateLink").value;
+            requestSearch = $("msgRequestLink").value.trim(),
+            inmateSearch = $("msgInmateLink").value.trim(),
+            rid = dataListRecordId("msgRequestLink", "msgRequestOptions"),
+            iid = dataListRecordId("msgInmateLink", "msgInmateOptions");
           if (!title) {
             toast("Enter a short title.", true);
             return;
           }
           if (!text) {
             toast("Enter the work details.", true);
+            return;
+          }
+          if (requestSearch && !rid) {
+            toast("Choose a request from the suggestions or clear the request field.", true);
+            return;
+          }
+          if (inmateSearch && !iid) {
+            toast("Choose an inmate from the suggestions or clear the inmate field.", true);
             return;
           }
           if (
