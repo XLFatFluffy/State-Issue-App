@@ -1,9 +1,11 @@
-STATE ISSUE 2.4.3 ADMIN GUIDE UPDATE
+STATE ISSUE 2.4.4 ADMIN GUIDE UPDATE
 ------------------------------------
 Work Queue items are now assigned IDs and appended atomically by the server.
 This prevents concurrent posts from different workstations from overwriting one
 another or being rejected because they started from the same revision. The create
-form reports success and clears only after the server confirms the save.
+form reports success and clears only after the server confirms the save. Older
+server processes are supported through a state-save fallback, so a server restart
+is not required for posting work items.
 
 Automatic backups now include inventory catalog-only changes, such as adding or
 editing an item before any stock is received. Backup files include collection
@@ -30,7 +32,7 @@ before relying on it. After upgrading, manually test one comment on each record 
 and resolve a work item, check record links, and verify backup/restore using a test copy.
 No automated browser test is claimed for these UI workflows.
 
-STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.3.0)
+STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.4.4)
 
 WHAT CHANGED IN 2.3.0
 ----------------------

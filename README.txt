@@ -1,4 +1,4 @@
-STATE ISSUE — VERSION 2.4.3
+STATE ISSUE — VERSION 2.4.4
 CONNECTED BUILD (one host computer runs the server; other computers connect to it
 over the local network — the host can be any computer on the network, not
 necessarily an officer's)
@@ -15,6 +15,15 @@ WHAT'S NEW IN 2.4.3 — RELIABLE WORK QUEUE DELIVERY
 - The create form clears and reports success only after the server confirms the
   work item was saved. If sending fails, the entered text remains available to retry.
 - Version and service-worker cache name bumped to 2.4.3.
+
+
+WHAT'S NEW IN 2.4.4 — OLDER SERVER COMPATIBILITY
+-------------------------------------------------
+- Work item posting falls back to the existing state-save API if the server
+  does not yet recognize the dedicated message endpoint. Revision conflicts
+  are retried against the latest server state.
+- Corrected the document body tag in the shipped page.
+- Version and service-worker cache name bumped to 2.4.4.
 
 
 WHAT'S NEW IN 2.4.2 — COMPLETE INVENTORY BACKUPS
@@ -111,7 +120,8 @@ Implementation choices and why
 - The implementation deliberately does not add private messages, user accounts, permissions,
   read receipts, or notifications. Those would add complexity without being required for this
   workflow, and a configured display name must not be mistaken for secure identity.
-\nWHAT'S NEW IN 2.3.0
+
+WHAT'S NEW IN 2.3.0
 --------------------
 - Added VERIFY_BACKUP.bat: drag a backup file onto it (or run it and type the path)
   to check the file is not damaged and see what's in it — last saved date, revision,

@@ -463,6 +463,7 @@
         margin-top: 0;
       }
 
+      /* Theme refinements override a few base styles above; later rules win in CSS. */
       :root {
         color-scheme: light;
         --ink: #1d2d3b;
@@ -1081,6 +1082,9 @@
     <script>
       (function () {
         "use strict";
+        // The app is organized as a single page: startup loads shared state,
+        // event handlers change it, and render functions redraw the visible views.
+        // These small polyfills keep the interface usable on older browsers.
         if (!Array.prototype.find) {
           Array.prototype.find = function (f) {
             for (var i = 0; i < this.length; i++)
@@ -1096,7 +1100,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "2.4.3",
+        var APP_VERSION = "2.4.4",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1110,6 +1114,8 @@
         var IS_MAIN =
           location.hostname === "127.0.0.1" ||
           location.hostname === "localhost";
+        // The server embeds a fresh copy on page load. Only the host browser
+        // may keep an additional local copy when the server is temporarily down.
         var SERVER_BOOTSTRAP = window.__STATE_ISSUE_SERVER_STATE__ || {
           state: null,
           rev: 0,
@@ -1351,6 +1357,8 @@
           delete d.deletions;
         }
         function fixup(d) {
+          // Bring older saved files up to the current shape before any screen
+          // uses them, and advance counters past IDs already present in backups.
           COLL.forEach(function (k) {
             if (!Array.isArray(d[k])) d[k] = [];
           });
@@ -1503,7 +1511,7 @@
           setSaved("pending");
           return true;
         }
-        function save() {
+        function save(rollbackState) {
           if (!storageOK) {
             setSaved(false, "⚠ DATA NOT LOADED — NOT SAVED");
             return false;
@@ -1519,6 +1527,8 @@
           }
           saveAgain = true;
           if (saveBusy) {
+            // One request is already in flight. Its completion will send the
+            // newest state again, rather than starting overlapping full saves.
             setSaved(IS_MAIN && offlinePending ? "pending" : true);
             return true;
           }
@@ -1573,6 +1583,15 @@
                     ? "⚠ CHANGED ON ANOTHER COMPUTER"
                     : "⚠ DATA NOT SAVED",
                 );
+                if (rollbackState) {
+                  db = JSON.parse(rollbackState);
+                  db.rev = serverRev;
+                  renderAll();
+                  toast(
+                    "DATA NOT SAVED. The change was undone; check the server connection and try again.",
+                    true,
+                  );
+                }
                 if (err.message === "CONFLICT") {
                   alert(
                     "This State Issue data was changed on another computer. Your latest change was not saved. The current server data will be loaded when you reopen State Issue.",
@@ -1672,6 +1691,8 @@
             });
         }
         function esc(s) {
+          // Text from saved records is inserted into HTML in many views. Escape
+          // it here so names and notes render as text instead of markup.
           return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
             return {
               "&": "&amp;",
@@ -2137,6 +2158,10 @@
             toast("Intake date must look like 2026-09-30.", true);
             return;
           }
+          if (messageSaving || saveBusy) {
+            toast("Wait for the current save to finish, then try again.", true);
+            return;
+          }
           if (
             db.inmates.some(function (x) {
               return x.mdoc === m && (!existing || x.id !== existing.id);
@@ -2145,6 +2170,7 @@
             toast("That MDOC number is already on the active roster.", true);
             return;
           }
+          var snap = JSON.stringify(db);
           var obj = existing || {
             id: "i" + next("inmate"),
             dateAdded: iso(),
@@ -2167,8 +2193,8 @@
             showershoes: $("ishowershoes").value,
           };
           if (!existing) db.inmates.push(obj);
-          if (!save()) {
-            if (!existing) db.inmates.pop();
+          if (!save(snap)) {
+            db = JSON.parse(snap);
             toast(
               "DATA NOT SAVED. Do not continue — see the red message at the top.",
               true,
@@ -2247,8 +2273,15 @@
 
         /* ---------- save helper: undo everything if saving fails ---------- */
         function tx(fn) {
+          // Keep related edits together (for example, an issue plus its stock
+          // transaction). The snapshot also lets save() undo the change if the
+          // server rejects it after the request finishes.
           if (messageSaving) {
             toast("Wait for the work item to finish saving, then try again.", true);
+            return false;
+          }
+          if (saveBusy) {
+            toast("Wait for the current save to finish, then try again.", true);
             return false;
           }
           var snap = JSON.stringify(db);
@@ -2259,7 +2292,7 @@
             toast("Something went wrong. Nothing was changed.", true);
             return false;
           }
-          if (!save()) {
+          if (!save(snap)) {
             db = JSON.parse(snap);
             toast("DATA NOT SAVED. Nothing was changed.", true);
             return false;
@@ -2267,6 +2300,8 @@
           return true;
         }
         function getInventory(itemId, size) {
+          // Inventory is derived from its transaction ledger, not maintained as
+          // a second quantity that could drift out of sync.
           return db.txns
             .filter(function (t) {
               return t.itemId === itemId && t.size === size;
@@ -3026,6 +3061,8 @@
           };
         };
         function inventoryCheck() {
+          // A physical count records the observed values and adds adjustment
+          // transactions only for differences the user confirms.
           var rows = [];
           activeItems().forEach(function (it) {
             sizesOf(it).forEach(function (sz) {
@@ -3463,6 +3500,8 @@
           "Other",
         ];
         function calcStatus(items) {
+          // Request status is summarized from its individual decisions; issuing
+          // approved items is tracked separately by issuedQty.
           if (
             items.some(function (x) {
               return x.decision !== "approved" && x.decision !== "denied";
@@ -4577,6 +4616,7 @@
 
         /* ---------- REPORTS ---------- */
         function report(start, end, title) {
+          // Voided issues remain visible in history but must not count as issued.
           var is = db.issues.filter(function (x) {
             return x.date >= start && x.date <= end && !x.voided;
           });
@@ -4986,6 +5026,7 @@
           }, 4000);
         }
         function exportText() {
+          // Export a detached copy so backup metadata never enters live state.
           var o = JSON.parse(JSON.stringify(db));
           delete o.rev;
           o._backup = {
@@ -5062,13 +5103,17 @@
               )
             )
               return;
+            if (messageSaving || saveBusy) {
+              toast("Wait for the current save to finish before restoring.", true);
+              return;
+            }
             makeBackup("StateIssue_BeforeRestore_");
-            var old = db;
+            var old = JSON.stringify(db);
             db = fixupSafe(data);
             delete db._backup;
             db.settings.backupRev = 0;
-            if (!save()) {
-              db = old;
+            if (!save(old)) {
+              db = JSON.parse(old);
               toast("Restore FAILED. Your current data is unchanged.", true);
               return;
             }
@@ -5522,6 +5567,8 @@
         }
 
         /* ---------- COMMENTS AND OPERATIONAL MESSAGE QUEUE ---------- */
+        // Comments and work items are ordinary shared state, so saves, backups,
+        // and live updates carry them to every workstation.
         function displayName() {
           return ((db.settings && db.settings.displayName) || "").trim();
         }
@@ -5610,6 +5657,8 @@
           return "";
         }
         function renderMessages() {
+          // Only open work is shown initially; filters expose resolved history
+          // without deleting completed items.
           $("msgRequestOptions").innerHTML = db.requests
             .slice()
             .sort(function (a, b) {
@@ -5976,6 +6025,62 @@
           }
           messageSaving = true;
           $("msgSend").disabled = true;
+          // Older servers do not implement /api/messages. In that case fetch the
+          // latest revision and use the general save endpoint, retrying conflicts.
+          function postViaState(retries) {
+            return fetch("/api/state", { cache: "no-store" })
+              .then(function (r) {
+                if (!r.ok) throw new Error("Could not load current server data.");
+                return r.json();
+              })
+              .then(function (latest) {
+                if (
+                  !latest ||
+                  !latest.state ||
+                  typeof latest.state !== "object" ||
+                  typeof latest.rev !== "number"
+                )
+                  throw new Error("The server returned invalid work queue data.");
+                var state = latest.state,
+                  lastId =
+                    state.seq &&
+                    typeof state.seq.message === "number" &&
+                    isFinite(state.seq.message)
+                      ? state.seq.message
+                      : 1000;
+                if (!Array.isArray(state.messages)) state.messages = [];
+                state.messages.forEach(function (existing) {
+                  var match = /^M(\d+)$/.exec(String(existing.id || ""));
+                  if (match) lastId = Math.max(lastId, parseInt(match[1], 10));
+                });
+                state.seq = state.seq || {};
+                state.seq.message = lastId + 1;
+                var savedMessage = JSON.parse(JSON.stringify(m));
+                savedMessage.id = "M" + (lastId + 1);
+                state.messages.push(savedMessage);
+                return fetch("/api/state", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    baseRev: latest.rev,
+                    state: state,
+                    who: displayName(),
+                  }),
+                  cache: "no-store",
+                }).then(function (r) {
+                  if (r.status === 409 && retries > 0)
+                    return postViaState(retries - 1);
+                  return r.json().then(function (res) {
+                    if (!r.ok) throw new Error(res.error || "Server rejected the work item.");
+                    return {
+                      rev: res.rev,
+                      state: state,
+                      message: savedMessage,
+                    };
+                  });
+                });
+              });
+          }
           fetch("/api/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -5983,6 +6088,7 @@
             cache: "no-store",
           })
             .then(function (r) {
+              if (r.status === 404) return postViaState(3);
               return r.json().then(function (res) {
                 if (!r.ok) throw new Error(res.error || "Work item was rejected.");
                 return res;

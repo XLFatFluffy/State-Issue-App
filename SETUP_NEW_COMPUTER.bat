@@ -1,5 +1,6 @@
 @echo off
 setlocal
+rem Run checks relative to this app folder so the program files are found.
 cd /d "%~dp0"
 title State Issue - First Time Setup
 
@@ -8,6 +9,7 @@ echo  STATE ISSUE - FIRST TIME SETUP
 echo ==============================================
 echo.
 set "PYTHON="
+rem Check for an existing Python before offering an installation.
 where py >nul 2>nul && set "PYTHON=py -3"
 if not defined PYTHON where python >nul 2>nul && set "PYTHON=python"
 if not defined PYTHON (
@@ -25,6 +27,7 @@ if not defined PYTHON (
   )
 )
 if not defined PYTHON (
+  rem Windows 7 cannot use current Python releases, so use its last supported one.
   echo Downloading Python 3.8.10 (the last version that runs on Windows 7).
   echo This needs an internet connection and can take a few minutes.
   powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe' -OutFile '%TEMP%\python-setup.exe'"
@@ -53,6 +56,7 @@ echo Python check:
 if errorlevel 1 goto PYERROR
 
 echo.
+rem Do not open the network port until the app's own tests have passed.
 echo Checking required application files...
 for %%F in (Stateissue.html server.py seed.json sw.js test_server.py) do (
   if not exist "%%F" (

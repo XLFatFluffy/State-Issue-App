@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 2.4.3
+State Issue server, version 2.4.4
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
 - Audit log: every saved change is recorded with the time, the computer
-  it came from, the Officer/Worker role active on that computer, and a
-  count of what changed (no inmate or personal names are written to the log)
+  it came from, the configured display name, and a count of what changed
+  (no inmate or personal names are written to the log)
 - Automatic backups: one per day (last 30 kept) and one per month (last 12 kept)
 - Serves sw.js, the offline helper script used only by the computer that
   opens State Issue at 127.0.0.1/localhost (the host computer itself).
@@ -16,8 +16,10 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "2.4.3"
+APP_VERSION = "2.4.4"
 SCHEMA_VERSION = 2
+# Keep program files separate from the database location so the server can
+# continue using a chosen data folder without moving the application itself.
 BASE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get("STATE_ISSUE_DATA") or BASE
 DB_PATH = os.path.join(DATA_DIR, "state_issue_v2.db")
@@ -55,6 +57,8 @@ def migrate():
         if current > SCHEMA_VERSION:
             raise RuntimeError("This database was made by a newer State Issue version. Do not run this server on it.")
         if current < 1:
+            # Create the core tables in one transaction so a partial first
+            # startup cannot leave the database marked as ready.
             c.execute("BEGIN IMMEDIATE")
             c.execute("CREATE TABLE IF NOT EXISTS app_state (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, state_json TEXT NOT NULL, updated_at TEXT NOT NULL)")
             c.execute("CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, workstation TEXT NOT NULL, revision INTEGER NOT NULL, summary TEXT NOT NULL)")
@@ -104,6 +108,8 @@ def summarize(old, new):
     return "; ".join(parts) or "settings only"
 
 def save_state(base_rev, state, workstation="unknown", who=""):
+    # Compare-and-save: accepting only the revision a client actually read
+    # prevents one workstation from silently replacing another's newer edits.
     c = dbconn()
     try:
         c.execute("BEGIN IMMEDIATE")
@@ -151,6 +157,8 @@ def add_work_item(message, workstation="unknown", who=""):
 
     c = dbconn()
     try:
+        # SQLite serializes this write transaction. Reading the counter and
+        # appending the item together gives concurrent posters distinct IDs.
         c.execute("BEGIN IMMEDIATE")
         row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
         if not row:
@@ -240,6 +248,8 @@ def boot_json(rev, state):
 
 # ---------- backups ----------
 def backup_now(name):
+    # SQLite's backup API copies a consistent snapshot even if the server is
+    # receiving saves while the copy is being made.
     os.makedirs(BACKUP_DIR, exist_ok=True)
     dest = os.path.join(BACKUP_DIR, name)
     tmp = dest + ".tmp"
@@ -371,6 +381,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self):
+        # API responses always reflect current shared state; only the static
+        # page shell is eligible for offline caching by the service worker.
         path = urlparse(self.path).path
         if path == "/api/state":
             rev, state = load_state()
@@ -414,6 +426,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_POST(self):
+        # Work queue posts use a narrow append operation; other edits use the
+        # revision-checked full-state endpoint below.
         path = urlparse(self.path).path
         if path == "/api/messages":
             try:

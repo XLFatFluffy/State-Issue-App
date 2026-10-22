@@ -1,5 +1,6 @@
 @echo off
 setlocal
+rem Resolve paths consistently when this file is dragged onto a backup.
 cd /d "%~dp0"
 title State Issue - Verify a Backup
 echo ==============================================
@@ -12,6 +13,7 @@ echo as you like, and does not touch your live data.
 echo.
 
 set "TARGET=%~1"
+rem Windows supplies the dropped file path as the first command-line argument.
 if not defined TARGET (
   echo Drag a backup file from the "backups" folder onto this icon and drop it,
   echo or type its full path below.

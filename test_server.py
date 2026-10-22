@@ -2,6 +2,8 @@
 """Automated checks for the State Issue server. Run:  python test_server.py
 Uses a temporary folder, so it never touches the real database."""
 import os, sys, tempfile, json, threading, unittest, sqlite3, importlib.util, re
+from html.parser import HTMLParser
+
 TMP = tempfile.mkdtemp(prefix="si_test_")
 os.environ["STATE_ISSUE_DATA"] = TMP
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -9,7 +11,11 @@ spec = importlib.util.spec_from_file_location("srv", os.path.join(HERE, "server.
 srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(srv)
 
 class T(unittest.TestCase):
+    """Server tests use an isolated database and never touch live application data."""
+
     def setUp(self):
+        # Each test starts from the same seeded state, so test order cannot
+        # affect revisions, audit counts, or backup-file expectations.
         for f in os.listdir(TMP):
             p = os.path.join(TMP, f)
             if os.path.isfile(p): os.remove(p)
@@ -273,6 +279,7 @@ class T(unittest.TestCase):
             urllib.request.urlopen(stale, timeout=3)
         self.assertEqual(ctx.exception.code, 409)
         self.assertEqual(json.loads(ctx.exception.read().decode("utf-8"))["error"], "CONFLICT")
+        ctx.exception.close()
 
     def test_http_post_rejects_invalid_state_shape(self):
         import urllib.request, urllib.error
@@ -283,6 +290,7 @@ class T(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as ctx:
             urllib.request.urlopen(req, timeout=3)
         self.assertEqual(ctx.exception.code, 400)
+        ctx.exception.close()
 
     def test_http_post_adds_work_item_and_returns_saved_state(self):
         import urllib.request
@@ -323,6 +331,7 @@ class T(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as ctx:
             urllib.request.urlopen(req, timeout=3)
         self.assertEqual(ctx.exception.code, 400)
+        ctx.exception.close()
 
     def test_http_root_includes_bootstrap_and_no_store_header(self):
         import urllib.request
@@ -399,8 +408,7 @@ class T(unittest.TestCase):
 
 
 class ClientSourceChecks(unittest.TestCase):
-    """Guards for the 2.4.2 client-side fixes. These check the shipped HTML's
-    source text directly since there is no in-browser JS test harness here."""
+    """Static client checks catch regressions not covered by server/API tests."""
 
     @classmethod
     def setUpClass(cls):
@@ -478,6 +486,53 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('dataListRecordId("msgInmateLink","msgInmateOptions")', compact)
         self.assertIn('if(requestSearch&&!rid)', compact)
         self.assertIn('if(inmateSearch&&!iid)', compact)
+
+    def test_work_item_post_falls_back_for_servers_without_message_endpoint(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('if(r.status===404)returnpostViaState(3);', compact)
+        self.assertIn('if(r.status===409&&retries>0)returnpostViaState(retries-1);', compact)
+        self.assertIn('fetch("/api/state",{cache:"no-store"})', compact)
+
+    def test_failed_async_state_save_restores_the_pre_change_state(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn("functionsave(rollbackState)", compact)
+        self.assertIn("if(rollbackState){db=JSON.parse(rollbackState);db.rev=serverRev;renderAll();", compact)
+        self.assertIn('if(saveBusy){toast("Waitforthecurrentsavetofinish,thentryagain.",true);returnfalse;}', compact)
+        self.assertGreaterEqual(compact.count("if(messageSaving||saveBusy){"), 2)
+
+    def test_html_has_one_real_body_and_no_duplicate_ids(self):
+        class Structure(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.body_starts = 0
+                self.body_ends = 0
+                self.ids = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag == "body":
+                    self.body_starts += 1
+                self.ids.extend(value for name, value in attrs if name == "id")
+
+            def handle_endtag(self, tag):
+                if tag == "body":
+                    self.body_ends += 1
+
+        structure = Structure()
+        structure.feed(self.html)
+        self.assertEqual(structure.body_starts, 1)
+        self.assertEqual(structure.body_ends, 1)
+        self.assertEqual(len(structure.ids), len(set(structure.ids)))
+
+    def test_client_server_and_service_worker_versions_match(self):
+        with open(os.path.join(HERE, "sw.js"), "r", encoding="utf-8") as f:
+            worker = f.read()
+        self.assertIn('var APP_VERSION = "' + srv.APP_VERSION + '"', self.html)
+        self.assertIn("state-issue-shell-v" + srv.APP_VERSION, worker)
+
+    def test_readme_changelog_has_a_real_blank_line(self):
+        with open(os.path.join(HERE, "README.txt"), "r", encoding="utf-8") as f:
+            readme = f.read()
+        self.assertNotIn("\\nWHAT'S NEW", readme)
 
 if __name__ == "__main__":
     r = unittest.main(exit=False, verbosity=1)
