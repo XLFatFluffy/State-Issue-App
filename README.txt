@@ -1,10 +1,20 @@
-STATE ISSUE — VERSION 2.4.2
+STATE ISSUE — VERSION 2.4.3
 CONNECTED BUILD (one host computer runs the server; other computers connect to it
 over the local network — the host can be any computer on the network, not
 necessarily an officer's)
 
 For day-to-day running, backups and recovery, read ADMIN_GUIDE.txt.
 
+
+
+WHAT'S NEW IN 2.4.3 — RELIABLE WORK QUEUE DELIVERY
+---------------------------------------------------
+- Work items now receive unique IDs and are appended atomically by the server,
+  preventing simultaneous posts from different workstations from colliding or
+  being rejected as stale full-state saves.
+- The create form clears and reports success only after the server confirms the
+  work item was saved. If sending fails, the entered text remains available to retry.
+- Version and service-worker cache name bumped to 2.4.3.
 
 
 WHAT'S NEW IN 2.4.2 — COMPLETE INVENTORY BACKUPS

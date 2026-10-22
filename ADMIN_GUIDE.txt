@@ -1,5 +1,10 @@
-STATE ISSUE 2.4.2 ADMIN GUIDE UPDATE
+STATE ISSUE 2.4.3 ADMIN GUIDE UPDATE
 ------------------------------------
+Work Queue items are now assigned IDs and appended atomically by the server.
+This prevents concurrent posts from different workstations from overwriting one
+another or being rejected because they started from the same revision. The create
+form reports success and clears only after the server confirms the save.
+
 Automatic backups now include inventory catalog-only changes, such as adding or
 editing an item before any stock is received. Backup files include collection
 counts, and restore checks those counts for missing or truncated data. Existing

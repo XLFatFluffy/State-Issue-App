@@ -127,6 +127,27 @@ class T(unittest.TestCase):
         self.assertIn("work queue items: 1 added", s)
         self.assertNotIn("Secret", s)
 
+    def test_concurrent_work_items_get_unique_ids_and_are_all_saved(self):
+        items = []
+        lock = threading.Lock()
+
+        def add(index):
+            result = srv.add_work_item(
+                {"title": "Work %d" % index, "body": "Details %d" % index},
+                "workstation-%d" % index,
+            )
+            with lock:
+                items.append(result[1]["id"])
+
+        threads = [threading.Thread(target=add, args=(i,)) for i in range(12)]
+        [thread.start() for thread in threads]
+        [thread.join() for thread in threads]
+        self.assertEqual(len(items), 12)
+        self.assertEqual(len(set(items)), 12)
+        rev, state = srv.load_state()
+        self.assertEqual(rev, 12)
+        self.assertEqual(len(state["messages"]), 12)
+
     def test_comments_counted_in_audit_without_text(self):
         rev, st = srv.load_state()
         st["comments"] = [{"id": "C1", "parentType": "inmate", "parentId": "i1",
@@ -259,6 +280,46 @@ class T(unittest.TestCase):
         payload = json.dumps({"baseRev": 0, "state": {"inmates": "not-a-list"}}).encode("utf-8")
         req = urllib.request.Request(base + "/api/state", data=payload,
                                      headers={"Content-Type": "application/json"}, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req, timeout=3)
+        self.assertEqual(ctx.exception.code, 400)
+
+    def test_http_post_adds_work_item_and_returns_saved_state(self):
+        import urllib.request
+        base = self._start_http_server()
+        payload = json.dumps({
+            "message": {
+                "title": "Coordinate pickup",
+                "body": "Confirm the time with the team.",
+                "author": "Worker",
+                "created": "2026-10-22T14:00:00Z",
+                "category": "Follow-up",
+                "priority": "normal",
+                "status": "open",
+                "links": [],
+                "comments": [],
+            },
+            "who": "Worker",
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            base + "/api/messages", data=payload,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["message"]["id"], "M1001")
+        self.assertEqual(body["state"]["messages"][0]["title"], "Coordinate pickup")
+        self.assertEqual(body["state"]["rev"], body["rev"])
+
+    def test_http_post_rejects_empty_work_item(self):
+        import urllib.request, urllib.error
+        base = self._start_http_server()
+        req = urllib.request.Request(
+            base + "/api/messages",
+            data=json.dumps({"message": {"title": "", "body": ""}}).encode("utf-8"),
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
         with self.assertRaises(urllib.error.HTTPError) as ctx:
             urllib.request.urlopen(req, timeout=3)
         self.assertEqual(ctx.exception.code, 400)

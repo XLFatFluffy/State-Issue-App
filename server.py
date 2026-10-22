@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 2.4.2
+State Issue server, version 2.4.3
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
@@ -16,7 +16,7 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "2.4.2"
+APP_VERSION = "2.4.3"
 SCHEMA_VERSION = 2
 BASE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get("STATE_ISSUE_DATA") or BASE
@@ -131,6 +131,66 @@ def save_state(base_rev, state, workstation="unknown", who=""):
         with CHANGED:
             CHANGED.notify_all()
         return True, newrev
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
+
+def add_work_item(message, workstation="unknown", who=""):
+    """Append a work item atomically and allocate its ID from the current state."""
+    if not isinstance(message, dict):
+        raise ValueError("invalid work item")
+    if not isinstance(message.get("title"), str) or not message["title"].strip():
+        raise ValueError("work item title is required")
+    if not isinstance(message.get("body"), str) or not message["body"].strip():
+        raise ValueError("work item details are required")
+
+    c = dbconn()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
+        if not row:
+            raise RuntimeError("application state is not initialized")
+        current, raw = row
+        old = json.loads(raw)
+        state = json.loads(raw)
+        messages = state.get("messages", [])
+        if not isinstance(messages, list):
+            raise ValueError("invalid work queue data")
+        state["messages"] = messages
+        seq = state.setdefault("seq", {})
+        if not isinstance(seq, dict):
+            raise ValueError("invalid sequence data")
+        last_id = seq.get("message", 1000)
+        last_id = last_id if isinstance(last_id, int) and last_id >= 0 else 1000
+        for existing in messages:
+            existing_id = str(existing.get("id", "")) if isinstance(existing, dict) else ""
+            if existing_id.startswith("M") and existing_id[1:].isdigit():
+                last_id = max(last_id, int(existing_id[1:]))
+        item = dict(message)
+        item["id"] = "M%d" % (last_id + 1)
+        state["seq"]["message"] = last_id + 1
+        state["messages"].append(item)
+
+        newrev = current + 1
+        state["rev"] = newrev
+        ts = now()
+        c.execute(
+            "UPDATE app_state SET revision=?,state_json=?,updated_at=? WHERE id=1 AND revision=?",
+            (newrev, json.dumps(state, separators=(",", ":")), ts, current),
+        )
+        c.execute(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            (ts, workstation, newrev, summarize(old, state), who or ""),
+        )
+        c.execute("COMMIT")
+        with CHANGED:
+            CHANGED.notify_all()
+        return newrev, item, state
     except Exception:
         try:
             c.execute("ROLLBACK")
@@ -355,6 +415,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path == "/api/messages":
+            try:
+                n = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(n).decode("utf-8"))
+                who = payload.get("who", "")
+                if not isinstance(who, str):
+                    who = ""
+                who = who[:40]
+                rev, message, state = add_work_item(
+                    payload.get("message"), self.client_address[0], who
+                )
+                self.send_json(200, {"ok": True, "rev": rev, "message": message, "state": state})
+            except Exception as e:
+                self.send_json(400, {"ok": False, "error": str(e)})
+            return
         if path != "/api/state":
             self.send_error(404); return
         try:

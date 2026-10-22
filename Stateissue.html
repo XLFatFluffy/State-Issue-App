@@ -1096,7 +1096,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "2.4.2",
+        var APP_VERSION = "2.4.3",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1122,7 +1122,8 @@
           saveBusy = false,
           saveAgain = false;
         var offlinePending = false,
-          offlineConflict = false;
+          offlineConflict = false,
+          messageSaving = false;
         function lsGet(k) {
           try {
             return localStorage.getItem(k);
@@ -2246,6 +2247,10 @@
 
         /* ---------- save helper: undo everything if saving fails ---------- */
         function tx(fn) {
+          if (messageSaving) {
+            toast("Wait for the work item to finish saving, then try again.", true);
+            return false;
+          }
           var snap = JSON.stringify(db);
           try {
             fn();
@@ -5899,6 +5904,16 @@
             inmateSearch = $("msgInmateLink").value.trim(),
             rid = dataListRecordId("msgRequestLink", "msgRequestOptions"),
             iid = dataListRecordId("msgInmateLink", "msgInmateOptions");
+          if (!storageOK) {
+            setSaved(false, "⚠ DATA NOT LOADED — NOT SAVED");
+            toast("Work item was not sent because the saved data could not be loaded.", true);
+            return;
+          }
+          if (offlineConflict) {
+            setSaved(false, "⚠ RECONNECT CONFLICT — SEE SETUP");
+            toast("Resolve the reconnect conflict in Setup before sending work.", true);
+            return;
+          }
           if (!title) {
             toast("Enter a short title.", true);
             return;
@@ -5915,32 +5930,93 @@
             toast("Choose an inmate from the suggestions or clear the inmate field.", true);
             return;
           }
-          if (
-            tx(function () {
-              var m = {
-                id: "M" + next("message"),
-                created: iso(),
-                author: displayName(),
-                title: title,
-                body: text,
-                category: category,
-                priority: priority,
-                status: "open",
-                links: [],
-                comments: [],
-              };
-              if (rid) m.links.push({ type: "request", id: rid });
-              if (iid) m.links.push({ type: "inmate", id: iid });
-              db.messages.push(m);
-            })
-          ) {
+          if (messageSaving || saveBusy) {
+            toast("Wait for the current save to finish, then try again.", true);
+            return;
+          }
+          var m = {
+            created: iso(),
+            author: displayName(),
+            title: title,
+            body: text,
+            category: category,
+            priority: priority,
+            status: "open",
+            links: [],
+            comments: [],
+          };
+          if (rid) m.links.push({ type: "request", id: rid });
+          if (iid) m.links.push({ type: "inmate", id: iid });
+
+          if (!navigator.onLine) {
+            if (!IS_MAIN) {
+              setSaved(false, "⚠ SERVER CONNECTION LOST");
+              toast("Work item was not sent. Check the server connection.", true);
+              return;
+            }
+            m.id = "M" + next("message");
+            db.messages.push(m);
+            if (!save()) {
+              db.messages.pop();
+              return;
+            }
             $("msgText").value = "";
             $("msgSubject").value = "";
             $("msgRequestLink").value = "";
             $("msgInmateLink").value = "";
             renderAll();
-            toast("Work item created.");
+            toast("Work item saved on this computer; it will sync when connected.");
+            return;
           }
+
+          if (offlinePending) {
+            trySyncPending();
+            toast("Wait for this computer's offline changes to sync before sending.", true);
+            return;
+          }
+          messageSaving = true;
+          $("msgSend").disabled = true;
+          fetch("/api/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: m, who: displayName() }),
+            cache: "no-store",
+          })
+            .then(function (r) {
+              return r.json().then(function (res) {
+                if (!r.ok) throw new Error(res.error || "Work item was rejected.");
+                return res;
+              });
+            })
+            .then(function (res) {
+              if (!res || !res.state || !res.message)
+                throw new Error("The server returned an incomplete save confirmation.");
+              serverRev = res.rev;
+              db = fixupSafe(res.state);
+              db.rev = serverRev;
+              offlinePending = false;
+              persistLocalCopy(false);
+              setSaved(true);
+              loadTodayActivity();
+              $("msgText").value = "";
+              $("msgSubject").value = "";
+              $("msgRequestLink").value = "";
+              $("msgInmateLink").value = "";
+              renderAll();
+              toast("Work item created.");
+            })
+            .catch(function (err) {
+              setSaved(false, "⚠ WORK ITEM NOT SAVED");
+              toast(
+                "Work item was not saved. Your text is still here. " +
+                  (err.message || "Check the server connection and try again."),
+                true,
+              );
+            })
+            .then(function () {
+              messageSaving = false;
+              $("msgSend").disabled = false;
+            });
         };
         $("saveDisplayName").onclick = function () {
           var name = $("displayName").value.trim();
