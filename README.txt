@@ -1,10 +1,21 @@
-STATE ISSUE — VERSION 2.4.1
+STATE ISSUE — VERSION 2.4.2
 CONNECTED BUILD (one host computer runs the server; other computers connect to it
 over the local network — the host can be any computer on the network, not
 necessarily an officer's)
 
 For day-to-day running, backups and recovery, read ADMIN_GUIDE.txt.
 
+
+
+WHAT'S NEW IN 2.4.2 — COMPLETE INVENTORY BACKUPS
+-------------------------------------------------
+- Automatic backups now recognize changes to the inventory catalog and other
+  application collections, even when there are no inmates or stock transactions.
+- Backup files record the number of entries in every exported collection, and
+  restore checks those counts to detect missing or truncated data. Existing
+  backups remain restorable.
+- Version and service-worker cache name bumped to 2.4.2 so the host computer's
+  browser loads the updated backup logic.
 
 
 WHAT'S NEW IN 2.4.1 — FIXES TO THE 2.4.0 WORK QUEUE/COMMENTS FEATURES

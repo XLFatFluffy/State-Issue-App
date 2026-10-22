@@ -1,9 +1,9 @@
-/* State Issue 2.4.1 offline application shell.
+/* State Issue 2.4.2 offline application shell.
    The worker is registered only by the host computer's localhost tab.
    API responses are never cached. HTML is cached only after stripping the
    server-injected state so personal records are not copied into the shell cache. */
 'use strict';
-const CACHE_NAME = 'state-issue-shell-v2.4.1';
+const CACHE_NAME = 'state-issue-shell-v2.4.2';
 const SHELL_URLS = ['/', '/Stateissue.html'];
 function shellOnly(response) {
   return response.text().then(text => {

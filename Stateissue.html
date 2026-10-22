@@ -1077,7 +1077,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "2.4.1",
+        var APP_VERSION = "2.4.2",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -4891,13 +4891,10 @@
           o._backup = {
             app: "StateIssue",
             created: iso(),
-            inmates: db.inmates.length,
-            issues: db.issues.length,
-            txns: db.txns.length,
-            requests: db.requests.length,
-            reminders: db.reminders.length,
-            inventoryChecks: db.inventoryChecks.length,
           };
+          Object.keys(o).forEach(function (key) {
+            if (Array.isArray(o[key])) o._backup[key] = o[key].length;
+          });
           return JSON.stringify(o, null, 1);
         }
         function makeBackup(prefix) {
@@ -4940,9 +4937,12 @@
             }
             var b = data._backup || {};
             if (
-              b.txns !== undefined &&
-              (b.txns !== data.txns.length ||
-                b.requests !== data.requests.length)
+              Object.keys(b).some(function (key) {
+                return (
+                  typeof b[key] === "number" &&
+                  (!Array.isArray(data[key]) || b[key] !== data[key].length)
+                );
+              })
             ) {
               toast(
                 "This backup file looks incomplete or damaged. Nothing was changed.",
@@ -4983,7 +4983,9 @@
           return db.rev > (db.settings.backupRev || 0);
         }
         function hasData() {
-          return db.inmates.length + db.txns.length > 0;
+          return Object.keys(db).some(function (key) {
+            return Array.isArray(db[key]) && db[key].length > 0;
+          });
         }
         function autoBackup() {
           if (!db.settings.autoBackup || !changes() || !hasData()) return;

@@ -338,7 +338,7 @@ class T(unittest.TestCase):
 
 
 class ClientSourceChecks(unittest.TestCase):
-    """Guards for the 2.4.1 client-side fixes. These check the shipped HTML's
+    """Guards for the 2.4.2 client-side fixes. These check the shipped HTML's
     source text directly since there is no in-browser JS test harness here."""
 
     @classmethod
@@ -380,6 +380,24 @@ class ClientSourceChecks(unittest.TestCase):
             'Math.max(typeofcurrent==="number"&&isFinite(current)?current:1000,maxId,)',
             compact,
         )
+
+    def test_backup_counts_and_checks_every_exported_collection(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn(
+            "Object.keys(o).forEach(function(key){if(Array.isArray(o[key]))o._backup[key]=o[key].length;});",
+            compact,
+        )
+        self.assertIn(
+            'typeofb[key]==="number"&&(!Array.isArray(data[key])||b[key]!==data[key].length)',
+            compact,
+        )
+
+    def test_automatic_backup_includes_inventory_catalog_changes(self):
+        compact = re.sub(r"\s+", "", self.html)
+        idx = compact.index("functionhasData(){")
+        body = compact[idx:idx + 150]
+        self.assertIn("Object.keys(db).some", body)
+        self.assertIn("Array.isArray(db[key])&&db[key].length>0", body)
 
     def test_work_queue_record_links_are_searchable_and_require_a_match(self):
         compact = re.sub(r"\s+", "", self.html)
