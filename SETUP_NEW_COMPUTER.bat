@@ -58,7 +58,7 @@ if errorlevel 1 goto PYERROR
 echo.
 rem Do not open the network port until the app's own tests have passed.
 echo Checking required application files...
-for %%F in (Stateissue.html server.py seed.json sw.js test_server.py) do (
+for %%F in (Stateissue.html server.py windows_service.py seed.json sw.js test_server.py) do (
   if not exist "%%F" (
     echo MISSING REQUIRED FILE: %%F
     pause
@@ -83,7 +83,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo Setup checks completed. Start the server with START_STATE_ISSUE.bat.
+echo Setup checks completed.
+echo On the host computer, run INSTALL_STATE_ISSUE_SERVICE.bat as administrator.
 pause
 exit /b 0
 :PYERROR

@@ -55,36 +55,43 @@ WHAT CHANGED IN 2.2.0
 
 0. FIRST TIME ON A NEW COMPUTER
 -------------------------------
-  1. Copy the whole State Issue folder to the host computer — the one that will run the
-     server (for example C:\StateIssue). This can be any computer that is normally on,
-     not necessarily an officer's.
+  1. Copy the whole State Issue folder to a permanent folder on the Windows host
+     (for example C:\StateIssue). Do not run it from Downloads, a temporary folder,
+     or a removable drive.
   2. Double-click SETUP_NEW_COMPUTER.bat. It installs Python if needed, opens the network port,
      and checks the program. If it asks for administrator rights, right-click the file,
      choose "Run as administrator", and run it again.
-  3. Double-click START_STATE_ISSUE.bat.
+  3. Right-click INSTALL_STATE_ISSUE_SERVICE.bat and choose "Run as administrator".
+     The installer installs pywin32, registers the Windows service to start automatically,
+     configures Windows to restart it after failures, and starts it. Internet is needed
+     for the one-time pywin32 installation.
+  4. Double-click START_STATE_ISSUE.bat to open the app on this computer.
 
 1. STARTING AND STOPPING
 ------------------------
-Start: double-click START_STATE_ISSUE.bat on the host computer.
-  - A browser opens on the host computer, at its own address ("This computer" in the
-    server window). Always use that window/tab on this computer — do not switch it to
-    the network address, or this computer loses the ability to work offline (see
-    section 1a).
-  - The server window shows the address other computers use, for example http://192.168.1.20:8787
-  - If the server stops because of an error, it now restarts itself automatically (up to
-    5 times in a row). If it fails a 6th time in a row, it stops trying and waits for you.
-Stop: click the server window and press Ctrl+C, or close the window.
-  - While the server is stopped, other computers cannot use State Issue. The host
-    computer itself still can (see section 1a) and will catch up automatically once
-    the server is running again.
-  - Keep the server window open during the day. Do not close it to "save" anything. Saving is automatic.
+The State Issue Server Windows service runs in the background, including when nobody is
+signed in. Closing a command prompt or browser does not stop it. Windows starts it after
+reboot and is configured for three automatic restart attempts after a service failure.
+Keep the host powered on and prevent it from sleeping during operating hours. Worker
+accounts should be standard Windows accounts, not local administrators; an administrator
+can still stop or reconfigure the service.
 
-Other computers: open a browser and type the address from the server window, or edit
-OPEN_STATE_ISSUE.bat on that computer to contain the address and double-click it. Bookmark it.
+Host computer: double-click START_STATE_ISSUE.bat to open the host's local app at
+http://127.0.0.1:8787. Continue using that local address on the host to retain its offline
+behavior (see section 1a). If the browser says it cannot connect, have an administrator
+check the "State Issue Server" service in Windows Services.
+
+Other computers: open http://<host-computer-address>:8787 in a browser, or edit
+OPEN_STATE_ISSUE.bat on that computer to contain that address and double-click it. Bookmark it.
+To find the host address, open Command Prompt on the host and run ipconfig; use its IPv4
+address. To keep the address fixed, ask whoever manages the network to reserve it.
 Other computers need nothing installed. Opening Stateissue.html from a folder does NOT work:
 the page must be opened from the server address so it can share data.
-If the address changes (the host computer got a new network address), update the bookmark.
-To keep the address fixed, ask whoever manages the network to give the host computer a fixed address.
+
+For planned maintenance, an administrator can stop or start "State Issue Server" in the
+Windows Services app (services.msc). Do not stop or disable the service for routine use.
+If it is stopped, other computers cannot use the app until it starts again. The app saves
+changes automatically; no terminal needs to remain open.
 
 1a. WORKING OFFLINE (host computer only)
 -----------------------------------------
@@ -95,8 +102,8 @@ will sync." As soon as the server can be reached again, those changes are sent t
 automatically. Nothing is lost.
 Other computers work exactly as before: if they cannot reach the server, they can see the
 last data they loaded but cannot save until it is back.
-If the status stays orange for a long time, check that the server window is still open
-and the network is connected. If it ever turns into a red message reading "RECONNECT
+If the status stays orange for a long time, check that the "State Issue Server" service is
+running and the network is connected. If it ever turns into a red message reading "RECONNECT
 CONFLICT," go to SETUP — it means a change was made somewhere else while this computer
 was offline, and the two could not be combined automatically. SETUP explains how to save
 and review the stranded changes; nothing is deleted automatically.
@@ -139,11 +146,11 @@ and does not touch the live database, so there is no harm in running it often.
 5. RESTORING A BACKUP (an actual recovery - not the same as verifying one)
 ---------------------------------------------------------------------------
 Only do this if the data is damaged or lost.
-  a. Stop the server (Ctrl+C).
+  a. Stop the "State Issue Server" service in Windows Services.
   b. Copy the current state_issue_v2.db somewhere safe, for example into a folder named "damaged".
   c. Copy the backup file you want from the backups folder into the program folder.
   d. Rename the copy to exactly:  state_issue_v2.db
-  e. Start the server. Check the Setup tab and the dashboard.
+  e. Start the "State Issue Server" service in Windows Services. Check the Setup tab and dashboard.
 Check the date on the backup you choose. Anything saved after that date is not in it.
 Run VERIFY_BACKUP.bat on the backup file BEFORE step c, so you know it is good
 before you commit to using it.
@@ -175,34 +182,36 @@ and delete copies you no longer need.
 
 9. IF SOMETHING GOES WRONG
 --------------------------
-"Could not start" or a red error in the server window:
+"Could not start" or a service error:
   - Make sure Python 3.8 or newer is installed. Do not change any other files.
+  - Open Event Viewer -> Windows Logs -> Application and look for a State Issue Server error.
   - Write down the exact message and send it to the program's support person.
 "DATA NOT SAVED" or "CHANGED ON ANOTHER COMPUTER" on screen:
   - Do not keep entering work. Press Refresh or reopen the page so the current copy loads.
-  - If the message keeps returning, check that the server window is still running.
+  - If the message keeps returning, ask an administrator to check the service in Windows Services.
 "DATA NOT LOADED" message:
   - The saved data could not be read. Changes are turned off to protect the data. Contact the
     support person before doing anything else. Do not restore a backup without advice.
   - Once you have advice, run VERIFY_BACKUP.bat on the backup you plan to use (section 4) before
     restoring it, so you restore a good copy the first time.
-Nothing appears on other computers: check the address, check that the server window is running,
-and check the network connection on that computer. If the address works on the host computer
-but not on others, run SETUP_NEW_COMPUTER.bat as administrator to open the port.
+Nothing appears on other computers: check the address, check that the "State Issue Server"
+service is running, and check the network connection on that computer. If the address works
+on the host computer but not on others, run SETUP_NEW_COMPUTER.bat as administrator to open
+the port and verify that Windows Firewall permits State Issue on the private network.
 
 LIVE UPDATES
   Changes made on one computer appear on the others within about a second. If someone has a
   form open, the update waits until the form is closed. A short message appears when new data arrives.
   If the screen shows "SERVER CONNECTION LOST", that computer cannot reach the host computer.
-  Check the server window. (The host computer itself does not show this message — see
-  section 1a, WORKING OFFLINE.)
+  Check that the "State Issue Server" service is running. (The host computer itself does
+  not show this message — see section 1a, WORKING OFFLINE.)
 
 10. UPDATING THE PROGRAM
 -----------------------
-  1. Stop the server.
+  1. Stop the "State Issue Server" service in Windows Services.
   2. Copy the whole program folder to a safe place (this includes the database).
   3. Replace the program files with the new ones. Do not replace or delete state_issue_v2.db.
-  4. Double-click START_STATE_ISSUE.bat. The database updates itself when needed.
+  4. Start the "State Issue Server" service in Windows Services. The database updates itself when needed.
   5. Check the version in the header and run a test: find an inmate, view a report, export a CSV.
   6. Keep the old copy for at least a month.
 
@@ -228,4 +237,5 @@ LIVE UPDATES
 ----------------
   - Host computer: Windows with Python 3.8 or newer. SETUP_NEW_COMPUTER.bat installs it.
   - Other computers: any Windows computer with a web browser. Nothing else.
-  - Nothing else is installed. The program does not need internet access.
+  - Other computers need no installation. The host needs internet only for the one-time pywin32
+    installation; normal operation does not require internet access.

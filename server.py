@@ -352,6 +352,15 @@ def backup_loop():
             print("[backup] ERROR:", e)
         time.sleep(BACKUP_CHECK_SECONDS)
 
+def initialize():
+    migrate()
+    load_state()
+    try:
+        run_backups_if_due()
+    except Exception as e:
+        print("Backup warning:", e)
+    threading.Thread(target=backup_loop, daemon=True).start()
+
 def local_ip():
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -465,13 +474,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json(400, {"ok": False, "error": str(e)})
 
 def main():
-    migrate()
-    load_state()
-    try:
-        run_backups_if_due()
-    except Exception as e:
-        print("Backup warning:", e)
-    threading.Thread(target=backup_loop, daemon=True).start()
+    initialize()
     with Server((HOST, PORT), Handler) as httpd:
         print()
         print("==============================================")
