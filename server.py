@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 2.4.5
+State Issue server, version 2.5.1
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
 - Audit log: every saved change is recorded with the time, the computer
-  it came from, the configured display name, and a count of what changed
+  it came from, the configured workstation name, and a count of what changed
   (no inmate or personal names are written to the log)
 - Automatic backups: one per day (last 30 kept) and one per month (last 12 kept)
 - Serves sw.js, the offline helper script used only by the computer that
@@ -16,7 +16,7 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "2.4.5"
+APP_VERSION = "2.5.1"
 SCHEMA_VERSION = 2
 # Keep program files separate from the database location so the server can
 # continue using a chosen data folder without moving the application itself.

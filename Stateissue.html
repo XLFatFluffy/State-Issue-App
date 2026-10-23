@@ -807,7 +807,7 @@
         <h3>Today's Changes</h3>
         <p class="note">
           Every change saved by anyone on the network shows up here as it
-          happens, with the configured display name, if one is set. Clears at
+          happens, with the configured workstation name, if one is set. Clears at
           midnight — see Recent Changes in Setup for older history.
         </p>
         <div id="dashboardToday"></div>
@@ -944,8 +944,9 @@
         <div class="card">
           <h3 style="margin-top: 0">Display Name</h3>
           <p class="note">
-            This name is saved with new messages and comments. It can be left
-            blank. Changing it does not alter older entries.
+            Set this separately on each workstation's browser. It is saved with
+            new messages, comments, requests, and issue records. It can be left
+            blank. This is an attribution label, not a sign-in or verified identity.
           </p>
           <div class="row">
             <input
@@ -985,7 +986,7 @@
         <h3>Recent Changes</h3>
         <p class="note">
           Every saved change is logged with the date, the time, the configured
-          display name (if set), and the computer it came from. The log records
+          workstation name (if set), and the computer it came from. The log records
           counts only, not inmate or personal names.
         </p>
         <div id="auditBox"></div>
@@ -1055,11 +1056,13 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "2.4.5",
+        var APP_VERSION = "2.5.1",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
           REVK = "stateIssueRev";
+        var DISPLAY_NAME_KEY = "stateIssueWorkstationName",
+          workstationDisplayName = null;
         /* This computer works offline ONLY when it opens State Issue at 127.0.0.1 or
    localhost — which, by design, is only the computer that runs server.py
    (START_STATE_ISSUE.bat opens it that way automatically). Every other
@@ -1349,9 +1352,11 @@
           });
           d.inmates.forEach(function (i) {
             i.sizes = i.sizes || {};
+            if (!Array.isArray(i.highRiskHistory)) i.highRiskHistory = [];
           });
           migrateArchive(d);
           d.requests.forEach(function (r) {
+            if (!Array.isArray(r.history)) r.history = [];
             var it = d.requestItems.filter(function (x) {
               return x.requestId === r.id;
             });
@@ -1891,6 +1896,9 @@
                   (i.hasProperty
                     ? '<span class="propbadge">PROPERTY</span>'
                     : "") +
+                  (i.highRisk
+                    ? ' <span class="badge red">HIGH RISK / REVIEW</span>'
+                    : "") +
                   "</td><td>" +
                   esc(i.zone) +
                   "</td><td>" +
@@ -1967,7 +1975,12 @@
             "</select></label></div>" +
             '<div class="propbox"><label style="margin:0"><input type="checkbox" id="ihasprop"' +
             (i.hasProperty ? " checked" : "") +
-            '> This inmate has PROPERTY being stored</label></div><label>Notes (if property is stored, describe it here)<textarea id="inotes">' +
+            '> This inmate has PROPERTY being stored</label></div>' +
+            '<div class="warnbox"><label style="margin:0"><input type="checkbox" id="ihighrisk"' +
+            (i.highRisk ? " checked" : "") +
+            '> HIGH-RISK / NEEDS REVIEW flag</label><p class="note">Use for a documented concern that staff should review before deciding or issuing. This flag does not automatically approve or deny a request.</p><label>Reason for flag<textarea id="iriskreason" maxlength="1000" placeholder="Record the specific, factual reason for review">' +
+            esc(i.highRiskReason || "") +
+            '</textarea></label></div><label>Notes (if property is stored, describe it here)<textarea id="inotes">' +
             esc(i.notes || "") +
             '</textarea></label><div class="row" style="margin-top:18px"><button class="btn green" id="saveInmate">SAVE INMATE</button></div>'
           );
@@ -1988,7 +2001,7 @@
             });
           if (!h.length) return '<div class="empty">No issue history.</div>';
           return (
-            "<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th>Qty</th><th>Zone then</th><th>Request</th><th>Reason</th><th>Comments / Actions</th></tr></thead><tbody>" +
+            "<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th>Qty</th><th>Zone then</th><th>Request</th><th>Reason</th><th>Recorded by / at</th><th>Comments / Actions</th></tr></thead><tbody>" +
             h
               .slice(0, limit || 500)
               .map(function (x) {
@@ -2016,6 +2029,10 @@
                   (v
                     ? "VOIDED: " + esc(x.voidReason || "")
                     : esc(x.reason || "—")) +
+                  "</td>" +
+                  "<td>" +
+                  esc(x.issuedBy || "Name not provided") +
+                  (x.issuedAt ? "<br>" + esc(fmtDateTime(x.issuedAt)) : "") +
                   "</td>" +
                   '<td><button class="btn small grey" onclick="showIssueComments(\'' +
                   x.id +
@@ -2052,8 +2069,40 @@
               (i.hasProperty
                 ? '<br><b class="neg">⚠ HAS STORED PROPERTY</b>'
                 : "") +
+              (i.highRisk
+                ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
+                  esc(i.highRiskReason || "No reason recorded") +
+                  "<br><span class=\"note\">Review this flag when considering requests; it does not automatically deny a request.</span></div>"
+                : "") +
               (i.notes ? "<br><b>Notes:</b> " + esc(i.notes) : "") +
               "</div>" +
+              (i.highRiskHistory && i.highRiskHistory.length
+                ? "<h3>High-Risk Flag History</h3><div class=\"card\">" +
+                  i.highRiskHistory
+                    .slice()
+                    .reverse()
+                    .map(function (entry) {
+                      return (
+                        '<div style="border-bottom:1px solid #d5dce4;padding:8px 0"><b>' +
+                        esc(
+                          entry.action ||
+                            (entry.flagged
+                              ? "Flagged for review"
+                              : "Flag cleared"),
+                        ) +
+                        "</b> · " +
+                        esc(fmtDateTime(entry.at)) +
+                        " · " +
+                        esc(entry.by || "Name not provided") +
+                        (entry.reason
+                          ? "<br>" + esc(entry.reason)
+                          : "") +
+                        "</div>"
+                      );
+                    })
+                    .join("") +
+                  "</div>"
+                : "") +
               "<h3>Intake Sizes</h3><table><tr><th>Shirt</th><th>Pants</th><th>Pants Color</th><th>Shorts</th><th>Boxers</th><th>Shoe</th><th>Shower Shoes</th></tr><tr><td>" +
               esc(i.sizes.shirt || "—") +
               "</td><td>" +
@@ -2110,6 +2159,12 @@
             toast("Property is checked. Describe the property in Notes.", true);
             return;
           }
+          var highRisk = $("ihighrisk").checked,
+            highRiskReason = $("iriskreason").value.trim();
+          if (highRisk && !highRiskReason) {
+            toast("Enter a factual reason for the high-risk review flag.", true);
+            return;
+          }
           if ($("ipants").value && !$("ipcolor").value) {
             toast("Choose the pants color (Green/White or Black/White).", true);
             return;
@@ -2131,6 +2186,10 @@
             return;
           }
           var snap = JSON.stringify(db);
+          var previousHighRisk = !!(existing && existing.highRisk),
+            previousRiskReason = existing
+              ? existing.highRiskReason || ""
+              : "";
           var obj = existing || {
             id: "i" + next("inmate"),
             dateAdded: iso(),
@@ -2143,6 +2202,25 @@
           obj.intakeDate = d;
           obj.notes = $("inotes").value.trim();
           obj.hasProperty = $("ihasprop").checked;
+          obj.highRisk = highRisk;
+          obj.highRiskReason = highRisk ? highRiskReason : "";
+          obj.highRiskHistory = obj.highRiskHistory || [];
+          if (
+            previousHighRisk !== highRisk ||
+            previousRiskReason !== obj.highRiskReason
+          ) {
+            obj.highRiskHistory.push({
+              at: iso(),
+              by: displayName(),
+              flagged: highRisk,
+              action: highRisk
+                ? previousHighRisk
+                  ? "Flag details updated"
+                  : "Flagged for review"
+                : "Flag cleared",
+              reason: obj.highRiskReason,
+            });
+          }
           obj.sizes = {
             shirt: $("ishirt").value,
             pants: $("ipants").value,
@@ -2726,7 +2804,9 @@
             .map(function (key, n) {
               var g = groups[key],
                 i = g.inmate,
-                name = i ? i.first + " " + i.last : "Removed inmate";
+                name =
+                  (i ? i.first + " " + i.last : "Removed inmate") +
+                  (i && i.highRisk ? " — HIGH-RISK / REVIEW" : "");
               var body =
                 '<div class="reminderGroupBody" id="dashReqBody' +
                 kind +
@@ -2895,7 +2975,12 @@
           }
           openModal(
             "Issue Outstanding Item",
-            '<div class="card"><b>' +
+            (i.highRisk
+              ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
+                esc(i.highRiskReason || "No reason recorded") +
+                "</div>"
+              : "") +
+              '<div class="card"><b>' +
               recordLink("inmate", i.id, i.first + " " + i.last) +
               "</b> — MDOC " +
               recordLink("inmate", i.id, i.mdoc) +
@@ -2976,6 +3061,8 @@
                 type: "Outstanding",
                 inmateId: i.id,
                 date: today(),
+                issuedAt: iso(),
+                issuedBy: displayName(),
                 zone: i.zone,
                 itemId: r.itemId,
                 size: r.size,
@@ -3265,7 +3352,12 @@
           closeModal();
           openModal(
             "Intake Issue — " + i.first + " " + i.last,
-            '<p class="note">Change any quantity. Use 0 for items not issued. Inventory goes down when you press RECORD.</p>' +
+            (i.highRisk
+              ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
+                esc(i.highRiskReason || "No reason recorded") +
+                "</div>"
+              : "") +
+              '<p class="note">Change any quantity. Use 0 for items not issued. Inventory goes down when you press RECORD.</p>' +
               rows +
               '<div class="row" style="margin-top:14px"><button class="btn green" id="doIntake">RECORD INTAKE ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>',
           );
@@ -3334,6 +3426,8 @@
                     type: "New Arrival",
                     inmateId: i.id,
                     date: d,
+                    issuedAt: iso(),
+                    issuedBy: displayName(),
                     zone: i.zone,
                     itemId: l.itemId,
                     size: l.size,
@@ -3559,6 +3653,9 @@
                       esc(i.last + ", " + i.first) +
                       "</td><td>" +
                       esc(i.zone) +
+                      (i.highRisk
+                        ? ' <span class="badge red">HIGH RISK / REVIEW</span>'
+                        : "") +
                       '</td><td><button class="btn green small" onclick="newRequestFor(\'' +
                       i.id +
                       "')\">SELECT</button></td></tr>"
@@ -3629,7 +3726,9 @@
             '><option value="pending">Pending</option><option value="approved">Approved</option><option value="denied">Denied</option></select></label>' +
             '<label>Replaces (old item)<select class="rreason">' +
             options(REASONS, ri.reason || "") +
-            "</select></label>" +
+            '</select></label><label class="wide">Decision notes (optional)<input class="rdecisionreason" maxlength="500" value="' +
+            esc(ri.decisionReason || "") +
+            '" placeholder="Explain the approval or denial decision"></label>' +
             (lock
               ? '<span class="note">' + iss + " issued</span>"
               : '<button class="btn red small removeLine" type="button">REMOVE</button>') +
@@ -3700,6 +3799,11 @@
             " — Zone " +
             esc(i.zone || "—") +
             "</div>" +
+            (i.highRisk
+            ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
+              esc(i.highRiskReason || "No reason recorded") +
+              "</div>"
+            : "") +
             '<div class="grid">' +
             dateInput("reqDate", "Date", r ? r.date : today()) +
             '<label>Request Type<select id="reqType">' +
@@ -3784,6 +3888,7 @@
               qty: q,
               decision: l.querySelector(".rdec").value,
               reason: l.querySelector(".rreason").value,
+              decisionReason: l.querySelector(".rdecisionreason").value.trim(),
               issuedQty: iss,
             });
           });
@@ -3823,7 +3928,7 @@
           var rid = reqId;
           if (
             tx(function () {
-              var r;
+              var r, requestInmate = inmateById(inmateId);
               if (reqId) {
                 r = db.requests.find(function (x) {
                   return x.id === reqId;
@@ -3850,6 +3955,35 @@
                 n.id = n.id || "RI" + next("ri");
                 n.requestId = r.id;
                 db.requestItems.push(n);
+              });
+              r.history = Array.isArray(r.history) ? r.history : [];
+              r.history.push({
+                at: iso(),
+                by: displayName(),
+                action: reqId ? "Updated" : "Created",
+                date: r.date,
+                type: r.type,
+                officer: r.officer,
+                notes: r.notes,
+                status: r.status,
+                highRiskAtTime: !!(requestInmate && requestInmate.highRisk),
+                highRiskReasonAtTime:
+                  (requestInmate && requestInmate.highRiskReason) || "",
+                items: db.requestItems
+                  .filter(function (x) {
+                    return x.requestId === r.id;
+                  })
+                  .map(function (x) {
+                    return {
+                      itemId: x.itemId,
+                      size: x.size,
+                      qty: x.qty,
+                      decision: x.decision,
+                      reason: x.reason,
+                      decisionReason: x.decisionReason || "",
+                      issuedQty: x.issuedQty,
+                    };
+                  }),
               });
               db.reminders.forEach(function (m) {
                 if (
@@ -3933,7 +4067,10 @@
                   (i ? recordLink("inmate", i.id, i.mdoc) : "—") +
                   "</td><td>" +
                   (i
-                    ? recordLink("inmate", i.id, i.first + " " + i.last)
+                    ? recordLink("inmate", i.id, i.first + " " + i.last) +
+                      (i.highRisk
+                        ? ' <span class="badge red">HIGH RISK / REVIEW</span>'
+                        : "")
                     : "Removed inmate") +
                   "</td><td>" +
                   esc(r.type) +
@@ -3964,6 +4101,27 @@
               return x.requestId === id;
             })
             .map(function (x) {
+              var issueHistory = db.issues
+                .filter(function (issue) {
+                  return (
+                    issue.requestId === id &&
+                    issue.itemId === x.itemId &&
+                    issue.size === x.size
+                  );
+                })
+                .map(function (issue) {
+                  return (
+                    (issue.voided
+                      ? '<span class="neg">VOIDED</span> '
+                      : "") +
+                    "×" +
+                    esc(issue.qty) +
+                    " · " +
+                    esc(issue.issuedBy || "Name not provided") +
+                    " · " +
+                    esc(fmtDateTime(issue.issuedAt || issue.date))
+                  );
+                });
               return (
                 "<tr><td>" +
                 esc(itemName(x.itemId)) +
@@ -3976,7 +4134,14 @@
                 "</td><td>" +
                 esc(x.reason || "—") +
                 "</td><td>" +
+                esc(x.decisionReason || "—") +
+                "</td><td>" +
                 x.issuedQty +
+                (issueHistory.length
+                  ? '<br><span class="note">' +
+                    issueHistory.join("<br>") +
+                    "</span>"
+                  : "") +
                 "</td><td>" +
                 (act && x.decision === "approved" && x.issuedQty < x.qty
                   ? '<button class="btn green small" onclick="issueItem(\'' +
@@ -3987,6 +4152,65 @@
               );
             })
             .join("");
+          var history = Array.isArray(r.history) ? r.history.slice().reverse() : [],
+            historyHTML = history.length
+              ? "<details class=\"card\"><summary style=\"cursor:pointer;font-weight:600\">Request history (" +
+                history.length +
+                ")</summary>" +
+                history
+                  .map(function (entry) {
+                    return (
+                      '<div style="border-top:1px solid #d5dce4;padding:10px 0"><b>' +
+                      esc(entry.action || "Updated") +
+                      "</b> · " +
+                      esc(fmtDateTime(entry.at)) +
+                      " · " +
+                      esc(entry.by || "Name not provided") +
+                      "<br>Date: " +
+                      esc(fmt(entry.date)) +
+                      " · Status: " +
+                      esc(entry.status || "—") +
+                      (entry.officer
+                        ? "<br>Officer: " + esc(entry.officer)
+                        : "") +
+                      (entry.highRiskAtTime
+                        ? '<br><span class="neg">HIGH-RISK / REVIEW AT THIS TIME</span>' +
+                          (entry.highRiskReasonAtTime
+                            ? "<br>" + esc(entry.highRiskReasonAtTime)
+                            : "")
+                        : "") +
+                      (entry.notes ? "<br>Notes: " + esc(entry.notes) : "") +
+                      "<ul>" +
+                      (Array.isArray(entry.items)
+                        ? entry.items
+                            .map(function (x) {
+                              return (
+                                "<li>" +
+                                esc(itemName(x.itemId)) +
+                                " (" +
+                                esc(x.size) +
+                                ") — requested " +
+                                esc(x.qty) +
+                                ", " +
+                                esc(x.decision || "pending") +
+                                (x.reason ? ": " + esc(x.reason) : "") +
+                                (x.decisionReason
+                                  ? " — Decision note: " +
+                                    esc(x.decisionReason)
+                                  : "") +
+                                ", issued " +
+                                esc(x.issuedQty || 0) +
+                                "</li>"
+                              );
+                            })
+                            .join("")
+                        : "") +
+                      "</ul></div>"
+                    );
+                  })
+                  .join("") +
+                "</details>"
+              : '<p class="note">Request history is recorded as it is created or updated. Earlier history is not available for requests entered before this update.</p>';
           openModal(
             "Request " + r.id,
             '<div class="card"><b>Inmate:</b> ' +
@@ -4005,14 +4229,20 @@
               statusBadge(r.status) +
               fulfilledBadge(r) +
               "</div>" +
+              (i && i.highRisk
+                ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
+                  esc(i.highRiskReason || "No reason recorded") +
+                  "<br><span class=\"note\">This flag does not automatically approve or deny requests.</span></div>"
+                : "") +
               (i
                 ? '<div class="row"><button class="btn" onclick="editRequest(\'' +
                   id +
                   "')\">EDIT REQUEST / CHANGE DECISIONS</button></div>"
                 : "") +
-              "<h3>Requested Items</h3><table><thead><tr><th>Item</th><th>Size</th><th>Requested</th><th>Decision</th><th>Replaces</th><th>Issued</th><th></th></tr></thead><tbody>" +
+              "<h3>Requested Items</h3><table><thead><tr><th>Item</th><th>Size</th><th>Requested</th><th>Decision</th><th>Replaces</th><th>Decision notes</th><th>Issued</th><th></th></tr></thead><tbody>" +
               rows +
               '</tbody></table><p class="note">Approved items come out of inventory only when you press ISSUE.</p>' +
+              historyHTML +
               (i ? recentBox(i.id) : "") +
               commentsHTML("request", id),
           );
@@ -4058,7 +4288,12 @@
             .slice(0, 3);
           openModal(
             "Issue " + it.name,
-            '<div class="card"><b>' +
+            (i.highRisk
+              ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
+                esc(i.highRiskReason || "No reason recorded") +
+                "</div>"
+              : "") +
+              '<div class="card"><b>' +
               recordLink("inmate", i.id, i.first + " " + i.last) +
               "</b> — MDOC " +
               recordLink("inmate", i.id, i.mdoc) +
@@ -4139,6 +4374,8 @@
                 type: r.type,
                 inmateId: i.id,
                 date: d,
+                issuedAt: iso(),
+                issuedBy: displayName(),
                 zone: i.zone,
                 itemId: it.id,
                 size: ri.size,
@@ -5286,6 +5523,8 @@
               "Shoe",
               "Shower Shoes",
               "Property Stored",
+              "High Risk / Review",
+              "High-Risk Reason",
               "Notes",
             ],
             db.inmates
@@ -5307,6 +5546,8 @@
                   z.shoe,
                   z.showershoes,
                   i.hasProperty ? "Yes" : "No",
+                  i.highRisk ? "Yes" : "No",
+                  i.highRiskReason || "",
                   i.notes,
                 ];
               }),
@@ -5327,6 +5568,8 @@
               "Request",
               "Zone",
               "Reason",
+              "Issued By",
+              "Issued At",
               "Voided",
             ],
             db.issues
@@ -5346,6 +5589,8 @@
                   x.requestId,
                   x.zone,
                   x.reason,
+                  x.issuedBy || "",
+                  x.issuedAt || "",
                   x.voided ? "Yes" : "No",
                 ];
               }),
@@ -5407,6 +5652,8 @@
                     x.size,
                     x.qty,
                     x.decision,
+                    x.reason || "",
+                    x.decisionReason || "",
                     x.issuedQty,
                   ]);
                 });
@@ -5425,6 +5672,8 @@
               "Size",
               "Qty Requested",
               "Decision",
+              "Replaces",
+              "Decision Notes",
               "Qty Issued",
             ],
             rows,
@@ -5530,7 +5779,22 @@
         // Comments and work items are ordinary shared state, so saves, backups,
         // and live updates carry them to every workstation.
         function displayName() {
-          return ((db.settings && db.settings.displayName) || "").trim();
+          if (workstationDisplayName !== null) return workstationDisplayName;
+          var saved = lsGet(DISPLAY_NAME_KEY);
+          if (saved !== null) {
+            workstationDisplayName = saved.trim();
+            return workstationDisplayName;
+          }
+          workstationDisplayName = (
+            (db.settings && db.settings.displayName) ||
+            ""
+          ).trim();
+          if (workstationDisplayName) {
+            lsSet(DISPLAY_NAME_KEY, workstationDisplayName);
+            var migrated = lsGet(DISPLAY_NAME_KEY);
+            if (migrated !== null) workstationDisplayName = migrated.trim();
+          }
+          return workstationDisplayName;
         }
         function commentList(type, id) {
           return db.comments
@@ -5968,14 +6232,22 @@
         };
         $("saveDisplayName").onclick = function () {
           var name = $("displayName").value.trim();
-          if (
-            tx(function () {
-              db.settings.displayName = name;
-            })
-          ) {
-            renderAll();
-            toast(name ? "Name saved." : "Name cleared.");
+          try {
+            localStorage.setItem(DISPLAY_NAME_KEY, name);
+            if (localStorage.getItem(DISPLAY_NAME_KEY) !== name) {
+              throw new Error("The browser did not retain the saved name.");
+            }
+          } catch (e) {
+            toast(
+              "Name was not saved on this workstation. Check browser storage and try again. " +
+                e.message,
+              true,
+            );
+            return;
           }
+          workstationDisplayName = name;
+          renderSetup();
+          toast(name ? "Workstation name saved." : "Workstation name cleared.");
         };
         function renderAll() {
           renderDashboard();

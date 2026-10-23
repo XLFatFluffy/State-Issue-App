@@ -1,4 +1,4 @@
-STATE ISSUE — VERSION 2.4.5
+STATE ISSUE — VERSION 2.5.1
 ============================
 
 State Issue is a browser-based application for tracking inmate clothing and
@@ -18,21 +18,24 @@ areas:
 
 - Dashboard: at-a-glance requests needing decisions, approved requests awaiting
   issuance, low-stock items, reminders, and today's changes.
-- Inmates: inmate profiles, intake sizes, issue history, search, and comments.
+- Inmates: inmate profiles, intake sizes, issue history, search, comments, and
+  a documented high-risk/review flag with a change history.
 - Requests: create and review item requests, record decisions, track partial
-  fulfillment, and issue approved items.
+  fulfillment, view request edit/decision snapshots, and issue approved items.
 - Inventory: manage the item catalog and sizes, record stock changes, review
   stock history, perform inventory checks, and track low-stock levels.
 - Reports: review issue activity and export reports to CSV.
 - Messages: communicate on a shared board, reply in conversation threads, and link
   messages to requests or inmate records.
-- Setup & Data: configure the optional display name and low-stock levels, review
+- Setup & Data: configure the optional workstation name and low-stock levels, review
   recent changes, export CSV data, manage items, and create or restore JSON backups.
 
 Comments are available on inmate records, requests, and individual issue records.
 Messages use threaded replies. Neither comments nor replies change the operational
-status of their related record. A configured display name is stored as attribution
-for new comments, messages, and replies; it is not a login or a verified identity.
+status of their related record. Request snapshots retain the decision and item
+details each time a request is created or updated. Issue records show the
+workstation-specific display name and time of issuance when available. A configured
+name is stored as attribution; it is not a login or a verified identity.
 
 
 HOW IT WORKS
@@ -57,8 +60,11 @@ HOW IT WORKS
 CURRENT LIMITATIONS
 -------------------
 - There are no user accounts, authentication, or per-user permissions. Anyone
-  who can access the application can see and change shared records. The display
-  name is an attribution label only; do not treat it as proof of identity.
+  who can access the application can see and change shared records. Workstation
+  names are attribution labels only; do not treat them as proof of identity.
+- Officer and inmate-worker workflows have the same application permissions.
+  This supports coverage when the officer is away, but it does not restrict
+  sensitive actions or verify which staff member made a change.
 - The server is intended for a trusted local network, not direct exposure to the
   public internet. Choose network access accordingly.
 - If the host is offline, connected workstations can view their last loaded data
@@ -101,6 +107,26 @@ OPEN_STATE_ISSUE.bat     Windows shortcut for connecting workstations.
 Keep the database and backup files safe. Do not delete or replace
 `state_issue_v2.db` when updating program files.
 
+
+VERSION 2.5.1 — WORKSTATION-SPECIFIC STAFF LABELS
+-------------------------------------------------
+- Display names are saved separately in each workstation's browser instead of
+  as one shared setting, allowing officer and worker actions to carry different
+  labels. Existing shared names are copied locally on first open.
+- Names remain optional and unverified; this is not staff authentication.
+- App, server, and service-worker cache versions are aligned at 2.5.1.
+
+VERSION 2.5.0 — RISK FLAGS AND REQUEST HISTORY
+----------------------------------------------
+- Added a high-risk/review flag with a required factual reason, a visible alert
+  in inmate/request/issuance workflows, and a history of flag changes.
+- Added request creation/update snapshots showing decisions, reasons, quantities,
+  and issued totals; earlier requests do not have retrospective snapshots.
+- Added configured staff-name and timestamp attribution to new issuance records,
+  including intake and outstanding-item issues.
+- Kept officer and inmate-worker access equivalent; display names remain
+  unverified, and the app still has no user accounts or role-based access.
+- App, server, and service-worker cache versions were aligned at 2.5.0.
 
 VERSION 2.4.5 — SIMPLE MESSAGE BOARD
 -------------------------------------

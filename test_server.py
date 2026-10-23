@@ -429,6 +429,15 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('$("displayName")', body)
         self.assertIn("displayName()", body)
 
+    def test_display_name_is_local_to_each_workstation(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('varDISPLAY_NAME_KEY="stateIssueWorkstationName"', compact)
+        self.assertIn("localStorage.setItem(DISPLAY_NAME_KEY,name)", compact)
+        idx = compact.index('$("saveDisplayName").onclick=function(){')
+        body = compact[idx:idx + 700]
+        self.assertIn("workstationDisplayName=name", body)
+        self.assertNotIn("db.settings.displayName=name", body)
+
     def test_fixup_advances_all_id_sequences_from_existing_records(self):
         compact = re.sub(r"\s+", "", self.html)
         for source in (

@@ -1,5 +1,35 @@
-STATE ISSUE 2.4.5 ADMIN GUIDE UPDATE
+STATE ISSUE 2.5.1 ADMIN GUIDE UPDATE
 ------------------------------------
+Set the Display Name separately on each workstation's browser. New requests,
+comments, messages, replies, and issuance records use that browser's configured
+label so the officer can distinguish work recorded on the worker's workstation.
+The previous shared display name is copied to a workstation the first time the
+new version is opened there; set the correct name on each workstation after
+upgrading. The label is stored in browser storage, not on the server, and is not
+verified authentication. It does not provide a secure audit identity.
+
+Inmate profiles can now be flagged HIGH-RISK / NEEDS REVIEW with a required reason.
+The flag and its change history are visible on the profile, request screens, and
+issuance screens. The flag is a staff review reminder only; it does not approve or
+deny requests automatically.
+
+Each request creation or edit now records a snapshot of its request lines, decision,
+reason, quantity, status, and configured workstation name. New issuance records include
+the workstation name and timestamp. Existing records remain intact, but do
+not receive invented history.
+
+Officer and inmate-worker workflows have equivalent access so either can enter,
+review, and issue items. There are still no logins or per-user permissions. Display
+names are optional attribution labels, not verified identities; anyone with network
+access can make changes. Keep the server on a trusted network and do not treat the
+program's displayed name as authentication.
+
+Before upgrading, make a backup and retain the database. After updating, test the
+high-risk flag, request creation and edit history, issuance from requests, intake
+issuance, and issuance from outstanding reminders. Confirm the configured display
+name and timestamp appear in issue history.
+
+STATE ISSUE 2.4.5 ADMIN GUIDE UPDATE
 The Work Queue is simplified into a shared message board. Staff can send a message,
 optionally link a request or inmate, and reply in the conversation. New messages no
 longer need a title, category, or priority, and do not need to be resolved or reopened.
@@ -14,10 +44,11 @@ editing an item before any stock is received. Backup files include collection
 counts, and restore checks those counts for missing or truncated data. Existing
 backup files remain compatible.
 
-Use SETUP -> Display Name to set the name attached to new messages and replies. The
-name is optional and is not a login or verified identity. It is stored with each new
-entry, so changing the setting does not change historical attribution. Comments can
-also be added to inmate profiles, requests, and individual issuance-history entries.
+Use SETUP -> Display Name to set the name attached to new entries on this workstation.
+Each workstation has a separate setting. The name is optional and is not a login or
+verified identity. It is stored with each new entry, so changing the setting does not
+change historical attribution. Comments can also be added to inmate profiles,
+requests, and individual issuance-history entries.
 
 When upgrading, retain the server database and use the normal backup process before
 replacing program files. The application adds the comments collection and display-name
@@ -26,7 +57,7 @@ before relying on it. After upgrading, manually send a message, reply to it, tes
 and inmate links, add a comment on each record type, and verify backup/restore using a test copy.
 No automated browser test is claimed for these UI workflows.
 
-STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.4.5)
+STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.5.1)
 
 WHAT CHANGED IN 2.3.0
 ----------------------
@@ -151,8 +182,8 @@ before you commit to using it.
 
 6. RECENT CHANGES (AUDIT LOG)
 -----------------------------
-SETUP -> Recent Changes shows the last 500 saves: date, time, the configured display name of
-whoever saved it (set in SETUP -> Display Name; shows as — if none was set), the computer
+SETUP -> Recent Changes shows the last 500 saves: date, time, the configured workstation name of
+whoever saved it (set in SETUP -> Display Name on that workstation; shows as — if none was set), the computer
 address, and what changed (for example "issues: 2 added"). It does not show inmate or personal
 names. The display name is not a login — anyone can change it — so use it as a general guide,
 not proof of who made a change. Use it to spot unexpected changes. Records of the log are kept
@@ -211,8 +242,8 @@ LIVE UPDATES
 
 11. MESSAGES AND COMMENTS
 ----------------------------
-  - Open Messages. Set your name in SETUP -> Display Name if you want it attached to messages
-    and replies. It is optional and is not a login — anyone can change it.
+  - Open Messages. Set your name in SETUP -> Display Name on this workstation if you want it
+    attached to messages and replies. It is optional and is not a login — anyone can change it.
   - Type a message, optionally link a request and/or inmate, then press SEND MESSAGE.
   - Reply inside a conversation to keep follow-up communication together. Use search to find
     messages or replies.
