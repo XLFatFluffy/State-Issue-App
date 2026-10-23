@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 2.4.4
+State Issue server, version 2.4.5
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
@@ -16,7 +16,7 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "2.4.4"
+APP_VERSION = "2.4.5"
 SCHEMA_VERSION = 2
 # Keep program files separate from the database location so the server can
 # continue using a chosen data folder without moving the application itself.

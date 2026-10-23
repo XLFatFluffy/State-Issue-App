@@ -415,13 +415,12 @@ class ClientSourceChecks(unittest.TestCase):
         with open(os.path.join(HERE, "Stateissue.html"), "r", encoding="utf-8") as f:
             cls.html = f.read()
 
-    def test_work_item_body_newline_replace_uses_single_backslash(self):
-        # A doubled backslash here matches the literal text "\n" instead of an
-        # actual newline, so typed line breaks in a work item's Details would
-        # not render as <br>. Guards against that regression coming back.
+    def test_message_body_preserves_typed_line_breaks(self):
+        # CSS preserves the message's original newlines without converting them
+        # into HTML, keeping the text safe while retaining its formatting.
         compact = re.sub(r"\s+", "", self.html)
-        self.assertIn('esc(m.body||m.text||"").replace(/\\n/g,"<br>")', compact)
-        self.assertNotIn('esc(m.body||m.text||"").replace(/\\\\n/g,"<br>")', compact)
+        self.assertIn('esc(body)+"</div>"', compact)
+        self.assertIn("white-space:pre-wrap", compact)
 
     def test_render_setup_populates_display_name_field(self):
         compact = re.sub(r"\s+", "", self.html)
@@ -486,6 +485,26 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('dataListRecordId("msgInmateLink","msgInmateOptions")', compact)
         self.assertIn('if(requestSearch&&!rid)', compact)
         self.assertIn('if(inmateSearch&&!iid)', compact)
+
+    def test_comments_and_work_queue_have_a_defined_datetime_formatter(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn("functionfmtDateTime(value){", compact)
+        self.assertIn("date.toLocaleString()", compact)
+        self.assertIn("esc(fmtDateTime(c.at))", compact)
+        self.assertIn("esc(fmtDateTime(m.created||m.at))", compact)
+
+    def test_messages_are_simple_threads_with_record_links(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('id="msgText"', compact)
+        self.assertIn('id="msgRequestLink"', compact)
+        self.assertIn('id="msgInmateLink"', compact)
+        self.assertIn('commentsHTML("message",m.id,true)', compact)
+        self.assertIn('<detailsclass="card"><summary', compact)
+        self.assertIn('buttonLabel=conversation?"SENDREPLY":"ADDCOMMENT"', compact)
+        self.assertNotIn('id="msgSubject"', compact)
+        self.assertNotIn('id="msgPriority"', compact)
+        self.assertNotIn('id="msgCategory"', compact)
+        self.assertNotIn("window.resolveMessage", compact)
 
     def test_work_item_post_falls_back_for_servers_without_message_endpoint(self):
         compact = re.sub(r"\s+", "", self.html)

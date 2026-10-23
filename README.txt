@@ -1,4 +1,4 @@
-STATE ISSUE — VERSION 2.4.4
+STATE ISSUE — VERSION 2.4.5
 ============================
 
 State Issue is a browser-based application for tracking inmate clothing and
@@ -24,15 +24,15 @@ areas:
 - Inventory: manage the item catalog and sizes, record stock changes, review
   stock history, perform inventory checks, and track low-stock levels.
 - Reports: review issue activity and export reports to CSV.
-- Work Queue: create shared operational work items, set category and priority,
-  search and filter, link requests or inmate records, comment, resolve, and reopen.
+- Messages: communicate on a shared board, reply in conversation threads, and link
+  messages to requests or inmate records.
 - Setup & Data: configure the optional display name and low-stock levels, review
   recent changes, export CSV data, manage items, and create or restore JSON backups.
 
-Comments are available on inmate records, requests, individual issue records,
-and work items. Comments do not change the operational status of their parent
-record. A configured display name is stored as attribution for new comments and
-work items; it is not a login or a verified identity.
+Comments are available on inmate records, requests, and individual issue records.
+Messages use threaded replies. Neither comments nor replies change the operational
+status of their related record. A configured display name is stored as attribution
+for new comments, messages, and replies; it is not a login or a verified identity.
 
 
 HOW IT WORKS
@@ -41,7 +41,7 @@ HOW IT WORKS
   `state_issue_v2.db` (SQLite). Application records are stored together as JSON
   state; the database also holds revisions and the change log.
 - The server rejects stale full-state saves rather than silently overwriting a
-  newer save. Work Queue submissions are appended by the server and receive
+  newer save. Message submissions are appended by the server and receive
   unique IDs, including when several computers submit at once.
 - Connected browsers receive live updates. The host computer can continue
   working offline when opened at its localhost address; its pending changes sync
@@ -102,9 +102,17 @@ Keep the database and backup files safe. Do not delete or replace
 `state_issue_v2.db` when updating program files.
 
 
+VERSION 2.4.5 — SIMPLE MESSAGE BOARD
+-------------------------------------
+- Simplified the Work Queue into a shared message board with direct replies.
+- Removed required titles, categories, priorities, and resolve/reopen controls;
+  request and inmate links remain available.
+- Existing messages, replies, and linked records remain in the saved data.
+- App, server, and service-worker cache versions are aligned at 2.4.5.
+
 VERSION 2.4.4 — OLDER SERVER COMPATIBILITY
 ------------------------------------------
-- Work Queue posting falls back to the state-save API when the server does not
+- Message posting falls back to the state-save API when the server does not
   recognize the dedicated message endpoint. Revision conflicts are retried
   against the latest server state.
 - Corrected the document body tag in the shipped page.

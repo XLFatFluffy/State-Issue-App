@@ -789,7 +789,7 @@
       <button data-t="requests">REQUESTS</button>
       <button data-t="inventory">INVENTORY</button>
       <button data-t="reports">REPORTS</button>
-      <button data-t="messages">WORK QUEUE</button>
+      <button data-t="messages">MESSAGES</button>
       <button data-t="setup">SETUP</button>
     </nav>
 
@@ -886,67 +886,22 @@
       </section>
 
       <section id="messages">
-        <h2>Work Queue</h2>
+        <h2>Messages</h2>
         <p class="note">
-          Track outstanding work, link it to existing records, discuss progress,
-          and mark it resolved when complete. The name in Setup is used for new
-          entries; it is attribution, not secure sign-in.
+          Use this shared board to communicate about requests and daily work.
+          Link a message to a request or inmate so everyone can find the record.
+          The optional name in Setup identifies your messages; it is not a sign-in.
         </p>
-        <div class="row">
-          <select id="msgStatusFilter" style="max-width: 210px">
-            <option value="open">Open work</option>
-            <option value="all">All messages</option>
-            <option value="resolved">Resolved</option>
-          </select>
-          <select id="msgPriorityFilter" style="max-width: 210px">
-            <option value="all">All priorities</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="normal">Normal</option>
-            <option value="low">Low</option>
-          </select>
-          <select id="msgCategoryFilter" style="max-width: 220px">
-            <option value="all">All categories</option>
-            <option>State Issue</option>
-            <option>Request</option>
-            <option>Inventory</option>
-            <option>Follow-up</option>
-            <option>General</option>
-          </select>
-          <input
-            type="text"
-            id="msgSearch"
-            placeholder="Search messages"
-            style="flex: 1; min-width: 180px"
-          />
-        </div>
         <div class="card" style="background: #eef5ff; border-color: #1f3a5f">
-          <h3 style="margin-top: 0">Create work item</h3>
+          <h3 style="margin-top: 0">Send a message</h3>
           <label
-            >Title<input
-              type="text"
-              id="msgSubject"
-              maxlength="120"
-              placeholder="Short description of the work"
-          /></label>
+            >Message<textarea
+              id="msgText"
+              maxlength="2000"
+              placeholder="For example: Request R123 is ready for review. Can someone check the size?"
+            ></textarea>
+          </label>
           <div class="grid">
-            <label
-              >Category<select id="msgCategory">
-                <option>State Issue</option>
-                <option>Request</option>
-                <option>Inventory</option>
-                <option>Follow-up</option>
-                <option>General</option>
-              </select></label
-            >
-            <label
-              >Priority<select id="msgPriority">
-                <option value="normal">Normal</option>
-                <option value="low">Low</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select></label
-            >
             <label
               >Link to request (optional)<input
                 type="text"
@@ -966,21 +921,21 @@
               /><datalist id="msgInmateOptions"></datalist></label
             >
           </div>
-          <label
-            >Details<textarea
-              id="msgText"
-              maxlength="2000"
-              placeholder="What needs to happen? Include useful context."
-            ></textarea>
-          </label>
           <div class="row" style="margin: 10px 0 0">
-            <button class="btn green" id="msgSend">CREATE WORK ITEM</button>
+            <button class="btn green" id="msgSend">SEND MESSAGE</button>
           </div>
+        </div>
+        <div class="row">
+          <input
+            type="text"
+            id="msgSearch"
+            placeholder="Search messages and replies"
+            aria-label="Search messages and replies"
+          />
         </div>
         <div id="msgList"></div>
         <p class="note">
-          Resolved items remain in the history. Anyone with access to the
-          program can read these messages.
+          Messages and replies are shared with everyone who can access the program.
         </p>
       </section>
 
@@ -1100,7 +1055,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "2.4.4",
+        var APP_VERSION = "2.4.5",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1740,6 +1695,11 @@
         function fmt(d) {
           var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || "");
           return m ? m[2] + "/" + m[3] + "/" + m[1] : "—";
+        }
+        function fmtDateTime(value) {
+          if (!value) return "—";
+          var date = new Date(value);
+          return isNaN(date.getTime()) ? "—" : date.toLocaleString();
         }
         function posInt(v) {
           v = String(v == null ? "" : v).trim();
@@ -5581,13 +5541,30 @@
               return a.at < b.at ? -1 : a.at > b.at ? 1 : 0;
             });
         }
-        function commentsHTML(type, id) {
+        function commentsHTML(type, id, conversation) {
           var cs = commentList(type, id),
-            field = "commentText_" + type + "_" + id;
+            heading = conversation ? "Replies" : "Comments",
+            emptyMessage = conversation ? "No replies yet." : "No comments yet.",
+            inputLabel = conversation ? "Reply" : "Add a comment",
+            inputPlaceholder = conversation
+              ? "Write a reply to keep the conversation going"
+              : "Add useful context or an update",
+            buttonLabel = conversation ? "SEND REPLY" : "ADD COMMENT",
+            field = "commentText_" + type + "_" + id,
+            opening = conversation
+              ? '<details class="card"><summary style="cursor:pointer;font-weight:600">' +
+                heading +
+                " (" +
+                cs.length +
+                ') - click to reply</summary><div style="margin-top:10px">'
+              : '<div class="card"><h3 style="margin-top:0">' +
+                heading +
+                " (" +
+                cs.length +
+                ")</h3>",
+            closing = conversation ? "</div></details>" : "</div>";
           return (
-            '<div class="card"><h3 style="margin-top:0">Comments (' +
-            cs.length +
-            ")</h3>" +
+            opening +
             (cs.length
               ? cs
                   .map(function (c) {
@@ -5602,16 +5579,25 @@
                     );
                   })
                   .join("")
-              : '<p class="note">No comments yet.</p>') +
-            '<label>Add a comment<textarea id="' +
+              : '<p class="note">' +
+                emptyMessage +
+                "</p>") +
+            "<label>" +
+            inputLabel +
+            '<textarea id="' +
             esc(field) +
-            '" maxlength="2000" placeholder="Add useful context or an update"></textarea></label><button class="btn small green" onclick="addComment(\'' +
+            '" maxlength="2000" placeholder="' +
+            inputPlaceholder +
+            '"></textarea></label><button class="btn small green" onclick="addComment(\'' +
             type +
             "','" +
             id +
             "','" +
             field +
-            "')\">ADD COMMENT</button></div>"
+            "')\">" +
+            buttonLabel +
+            "</button>" +
+            closing
           );
         }
         window.addComment = function (type, id, fieldId) {
@@ -5633,11 +5619,22 @@
               });
             })
           ) {
-            toast("Comment added.");
+            toast(type === "message" ? "Reply sent." : "Comment added.");
             if (type === "inmate") showInmate(id);
             else if (type === "request") viewRequest(id);
             else if (type === "issue") showIssueComments(id);
-            else if (type === "message") renderMessages();
+            else if (type === "message") {
+              renderMessages();
+              Array.prototype.forEach.call(
+                $("msgList").children,
+                function (card) {
+                  if (card.getAttribute("data-message-id") === id) {
+                    var thread = card.querySelector("details");
+                    if (thread) thread.open = true;
+                  }
+                },
+              );
+            }
           }
         };
         window.showIssueComments = function (id) {
@@ -5657,8 +5654,7 @@
           return "";
         }
         function renderMessages() {
-          // Only open work is shown initially; filters expose resolved history
-          // without deleting completed items.
+          // Keep the newest conversation first and search messages plus replies.
           $("msgRequestOptions").innerHTML = db.requests
             .slice()
             .sort(function (a, b) {
@@ -5694,16 +5690,9 @@
               );
             })
             .join("");
-          var status = $("msgStatusFilter")
-              ? $("msgStatusFilter").value
-              : "open",
-            priority = $("msgPriorityFilter")
-              ? $("msgPriorityFilter").value
-              : "all",
-            category = $("msgCategoryFilter")
-              ? $("msgCategoryFilter").value
-              : "all",
-            q = ($("msgSearch") ? $("msgSearch").value : "").toLowerCase();
+          var q = ($("msgSearch") ? $("msgSearch").value : "")
+            .trim()
+            .toLowerCase();
           var list = db.messages
             .slice()
             .sort(function (a, b) {
@@ -5712,18 +5701,19 @@
               );
             })
             .filter(function (m) {
+              var replies = commentList("message", m.id)
+                .map(function (c) {
+                  return c.text || "";
+                })
+                .join(" ");
               return (
-                (status === "all" ||
-                  (status === "resolved"
-                    ? m.status === "resolved"
-                    : m.status !== "resolved")) &&
-                (priority === "all" || m.priority === priority) &&
-                (category === "all" || m.category === category) &&
                 (!q ||
                   (
                     (m.title || m.subject || "") +
                     " " +
-                    (m.body || m.text || "")
+                    (m.body || m.text || "") +
+                    " " +
+                    replies
                   )
                     .toLowerCase()
                     .indexOf(q) > -1)
@@ -5734,39 +5724,26 @@
                 .slice(0, 300)
                 .map(function (m) {
                   var links = m.links || [],
-                    resolved = m.status === "resolved";
+                    body = m.body || m.text || "",
+                    oldTitle = m.title || m.subject || "",
+                    showOldTitle =
+                      oldTitle &&
+                      body
+                        .slice(0, oldTitle.length)
+                        .toLowerCase() !== oldTitle.toLowerCase();
                   return (
-                    '<div class="card" style="border-left:6px solid ' +
-                    (m.priority === "urgent"
-                      ? "#b71c1c"
-                      : m.priority === "high"
-                        ? "#9a5b00"
-                        : resolved
-                          ? "#2e7d32"
-                          : "#1f3a5f") +
-                    '"><div class="row" style="align-items:center"><span class="badge ' +
-                    (resolved
-                      ? "green"
-                      : m.priority === "urgent"
-                        ? "red"
-                        : m.priority === "high"
-                          ? "orange"
-                          : "") +
-                    '">' +
-                    esc(resolved ? "RESOLVED" : m.status.toUpperCase()) +
-                    '</span><span class="badge">' +
-                    esc((m.priority || "normal").toUpperCase()) +
-                    '</span><span class="badge">' +
-                    esc(m.category || "General") +
-                    '</span><span class="note">' +
+                    '<div class="card" data-message-id="' +
+                    esc(m.id) +
+                    '" style="border-left:4px solid #1f3a5f"><div class="note">' +
                     esc(m.author || "Name not provided") +
                     " · " +
                     esc(fmtDateTime(m.created || m.at)) +
-                    "</span></div>" +
-                    '<h3 style="margin:8px 0">' +
-                    esc(m.title || m.subject || "Untitled work item") +
-                    "</h3><div>" +
-                    esc(m.body || m.text || "").replace(/\n/g, "<br>") +
+                    "</div>" +
+                    (showOldTitle
+                      ? "<p><b>" + esc(oldTitle) + "</b></p>"
+                      : "") +
+                    '<div style="white-space:pre-wrap;margin:8px 0 12px">' +
+                    esc(body) +
                     "</div>" +
                     (links.length
                       ? "<p><b>Linked records:</b> " +
@@ -5811,164 +5788,32 @@
                           .join(" ") +
                         "</p>"
                       : "") +
-                    '<div class="row" style="margin-top:10px">' +
-                    (!resolved
-                      ? '<button class="btn small green" onclick="resolveMessage(\'' +
-                        m.id +
-                        "')\">MARK RESOLVED</button>"
-                      : '<button class="btn small grey" onclick="reopenMessage(\'' +
-                        m.id +
-                        "')\">REOPEN</button>") +
-                    '<button class="btn small" onclick="editMessageLinks(\'' +
-                    m.id +
-                    "')\">LINK RECORD</button></div>" +
-                    commentsHTML("message", m.id) +
-                    (resolved && m.resolution
-                      ? '<p class="note"><b>Resolution:</b> ' +
-                        esc(m.resolution) +
-                        "</p>"
-                      : "") +
+                    commentsHTML("message", m.id, true) +
                     "</div>"
                   );
                 })
                 .join("")
-            : '<div class="empty">No work items match these filters.</div>';
+            : '<div class="empty">No messages yet. Start a conversation above.</div>';
         }
-        window.resolveMessage = function (id) {
-          var m = db.messages.find(function (x) {
-            return x.id === id;
-          });
-          if (!m) return;
-          var note = prompt("Resolution note (optional):", m.resolution || "");
-          if (note === null) return;
-          if (
-            tx(function () {
-              m.status = "resolved";
-              m.resolvedAt = iso();
-              m.resolvedBy = displayName();
-              m.resolution = note.trim();
-            })
-          ) {
-            renderAll();
-            toast("Work item resolved.");
-          }
-        };
-        window.reopenMessage = function (id) {
-          var m = db.messages.find(function (x) {
-            return x.id === id;
-          });
-          if (!m) return;
-          if (
-            tx(function () {
-              m.status = "open";
-              m.reopenedAt = iso();
-            })
-          ) {
-            renderAll();
-            toast("Work item reopened.");
-          }
-        };
-        window.editMessageLinks = function (id) {
-          var m = db.messages.find(function (x) {
-            return x.id === id;
-          });
-          if (!m) return;
-          var type = prompt(
-            "Link type: enter request or inmate. Leave blank to cancel.",
-            "request",
-          );
-          if (type === null || !type.trim()) return;
-          type = type.trim().toLowerCase();
-          if (type !== "request" && type !== "inmate") {
-            toast("Choose request or inmate.", true);
-            return;
-          }
-          var records = type === "request" ? db.requests : db.inmates;
-          var choices = records
-            .map(function (r) {
-              if (type === "request") {
-                var i = inmateById(r.inmateId);
-                return (
-                  r.id +
-                  " | " +
-                  (i ? i.first + " " + i.last : "Removed inmate") +
-                  " | " +
-                  r.date
-                );
-              }
-              return r.id + " | " + r.first + " " + r.last + " | " + r.mdoc;
-            })
-            .join("\n");
-          var rid = prompt(
-            "Enter a " +
-              type +
-              " ID to link, or leave blank to remove links of this type. Available records:\n" +
-              choices,
-            (m.links || [])
-              .filter(function (l) {
-                return l.type === type;
-              })
-              .map(function (l) {
-                return l.id;
-              })[0] || "",
-          );
-          if (rid === null) return;
-          rid = rid.trim();
-          if (
-            rid &&
-            !records.some(function (r) {
-              return r.id === rid;
-            })
-          ) {
-            toast("Record ID not found.", true);
-            return;
-          }
-          if (
-            tx(function () {
-              m.links = (m.links || []).filter(function (l) {
-                return l.type !== type;
-              });
-              if (rid) m.links.push({ type: type, id: rid });
-            })
-          ) {
-            renderMessages();
-            toast("Record link updated.");
-          }
-        };
-        [
-          "msgStatusFilter",
-          "msgPriorityFilter",
-          "msgCategoryFilter",
-          "msgSearch",
-        ].forEach(function (id) {
-          $(id).onchange = renderMessages;
-          $(id).oninput = renderMessages;
-        });
+        $("msgSearch").oninput = renderMessages;
         $("msgSend").onclick = function () {
           var text = $("msgText").value.trim(),
-            title = $("msgSubject").value.trim(),
-            category = $("msgCategory").value,
-            priority = $("msgPriority").value,
             requestSearch = $("msgRequestLink").value.trim(),
             inmateSearch = $("msgInmateLink").value.trim(),
             rid = dataListRecordId("msgRequestLink", "msgRequestOptions"),
             iid = dataListRecordId("msgInmateLink", "msgInmateOptions");
           if (!storageOK) {
             setSaved(false, "⚠ DATA NOT LOADED — NOT SAVED");
-            toast("Work item was not sent because the saved data could not be loaded.", true);
+            toast("Message was not sent because the saved data could not be loaded.", true);
             return;
           }
           if (offlineConflict) {
             setSaved(false, "⚠ RECONNECT CONFLICT — SEE SETUP");
-            toast("Resolve the reconnect conflict in Setup before sending work.", true);
-            return;
-          }
-          if (!title) {
-            toast("Enter a short title.", true);
+            toast("Resolve the reconnect conflict in Setup before sending messages.", true);
             return;
           }
           if (!text) {
-            toast("Enter the work details.", true);
+            toast("Write a message first.", true);
             return;
           }
           if (requestSearch && !rid) {
@@ -5986,11 +5831,10 @@
           var m = {
             created: iso(),
             author: displayName(),
-            title: title,
+            // Keep a short legacy title for older server versions; the message
+            // board displays the message itself rather than a separate title.
+            title: text.split(/\r?\n/)[0].slice(0, 120),
             body: text,
-            category: category,
-            priority: priority,
-            status: "open",
             links: [],
             comments: [],
           };
@@ -6000,7 +5844,7 @@
           if (!navigator.onLine) {
             if (!IS_MAIN) {
               setSaved(false, "⚠ SERVER CONNECTION LOST");
-              toast("Work item was not sent. Check the server connection.", true);
+              toast("Message was not sent. Check the server connection.", true);
               return;
             }
             m.id = "M" + next("message");
@@ -6010,17 +5854,16 @@
               return;
             }
             $("msgText").value = "";
-            $("msgSubject").value = "";
             $("msgRequestLink").value = "";
             $("msgInmateLink").value = "";
             renderAll();
-            toast("Work item saved on this computer; it will sync when connected.");
+            toast("Message saved on this computer; it will sync when connected.");
             return;
           }
 
           if (offlinePending) {
             trySyncPending();
-            toast("Wait for this computer's offline changes to sync before sending.", true);
+            toast("Wait for this computer's offline changes to sync before sending a message.", true);
             return;
           }
           messageSaving = true;
@@ -6040,7 +5883,7 @@
                   typeof latest.state !== "object" ||
                   typeof latest.rev !== "number"
                 )
-                  throw new Error("The server returned invalid work queue data.");
+                  throw new Error("The server returned invalid message data.");
                 var state = latest.state,
                   lastId =
                     state.seq &&
@@ -6071,7 +5914,7 @@
                   if (r.status === 409 && retries > 0)
                     return postViaState(retries - 1);
                   return r.json().then(function (res) {
-                    if (!r.ok) throw new Error(res.error || "Server rejected the work item.");
+                    if (!r.ok) throw new Error(res.error || "Server rejected the message.");
                     return {
                       rev: res.rev,
                       state: state,
@@ -6090,7 +5933,7 @@
             .then(function (r) {
               if (r.status === 404) return postViaState(3);
               return r.json().then(function (res) {
-                if (!r.ok) throw new Error(res.error || "Work item was rejected.");
+                if (!r.ok) throw new Error(res.error || "Message was rejected.");
                 return res;
               });
             })
@@ -6105,16 +5948,15 @@
               setSaved(true);
               loadTodayActivity();
               $("msgText").value = "";
-              $("msgSubject").value = "";
               $("msgRequestLink").value = "";
               $("msgInmateLink").value = "";
               renderAll();
-              toast("Work item created.");
+              toast("Message sent.");
             })
             .catch(function (err) {
-              setSaved(false, "⚠ WORK ITEM NOT SAVED");
+              setSaved(false, "⚠ MESSAGE NOT SAVED");
               toast(
-                "Work item was not saved. Your text is still here. " +
+                "Message was not saved. Your text is still here. " +
                   (err.message || "Check the server connection and try again."),
                 true,
               );

@@ -1,38 +1,32 @@
-STATE ISSUE 2.4.4 ADMIN GUIDE UPDATE
+STATE ISSUE 2.4.5 ADMIN GUIDE UPDATE
 ------------------------------------
-Work Queue items are now assigned IDs and appended atomically by the server.
-This prevents concurrent posts from different workstations from overwriting one
-another or being rejected because they started from the same revision. The create
-form reports success and clears only after the server confirms the save. Older
-server processes are supported through a state-save fallback, so a server restart
-is not required for posting work items.
+The Work Queue is simplified into a shared message board. Staff can send a message,
+optionally link a request or inmate, and reply in the conversation. New messages no
+longer need a title, category, or priority, and do not need to be resolved or reopened.
+Existing messages, replies, and links remain available after the update.
+
+Messages are still assigned IDs and appended atomically by the server, preventing
+concurrent posts from different workstations from overwriting one another. Older
+server processes are supported through a state-save fallback.
 
 Automatic backups now include inventory catalog-only changes, such as adding or
 editing an item before any stock is received. Backup files include collection
 counts, and restore checks those counts for missing or truncated data. Existing
 backup files remain compatible.
 
-The MESSAGES tab is now an operational Work Queue. Use SETUP -> Display Name to set
-the name attached to new messages and comments. The name is optional and is not a login
-or verified identity. It is stored with each new entry, so changing the setting does not
-change historical attribution. Section 6 (Recent Changes) and section 11 of this guide
-have been corrected to match this — they previously still described the old per-computer
-Officer/Worker role picker, which no longer exists.
-
-Work items require a title and details. Choose a category and priority, and optionally
-link an inmate and/or request. Open work is shown by default. Use filters to find work,
-add comments to preserve updates, and mark completed items Resolved with an optional
-resolution note. Resolved items remain in history and can be reopened. Comments can also
-be added to inmate profiles, requests, and individual issuance-history entries.
+Use SETUP -> Display Name to set the name attached to new messages and replies. The
+name is optional and is not a login or verified identity. It is stored with each new
+entry, so changing the setting does not change historical attribution. Comments can
+also be added to inmate profiles, requests, and individual issuance-history entries.
 
 When upgrading, retain the server database and use the normal backup process before
 replacing program files. The application adds the comments collection and display-name
 setting automatically when reading existing state. Verify the backup with VERIFY_BACKUP.bat
-before relying on it. After upgrading, manually test one comment on each record type, create
-and resolve a work item, check record links, and verify backup/restore using a test copy.
+before relying on it. After upgrading, manually send a message, reply to it, test request
+and inmate links, add a comment on each record type, and verify backup/restore using a test copy.
 No automated browser test is claimed for these UI workflows.
 
-STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.4.4)
+STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.4.5)
 
 WHAT CHANGED IN 2.3.0
 ----------------------
@@ -215,21 +209,18 @@ LIVE UPDATES
   5. Check the version in the header and run a test: find an inmate, view a report, export a CSV.
   6. Keep the old copy for at least a month.
 
-11. WORK QUEUE AND COMMENTS
+11. MESSAGES AND COMMENTS
 ----------------------------
-  - Open the Work Queue tab (formerly MESSAGES). Set your name once in SETUP -> Display Name;
-    it is attached to new work items and comments you add. It is optional, and it is not a
-    login — anyone can change it.
-  - To create a work item: enter a title and details, choose a category and priority, and
-    optionally link it to a request and/or an inmate. Press CREATE WORK ITEM.
-  - Open work is shown by default. Use the filters to see all items, resolved items, or search
-    by text, priority, or category.
-  - Mark an item RESOLVED when the work is done (an optional resolution note can be added).
-    Resolved items stay in history and can be reopened if needed.
-  - Comments can be added directly on a work item, and separately on inmate profiles, requests,
+  - Open Messages. Set your name in SETUP -> Display Name if you want it attached to messages
+    and replies. It is optional and is not a login — anyone can change it.
+  - Type a message, optionally link a request and/or inmate, then press SEND MESSAGE.
+  - Reply inside a conversation to keep follow-up communication together. Use search to find
+    messages or replies.
+  - Messages and replies are shared with everyone who can access the program.
+  - Comments can also be added on inmate profiles, requests,
     and individual issuance-history entries (via the COMMENTS button on each issue row). Use
     comments to record updates or context without changing the underlying record.
-  - Nothing in the Work Queue or comments can be deleted from the program. Anyone with access
+  - Nothing in Messages or comments can be deleted from the program. Anyone with access
     can read all of it. Keep entries factual and appropriate, and do not use them for anything
     that must be kept private.
 
