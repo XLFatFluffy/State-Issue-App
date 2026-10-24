@@ -1132,6 +1132,38 @@
         border-radius: 9px;
         background: var(--surface);
       }
+      .queueHeading {
+        margin: 25px 0 3px;
+      }
+      .queueAction {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .queueAction h3 {
+        margin: 0;
+      }
+      .inventory-alert {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .inventory-alert.negative {
+        border-left: 4px solid #a6463c;
+      }
+      .inventory-alert.low {
+        border-left: 4px solid #b27a32;
+      }
+      tr.inventory-negative {
+        background: #fbefed;
+      }
+      tr.inventory-low {
+        background: #fff7e9;
+      }
       @media (max-width: 800px) {
         body {
           display: block;
@@ -1272,8 +1304,10 @@
           ><button class="btn grey" id="qaStock">ADD STOCK</button>
         </div>
         <div id="dashboardStats" class="statgrid"></div>
-        <div id="dashMessages"></div>
+        <h3 class="queueHeading">Priority work</h3>
+        <p class="note">Items that may need attention are grouped below with shortcuts to the next step.</p>
         <div id="dashboardActions"></div>
+        <div id="dashMessages"></div>
         <h3>Today's Changes</h3>
         <p class="note">
           Changes saved today appear here as they happen. You'll see the
@@ -1297,7 +1331,7 @@
           <input
             type="text"
             id="q"
-            placeholder="Search by name or MDOC number"
+            placeholder="Search by name or MDOC number — press / to focus"
             style="flex: 1; min-width: 260px"
           />
           <button class="btn" id="go">SEARCH</button>
@@ -1314,9 +1348,11 @@
         <div class="row">
           <button class="btn green" id="newRequest">+ NEW REQUEST</button>
           <select id="requestFilter" style="max-width: 220px">
-            <option value="all">All Requests</option>
+            <option value="all">All requests</option>
             <option value="open">Open (needs decision or issue)</option>
-            <option value="fulfilled">Fulfilled</option>
+            <option value="needsDecision">Needs review</option>
+            <option value="needsIssue">Ready to issue</option>
+            <option value="fulfilled">Completed</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="denied">Denied</option>
@@ -1329,6 +1365,7 @@
       <section id="inventory">
         <h2>Inventory</h2>
         <div class="statgrid" id="invStats"></div>
+        <div id="inventoryAlerts"></div>
         <div class="row">
           <button class="btn green" id="addStock">ADD STOCK</button>
           <button class="btn" id="adjustStock">ADJUST INVENTORY</button>
@@ -1620,6 +1657,28 @@
           REVK = "stateIssueRev";
         var DISPLAY_NAME_KEY = "stateIssueWorkstationName",
           workstationDisplayName = null;
+        var UI_PREF_KEY = "stateIssueUIPreferences",
+          uiPrefs = {};
+        try {
+          var storedUIPrefs = JSON.parse(lsGet(UI_PREF_KEY) || "{}");
+          if (
+            storedUIPrefs &&
+            typeof storedUIPrefs === "object" &&
+            !Array.isArray(storedUIPrefs)
+          )
+            uiPrefs = storedUIPrefs;
+        } catch (e) {
+          uiPrefs = {};
+        }
+        function saveUIPrefs() {
+          uiPrefs = {
+            tab: uiPrefs.tab || "dashboard",
+            requestFilter: $("requestFilter").value,
+            inventoryFilter: $("invFilter").value || uiPrefs.inventoryFilter || "all",
+            messageFilter: $("msgFilter").value,
+          };
+          lsSet(UI_PREF_KEY, JSON.stringify(uiPrefs));
+        }
         /* This computer works offline ONLY when it opens State Issue at 127.0.0.1 or
    localhost — which, by design, is only the computer that runs server.py
    (START_STATE_ISSUE.bat opens it that way automatically). Every other
@@ -2483,26 +2542,35 @@
           document.querySelectorAll("#tabs button"),
           function (b) {
             b.onclick = function () {
-              Array.prototype.forEach.call(
-                document.querySelectorAll("#tabs button"),
-                function (x) {
-                  x.className = "";
-                },
-              );
-              Array.prototype.forEach.call(
-                document.querySelectorAll("main section"),
-                function (x) {
-                  x.className = "";
-                },
-              );
-              b.className = "on";
-              $(b.getAttribute("data-t")).className = "on";
-              renderAll();
-              if (b.getAttribute("data-t") === "setup") loadAudit();
-              if (b.getAttribute("data-t") === "dashboard") loadTodayActivity();
+              selectTab(b.getAttribute("data-t"));
             };
           },
         );
+        function selectTab(tab) {
+          var button = document.querySelector(
+            '#tabs button[data-t="' + tab + '"]',
+          );
+          if (!button || !$(tab)) return;
+          Array.prototype.forEach.call(
+            document.querySelectorAll("#tabs button"),
+            function (x) {
+              x.className = "";
+            },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("main section"),
+            function (x) {
+              x.className = "";
+            },
+          );
+          button.className = "on";
+          $(tab).className = "on";
+          uiPrefs.tab = tab;
+          saveUIPrefs();
+          renderAll();
+          if (tab === "setup") loadAudit();
+          if (tab === "dashboard") loadTodayActivity();
+        }
 
         /* ---------- INMATES ---------- */
         function renderInmates() {
@@ -2572,9 +2640,22 @@
             },
           );
         }
-        $("go").onclick = renderInmates;
+        $("go").onclick = function () {
+          clearTimeout(inmateSearchTimer);
+          renderInmates();
+        };
+        var inmateSearchTimer = null;
+        $("q").oninput = function () {
+          clearTimeout(inmateSearchTimer);
+          inmateSearchTimer = setTimeout(function () {
+            renderInmates();
+          }, 120);
+        };
         $("q").onkeydown = function (e) {
-          if (isEnter(e)) renderInmates();
+          if (isEnter(e)) {
+            clearTimeout(inmateSearchTimer);
+            renderInmates();
+          }
         };
         var SZ = ["", "L", "XL", "2X", "3X", "4X", "5X", "6X"];
         function inmateForm(i) {
@@ -3162,7 +3243,7 @@
             sizesOf(it).forEach(function (sz) {
               var min = lowStockLevel(it.id, sz),
                 q = getInventory(it.id, sz);
-              if (min > 0 && q <= min)
+              if (q < 0 || (min > 0 && q <= min))
                 a.push({ itemId: it.id, size: sz, qty: q, min: min });
             });
           });
@@ -3577,28 +3658,25 @@
           var pending = db.requests.filter(function (r) {
             return activeInmate(r.inmateId) && reqNeedsDecision(r);
           }).length;
-          var awaiting = db.requestItems.filter(function (x) {
-            var rq = db.requests.filter(function (r) {
-              return r.id === x.requestId;
-            })[0];
-            return (
-              rq &&
-              activeInmate(rq.inmateId) &&
-              x.decision === "approved" &&
-              x.issuedQty < x.qty
-            );
+          var awaiting = db.requests.filter(function (r) {
+            return activeInmate(r.inmateId) && reqNeedsIssue(r);
           }).length;
           var low = lowStockRows().length;
           var rem = db.reminders.filter(function (r) {
             return reminderOpen(r);
           }).length;
+          var openMessages = db.messages.filter(function (m) {
+            return (m.status || "open") === "open";
+          }).length;
           $("dashboardStats").innerHTML =
             '<div class="stat">REQUESTS NEEDING A DECISION<b>' +
             pending +
-            '</b></div><div class="stat">APPROVED ITEMS TO ISSUE<b>' +
+            '</b></div><div class="stat">REQUESTS READY TO ISSUE<b>' +
             awaiting +
             '</b></div><div class="stat">LOW-STOCK ALERTS<b>' +
             low +
+            '</b></div><div class="stat">OPEN MESSAGES<b>' +
+            openMessages +
             '</b></div><div class="stat">OPEN REMINDERS<b>' +
             rem +
             "</b></div>";
@@ -3607,21 +3685,21 @@
             action +=
               '<div class="card"><h3 style="margin-top:0">REQUESTS NEEDING A DECISION (' +
               pending +
-              ")</h3>" +
+              ')</h3><p class="note">Review pending items before they can be issued.</p><button class="btn small" onclick="openDashboardRequestFilter(\'needsDecision\')">VIEW REQUESTS</button>' +
               dashboardRequestGroups("pending") +
               "</div>";
           if (awaiting)
             action +=
-              '<div class="card"><h3 style="margin-top:0">APPROVED / NOT FULLY ISSUED (' +
+              '<div class="card"><h3 style="margin-top:0">REQUESTS READY TO ISSUE (' +
               awaiting +
-              ")</h3>" +
+              ')</h3><p class="note">Approved request items that still need fulfillment.</p><button class="btn small" onclick="openDashboardRequestFilter(\'needsIssue\')">VIEW READY TO ISSUE</button>' +
               dashboardRequestGroups("approved") +
               "</div>";
           if (low) {
             action +=
               '<div class="card"><h3 style="margin-top:0">LOW STOCK (' +
               low +
-              ")</h3><table><thead><tr><th>Item</th><th>Size</th><th>Stock</th><th>Minimum</th></tr></thead><tbody>" +
+              ')</h3><p class="note">Negative quantities and items at or below their configured minimum.</p><table><thead><tr><th>Item</th><th>Size</th><th>Stock</th><th>Minimum</th><th></th></tr></thead><tbody>' +
               lowStockRows()
                 .map(function (x) {
                   return (
@@ -3633,7 +3711,11 @@
                     x.qty +
                     "</b></td><td>" +
                     x.min +
-                    "</td></tr>"
+                    '</td><td><button class="btn small" data-stock-item="' +
+                    esc(x.itemId) +
+                    '" data-stock-size="' +
+                    esc(x.size) +
+                    '">ADJUST</button></td></tr>'
                   );
                 })
                 .join("") +
@@ -3642,9 +3724,37 @@
           $("dashboardActions").innerHTML =
             action ||
             '<div class="empty">All caught up. No requests or low-stock alerts need attention.</div>';
+          Array.prototype.forEach.call(
+            $("dashboardActions").querySelectorAll("[data-stock-item]"),
+            function (button) {
+              button.onclick = function () {
+                adjustDashboardStock(
+                  button.getAttribute("data-stock-item"),
+                  button.getAttribute("data-stock-size"),
+                );
+              };
+            },
+          );
+          $("dashMessages").innerHTML = openMessages
+            ? '<div class="card queueAction"><div><h3>OPEN MESSAGES (' +
+              openMessages +
+              ')</h3><p class="note">Messages that still need a follow-up.</p></div><button class="btn small" onclick="openDashboardMessages()">VIEW MESSAGES</button></div>'
+            : "";
           $("dashboardReminders").innerHTML =
             dashboardReminderRows(showCompletedRem);
         }
+        window.openDashboardRequestFilter = function (filter) {
+          $("requestFilter").value = filter;
+          selectTab("requests");
+        };
+        window.openDashboardMessages = function () {
+          $("msgFilter").value = "open";
+          selectTab("messages");
+        };
+        window.adjustDashboardStock = function (itemId, size) {
+          selectTab("inventory");
+          stockForm(true, itemId, size);
+        };
 
         window.issueOutstanding = function (id) {
           var r = db.reminders.find(function (x) {
@@ -4712,6 +4822,21 @@
         }
         function renderRequests() {
           var filter = $("requestFilter").value;
+          var decisionCount = db.requests.filter(function (r) {
+              return reqNeedsDecision(r);
+            }).length,
+            issueCount = db.requests.filter(function (r) {
+              return reqNeedsIssue(r);
+            }).length,
+            completedCount = db.requests.filter(function (r) {
+              return reqFulfilled(r);
+            }).length;
+          $("requestFilter").querySelector('[value="needsDecision"]').textContent =
+            "Needs review (" + decisionCount + ")";
+          $("requestFilter").querySelector('[value="needsIssue"]').textContent =
+            "Ready to issue (" + issueCount + ")";
+          $("requestFilter").querySelector('[value="fulfilled"]').textContent =
+            "Completed (" + completedCount + ")";
           var list = db.requests
             .slice()
             .sort(function (a, b) {
@@ -4722,14 +4847,13 @@
                   : parseInt(b.id.slice(1), 10) - parseInt(a.id.slice(1), 10);
             })
             .filter(function (r) {
-              return (
-                filter === "all" ||
-                (filter === "open"
-                  ? reqNeedsDecision(r) || reqNeedsIssue(r)
-                  : filter === "fulfilled"
-                    ? reqFulfilled(r)
-                    : r.status === filter)
-              );
+              if (filter === "all") return true;
+              if (filter === "open")
+                return reqNeedsDecision(r) || reqNeedsIssue(r);
+              if (filter === "needsDecision") return reqNeedsDecision(r);
+              if (filter === "needsIssue") return reqNeedsIssue(r);
+              if (filter === "fulfilled") return reqFulfilled(r);
+              return r.status === filter;
             });
           if (!list.length) {
             $("requestList").innerHTML =
@@ -4773,7 +4897,10 @@
               ? '<p class="note">Showing the 200 most recent requests.</p>'
               : "");
         }
-        $("requestFilter").onchange = renderRequests;
+        $("requestFilter").onchange = function () {
+          renderRequests();
+          saveUIPrefs();
+        };
         function requestHistoryHTML(r) {
           var events = [];
           (Array.isArray(r.history) ? r.history : []).forEach(function (entry) {
@@ -5185,10 +5312,15 @@
             total = 0;
           activeItems().forEach(function (it) {
             sizesOf(it).forEach(function (s) {
-              var q = getInventory(it.id, s);
+              var q = getInventory(it.id, s),
+                min = lowStockLevel(it.id, s),
+                rowClass =
+                  q < 0 ? "inventory-negative" : min > 0 && q <= min ? "inventory-low" : "";
               total += q;
               rows.push(
-                "<tr><td>" +
+                '<tr class="' +
+                  rowClass +
+                  '"><td>' +
                   esc(it.category) +
                   "</td><td>" +
                   esc(it.name) +
@@ -5225,12 +5357,53 @@
             '</b><span class="note">' +
             (lastCheck ? "Last: " + fmt(lastCheck.date) : "Never checked") +
             "</span></div>";
+          var exceptions = lowStockRows();
+          $("inventoryAlerts").innerHTML = exceptions.length
+            ? '<div class="card"><h3 style="margin-top:0">Stock to review (' +
+              exceptions.length +
+              ')</h3><div class="grid">' +
+              exceptions
+                .map(function (x) {
+                  var negative = x.qty < 0;
+                  return (
+                    '<div class="card inventory-alert ' +
+                    (negative ? "negative" : "low") +
+                    '"><div><b>' +
+                    esc(itemName(x.itemId)) +
+                    " · " +
+                    esc(x.size) +
+                    '</b><br><span class="note">' +
+                    (negative
+                      ? "Negative stock: " + x.qty
+                      : "At/below minimum · " + x.qty + " in stock, minimum " + x.min) +
+                    '</span></div><button class="btn small" data-stock-item="' +
+                    esc(x.itemId) +
+                    '" data-stock-size="' +
+                    esc(x.size) +
+                    '">ADJUST</button></div>'
+                  );
+                })
+                .join("") +
+              "</div></div>"
+            : "";
+          Array.prototype.forEach.call(
+            $("inventoryAlerts").querySelectorAll("[data-stock-item]"),
+            function (button) {
+              button.onclick = function () {
+                stockForm(
+                  true,
+                  button.getAttribute("data-stock-item"),
+                  button.getAttribute("data-stock-size"),
+                );
+              };
+            },
+          );
           $("inventoryTable").innerHTML =
             '<table><thead><tr><th>Category</th><th>Item</th><th>Size</th><th class="n">Quantity</th></tr></thead><tbody>' +
             rows.join("") +
             "</tbody></table>";
           var f = $("invFilter"),
-            cur = f.value || "all";
+            cur = f.value || uiPrefs.inventoryFilter || "all";
           f.innerHTML =
             '<option value="all">All items</option>' +
             db.items.slice().sort(byItemName)
@@ -5310,7 +5483,10 @@
                 : "")
             : '<div class="empty">No stock changes yet. Select ADD STOCK to enter your starting inventory.</div>';
         }
-        $("invFilter").onchange = renderInventory;
+        $("invFilter").onchange = function () {
+          renderInventory();
+          saveUIPrefs();
+        };
         function itemSizePicker(p, cb) {
           function bind() {
             fillSizes($(p + "Size"), itemById($(p + "Item").value));
@@ -5320,7 +5496,7 @@
           if ($(p + "Size")) $(p + "Size").onchange = cb || function () {};
           bind();
         }
-        function stockForm(adjust) {
+        function stockForm(adjust, preferredItemId, preferredSize) {
           if (!activeItems().length) {
             toast("No active items. Add one in SETUP.", true);
             return;
@@ -5341,7 +5517,20 @@
                 : "Where did it come from? (optional)") +
               '<textarea id="stNotes"></textarea></label><div class="row" style="margin-top:14px"><button class="btn green" id="saveStock">SAVE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>',
           );
-          itemSizePicker("st");
+          if (
+            preferredItemId &&
+            activeItems().some(function (it) {
+              return it.id === preferredItemId;
+            })
+          )
+            $("stItem").value = preferredItemId;
+          function bindStockSize(pref) {
+            fillSizes($("stSize"), itemById($("stItem").value), pref);
+          }
+          $("stItem").onchange = function () {
+            bindStockSize();
+          };
+          bindStockSize(preferredSize);
           $("saveStock").onclick = function () {
             var itemId = $("stItem").value,
               size = $("stSize").value,
@@ -7248,8 +7437,17 @@
             );
           }
         });
-        $("msgSearch").oninput = renderMessages;
-        $("msgFilter").onchange = renderMessages;
+        var messageSearchTimer = null;
+        $("msgSearch").oninput = function () {
+          clearTimeout(messageSearchTimer);
+          messageSearchTimer = setTimeout(function () {
+            renderMessages();
+          }, 120);
+        };
+        $("msgFilter").onchange = function () {
+          renderMessages();
+          saveUIPrefs();
+        };
         $("msgSend").onclick = function () {
           var text = $("msgText").value.trim(),
             requestSearch = $("msgRequestLink").value.trim(),
@@ -7447,7 +7645,61 @@
           renderInventory();
           renderSetup();
         }
+        var validTabs = [
+            "dashboard",
+            "inmates",
+            "requests",
+            "inventory",
+            "reports",
+            "messages",
+            "setup",
+          ],
+          initialTab =
+            validTabs.indexOf(uiPrefs.tab) > -1 ? uiPrefs.tab : "dashboard";
+        if (uiPrefs.requestFilter) {
+          $("requestFilter").value = uiPrefs.requestFilter;
+          if ($("requestFilter").value !== uiPrefs.requestFilter)
+            $("requestFilter").value = "all";
+        }
+        if (uiPrefs.messageFilter) {
+          $("msgFilter").value = uiPrefs.messageFilter;
+          if ($("msgFilter").value !== uiPrefs.messageFilter)
+            $("msgFilter").value = "open";
+        }
+        Array.prototype.forEach.call(
+          document.querySelectorAll("#tabs button"),
+          function (button) {
+            button.className =
+              button.getAttribute("data-t") === initialTab ? "on" : "";
+          },
+        );
+        Array.prototype.forEach.call(
+          document.querySelectorAll("main section"),
+          function (section) {
+            section.className = section.id === initialTab ? "on" : "";
+          },
+        );
+        uiPrefs.tab = initialTab;
+        document.addEventListener("keydown", function (e) {
+          var target = e.target;
+          if (
+            e.key !== "/" ||
+            e.ctrlKey ||
+            e.metaKey ||
+            e.altKey ||
+            $("modal").className.indexOf("on") > -1 ||
+            (target &&
+              (target.isContentEditable ||
+                /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))
+          )
+            return;
+          e.preventDefault();
+          selectTab("inmates");
+          $("q").focus();
+        });
         renderAll();
+        if (initialTab === "setup") loadAudit();
+        if (initialTab === "dashboard") loadTodayActivity();
         if (!storageOK) setSaved(false);
         else if (offlineConflict)
           setSaved(false, "⚠ RECONNECT CONFLICT — SEE SETUP");

@@ -51,6 +51,9 @@ HOW IT WORKS
 FEATURES
 --------
 - Dashboard, inmate profiles, request review and fulfillment.
+- Dashboard priority queue for requests, stock alerts, and open messages;
+  live inmate search (press / to focus); alphabetical inmate and inventory lists.
+- Each browser remembers its last tab and common list filters locally.
 - Item and size catalog, inventory tracking, stock history, and low-stock alerts.
 - Reports and CSV export.
 - Shared messages with replies, completion and deletion controls, and optional
