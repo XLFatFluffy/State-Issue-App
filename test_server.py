@@ -26,7 +26,7 @@ class T(unittest.TestCase):
     def test_seed_file_exists_and_has_required_initial_state(self):
         with open(srv.SEED_PATH, "r", encoding="utf-8") as f:
             seed = json.load(f)
-        for key in ("inmates", "requests", "requestItems", "issues", "txns", "items", "reminders", "inventoryChecks", "settings"):
+        for key in ("inmates", "requests", "requestItems", "issues", "txns", "items", "reminders", "inventoryChecks", "feedback", "settings"):
             self.assertIn(key, seed)
         self.assertIsInstance(seed["inmates"], list)
         self.assertIsInstance(seed["items"], list)
@@ -41,6 +41,19 @@ class T(unittest.TestCase):
         srv.migrate(); srv.migrate()
         self.assertEqual(srv.load_state()[0], 0)
 
+    def test_migrates_schema_v2_to_v3(self):
+        c = sqlite3.connect(srv.DB_PATH)
+        c.execute("UPDATE schema_meta SET value='2' WHERE key='schema_version'")
+        c.commit()
+        c.close()
+        srv.migrate()
+        c = sqlite3.connect(srv.DB_PATH)
+        version = c.execute(
+            "SELECT value FROM schema_meta WHERE key='schema_version'"
+        ).fetchone()[0]
+        c.close()
+        self.assertEqual(version, "3")
+
     def test_newer_database_refused(self):
         c = sqlite3.connect(srv.DB_PATH)
         c.execute("UPDATE schema_meta SET value='99' WHERE key='schema_version'"); c.commit(); c.close()
@@ -52,6 +65,54 @@ class T(unittest.TestCase):
         rev, st = srv.load_state()
         ok, r = srv.save_state(rev, st, "10.0.0.5")
         self.assertTrue(ok); self.assertEqual(r, 1)
+
+    def test_feedback_reports_are_saved_and_status_is_audited(self):
+        report = {
+            "type": "Bug / problem",
+            "area": "Requests",
+            "target": "Approve button",
+            "requestId": "R1042",
+            "title": "Approve action does not save",
+            "details": "The request stays pending after approval.",
+            "steps": "Open the request and press Approve.",
+            "expected": "The request should be approved.",
+            "actual": "It remains pending.",
+        }
+        rev, item, state = srv.add_feedback_report(report, "10.0.0.5", "Worker")
+        self.assertEqual(rev, 1)
+        self.assertEqual(item["id"], "F1001")
+        self.assertEqual(item["status"], "New")
+        self.assertEqual(item["reporter"], "Worker")
+        self.assertEqual(state["feedback"][0]["requestId"], "R1042")
+        self.assertEqual(srv.load_state()[1]["feedback"][0]["title"], report["title"])
+        backup = srv.backup_now("feedback_backup.db")
+        c = sqlite3.connect(backup)
+        backed_up = json.loads(
+            c.execute("SELECT state_json FROM app_state WHERE id=1").fetchone()[0]
+        )
+        c.close()
+        self.assertEqual(backed_up["feedback"][0]["id"], "F1001")
+        rev, item, state = srv.update_feedback_status(
+            "F1001", "Reviewing", "10.0.0.6", "Admin"
+        )
+        self.assertEqual(rev, 2)
+        self.assertEqual(item["status"], "Reviewing")
+        self.assertEqual(item["updatedBy"], "Admin")
+        self.assertIn("feedback reports: 1 changed", srv.recent_audit(1)[0]["summary"])
+        self.assertEqual(state["feedback"][0]["status"], "Reviewing")
+
+    def test_feedback_report_validation_rejects_missing_or_oversized_fields(self):
+        with self.assertRaises(ValueError):
+            srv.add_feedback_report({"type": "Bug / problem"})
+        with self.assertRaises(ValueError):
+            srv.add_feedback_report({
+                "type": "Bug / problem",
+                "area": "Requests",
+                "title": "Too long",
+                "details": "x" * 3001,
+            })
+        with self.assertRaises(ValueError):
+            srv.update_feedback_status("F1001", "Unknown")
 
     def test_stale_save_rejected(self):
         rev, st = srv.load_state()
@@ -333,6 +394,69 @@ class T(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 400)
         ctx.exception.close()
 
+    def test_http_feedback_submission_and_status_update(self):
+        import urllib.request
+        base = self._start_http_server()
+        report = {
+            "type": "Improvement suggestion",
+            "area": "Requests",
+            "target": "Request detail screen",
+            "requestId": "R1042",
+            "title": "Show item size in the list",
+            "details": "It would help to show the requested size without opening each request.",
+            "steps": "",
+            "expected": "The size is visible in the request list.",
+            "actual": "",
+        }
+        req = urllib.request.Request(
+            base + "/api/feedback",
+            data=json.dumps({"report": report, "who": "Worker"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            created = json.loads(response.read().decode("utf-8"))
+        self.assertTrue(created["ok"])
+        self.assertEqual(created["report"]["id"], "F1001")
+        self.assertEqual(created["state"]["feedback"][0]["reporter"], "Worker")
+
+        req = urllib.request.Request(
+            base + "/api/feedback/status",
+            data=json.dumps({
+                "id": "F1001",
+                "status": "Planned",
+                "who": "Administrator",
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            updated = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(updated["report"]["status"], "Planned")
+        self.assertEqual(updated["state"]["feedback"][0]["status"], "Planned")
+        self.assertEqual(updated["rev"], 2)
+
+    def test_http_feedback_rejects_invalid_submission(self):
+        import urllib.request, urllib.error
+        base = self._start_http_server()
+        req = urllib.request.Request(
+            base + "/api/feedback",
+            data=json.dumps({
+                "report": {
+                    "type": "Bug / problem",
+                    "area": "Requests",
+                    "title": "",
+                    "details": "",
+                },
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req, timeout=3)
+        self.assertEqual(ctx.exception.code, 400)
+        ctx.exception.close()
+
     def test_http_root_includes_bootstrap_and_no_store_header(self):
         import urllib.request
         base = self._start_http_server()
@@ -429,6 +553,29 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('$("displayName")', body)
         self.assertIn("displayName()", body)
 
+    def test_setup_has_detailed_shared_feedback_form_and_inbox(self):
+        compact = re.sub(r"\s+", "", self.html)
+        for field in (
+            "feedbackType",
+            "feedbackArea",
+            "feedbackTarget",
+            "feedbackRequestId",
+            "feedbackTitle",
+            "feedbackDetails",
+            "feedbackSteps",
+            "feedbackExpected",
+            "feedbackActual",
+            "feedbackSearch",
+            "feedbackFilter",
+            "feedbackInbox",
+            "feedbackSummary",
+        ):
+            self.assertIn('id="' + field + '"', compact)
+        self.assertIn('"/api/feedback"', compact)
+        self.assertIn('"/api/feedback/status"', compact)
+        self.assertIn("functionfeedbackPost(path,payload,successMessage)", compact)
+        self.assertIn("Do not include inmate names, MDOC numbers", self.html)
+
     def test_version_note_describes_connected_workstations_without_implying_access_control(self):
         self.assertIn("shared across connected workstations", self.html)
         self.assertNotIn("shared across authorized workstations", self.html)
@@ -455,6 +602,7 @@ class ClientSourceChecks(unittest.TestCase):
             'inventoryCheck:{collection:"inventoryChecks",prefix:"IC"}',
             'message:{collection:"messages",prefix:"M"}',
             'comment:{collection:"comments",prefix:"C"}',
+            'feedback:{collection:"feedback",prefix:"F"}',
         ):
             self.assertIn(source, compact)
         self.assertIn(

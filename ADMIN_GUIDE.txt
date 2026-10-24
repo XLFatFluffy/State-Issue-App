@@ -1,4 +1,4 @@
-STATE ISSUE 3.0.0 — ADMINISTRATOR GUIDE
+STATE ISSUE 3.1.0 — ADMINISTRATOR GUIDE
 ========================================
 
 Purpose
@@ -115,6 +115,13 @@ Routine staff workflows
 - Use messages, replies, and comments for factual operational context. Link a
   message to its request or inmate when useful. These records are shared; do not
   use them for information that must remain private.
+- Use Setup > Report a Problem or Suggestion to describe app flaws and requested
+  changes. Include the area, exact button or field, steps to reproduce, and a
+  request ID when useful. Do not include inmate names, MDOC numbers, or other
+  sensitive personal information. Review incoming reports in the Shared
+  Feedback Inbox and update their status as they are triaged. Reports are shared
+  with everyone who can access the app and are included in app backups. A host
+  connection is required to submit a report; feedback is not queued offline.
 - Use Reports for review and export only the data needed. CSV and JSON files
   are downloaded to the browser's download location and may contain sensitive
   records. Store them securely and remove unneeded copies according to policy.

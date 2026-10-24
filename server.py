@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 3.0.0
+State Issue server, version 3.1.0
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
@@ -16,8 +16,8 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "3.0.0"
-SCHEMA_VERSION = 2
+APP_VERSION = "3.1.0"
+SCHEMA_VERSION = 3
 # Keep program files separate from the database location so the server can
 # continue using a chosen data folder without moving the application itself.
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +38,7 @@ TRACKED = [
     ("txns", "stock changes"), ("items", "item setup"),
     ("reminders", "reminders"), ("inventoryChecks", "inventory checks"),
     ("messages", "work queue items"), ("comments", "comments"),
+    ("feedback", "feedback reports"),
 ]
 
 def now():
@@ -70,6 +71,11 @@ def migrate():
             cols = [r[1] for r in c.execute("PRAGMA table_info(audit_log)").fetchall()]
             if "who" not in cols:
                 c.execute("ALTER TABLE audit_log ADD COLUMN who TEXT NOT NULL DEFAULT ''")
+            c.execute("INSERT OR REPLACE INTO schema_meta(key,value) VALUES('schema_version',?)", ("2",))
+            c.execute("COMMIT")
+            current = 2
+        if current < 3:
+            c.execute("BEGIN IMMEDIATE")
             c.execute("INSERT OR REPLACE INTO schema_meta(key,value) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
             c.execute("COMMIT")
     finally:
@@ -208,6 +214,153 @@ def add_work_item(message, workstation="unknown", who=""):
     finally:
         c.close()
 
+FEEDBACK_FIELDS = {
+    "type": 30,
+    "area": 40,
+    "target": 120,
+    "requestId": 40,
+    "title": 160,
+    "details": 3000,
+    "steps": 2000,
+    "expected": 1500,
+    "actual": 1500,
+}
+FEEDBACK_TYPES = {"Bug / problem", "Improvement suggestion", "Other"}
+FEEDBACK_STATUSES = {"New", "Reviewing", "Planned", "Completed", "Not planned"}
+
+def add_feedback_report(report, workstation="unknown", who=""):
+    """Append a validated report atomically so it is included in normal backups."""
+    if not isinstance(report, dict):
+        raise ValueError("invalid feedback report")
+    clean = {}
+    for field, limit in FEEDBACK_FIELDS.items():
+        value = report.get(field, "")
+        if not isinstance(value, str) or len(value) > limit:
+            raise ValueError("invalid feedback " + field)
+        clean[field] = value.strip()
+    if clean["type"] not in FEEDBACK_TYPES:
+        raise ValueError("choose a feedback type")
+    if clean["area"] not in {
+        "Dashboard", "Inmates", "Requests", "Inventory", "Reports",
+        "Messages", "Setup", "Other",
+    }:
+        raise ValueError("choose an app area")
+    if not clean["title"]:
+        raise ValueError("a short summary is required")
+    if not clean["details"]:
+        raise ValueError("please describe the problem or suggestion")
+    if not isinstance(who, str):
+        who = ""
+
+    c = dbconn()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
+        if not row:
+            raise RuntimeError("application state is not initialized")
+        current, raw = row
+        old = json.loads(raw)
+        state = json.loads(raw)
+        reports = state.get("feedback", [])
+        if not isinstance(reports, list):
+            raise ValueError("invalid feedback data")
+        seq = state.setdefault("seq", {})
+        if not isinstance(seq, dict):
+            raise ValueError("invalid sequence data")
+        last_id = seq.get("feedback", 1000)
+        last_id = last_id if isinstance(last_id, int) and last_id >= 0 else 1000
+        for existing in reports:
+            existing_id = str(existing.get("id", "")) if isinstance(existing, dict) else ""
+            if existing_id.startswith("F") and existing_id[1:].isdigit():
+                last_id = max(last_id, int(existing_id[1:]))
+        item = dict(clean)
+        item.update({
+            "id": "F%d" % (last_id + 1),
+            "created": now(),
+            "reporter": who[:80],
+            "workstation": workstation[:80],
+            "status": "New",
+            "updated": "",
+            "updatedBy": "",
+        })
+        state["feedback"] = reports + [item]
+        state["seq"]["feedback"] = last_id + 1
+        newrev = current + 1
+        state["rev"] = newrev
+        ts = now()
+        c.execute(
+            "UPDATE app_state SET revision=?,state_json=?,updated_at=? WHERE id=1 AND revision=?",
+            (newrev, json.dumps(state, separators=(",", ":")), ts, current),
+        )
+        c.execute(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            (ts, workstation, newrev, summarize(old, state), who[:40]),
+        )
+        c.execute("COMMIT")
+        with CHANGED:
+            CHANGED.notify_all()
+        return newrev, item, state
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
+
+def update_feedback_status(report_id, status, workstation="unknown", who=""):
+    """Change a report's shared triage status without replacing app state."""
+    if not isinstance(report_id, str) or len(report_id) > 30:
+        raise ValueError("invalid feedback report ID")
+    if not isinstance(status, str) or status not in FEEDBACK_STATUSES:
+        raise ValueError("invalid feedback status")
+    if not isinstance(who, str):
+        who = ""
+
+    c = dbconn()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
+        if not row:
+            raise RuntimeError("application state is not initialized")
+        current, raw = row
+        old = json.loads(raw)
+        state = json.loads(raw)
+        reports = state.get("feedback", [])
+        item = next((r for r in reports if isinstance(r, dict) and r.get("id") == report_id), None)
+        if item is None:
+            raise ValueError("feedback report not found")
+        if item.get("status") == status:
+            c.execute("COMMIT")
+            return current, item, state
+        item["status"] = status
+        item["updated"] = now()
+        item["updatedBy"] = who[:80]
+        newrev = current + 1
+        state["rev"] = newrev
+        ts = now()
+        c.execute(
+            "UPDATE app_state SET revision=?,state_json=?,updated_at=? WHERE id=1 AND revision=?",
+            (newrev, json.dumps(state, separators=(",", ":")), ts, current),
+        )
+        c.execute(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            (ts, workstation, newrev, summarize(old, state), who[:40]),
+        )
+        c.execute("COMMIT")
+        with CHANGED:
+            CHANGED.notify_all()
+        return newrev, item, state
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
+
 # Live updates: waiting clients are woken as soon as a save commits.
 CHANGED = threading.Condition()
 
@@ -314,6 +467,11 @@ def verify_backup(path):
             print("  %-20s %s" % (label + ":", len(value) if isinstance(value, list) else "(missing)"))
             if not isinstance(value, list):
                 ok = False
+        feedback = state.get("feedback")
+        print("  %-20s %s" % (
+            "Feedback reports:",
+            len(feedback) if isinstance(feedback, list) else "(not in older backup)",
+        ))
         try:
             audit_rows = c.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
             print("  %-20s %s" % ("Change log entries:", audit_rows))
@@ -438,6 +596,29 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # Work queue posts use a narrow append operation; other edits use the
         # revision-checked full-state endpoint below.
         path = urlparse(self.path).path
+        if path in ("/api/feedback", "/api/feedback/status"):
+            try:
+                n = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(n).decode("utf-8"))
+                who = payload.get("who", "")
+                if not isinstance(who, str):
+                    who = ""
+                who = who[:80]
+                if path == "/api/feedback":
+                    rev, report, state = add_feedback_report(
+                        payload.get("report"), self.client_address[0], who
+                    )
+                else:
+                    rev, report, state = update_feedback_status(
+                        payload.get("id"),
+                        payload.get("status"),
+                        self.client_address[0],
+                        who,
+                    )
+                self.send_json(200, {"ok": True, "rev": rev, "report": report, "state": state})
+            except Exception as e:
+                self.send_json(400, {"ok": False, "error": str(e)})
+            return
         if path == "/api/messages":
             try:
                 n = int(self.headers.get("Content-Length", "0"))

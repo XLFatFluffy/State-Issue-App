@@ -958,6 +958,91 @@
             /><button class="btn green" id="saveDisplayName">SAVE NAME</button>
           </div>
         </div>
+        <hr />
+        <h3>Report a Problem or Suggestion</h3>
+        <p class="note">
+          Send a detailed report to the shared app so it can be reviewed from
+          any workstation. Include the screen, button or field, and request ID
+          when relevant. Do not include inmate names, MDOC numbers, or other
+          sensitive personal information. Reports are visible to everyone who
+          can access this app. A connection to the host is required; reports
+          are not saved offline.
+        </p>
+        <div class="card">
+          <div class="grid">
+            <label>Report type
+              <select id="feedbackType">
+                <option>Bug / problem</option>
+                <option>Improvement suggestion</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label>App area
+              <select id="feedbackArea">
+                <option value="">Choose an area</option>
+                <option>Dashboard</option>
+                <option>Inmates</option>
+                <option>Requests</option>
+                <option>Inventory</option>
+                <option>Reports</option>
+                <option>Messages</option>
+                <option>Setup</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <label>Specific button, field, or part of the screen
+              <input type="text" id="feedbackTarget" maxlength="120"
+                placeholder="For example: Approve button on the request details" />
+            </label>
+            <label>Related request ID (optional)
+              <input type="text" id="feedbackRequestId" maxlength="40"
+                placeholder="For example: R1042" />
+            </label>
+          </div>
+          <label>Short summary
+            <input type="text" id="feedbackTitle" maxlength="160"
+              placeholder="A few words describing the issue or idea" />
+          </label>
+          <label>What happened or what would you like changed?
+            <textarea id="feedbackDetails" maxlength="3000" required
+              placeholder="Describe the problem or suggestion. What were you trying to do?"></textarea>
+          </label>
+          <label>Steps to reproduce (optional)
+            <textarea id="feedbackSteps" maxlength="2000"
+              placeholder="1. Open Requests. 2. Select a request. 3. Press ..."></textarea>
+          </label>
+          <div class="grid">
+            <label>What did you expect to happen? (optional)
+              <textarea id="feedbackExpected" maxlength="1500"></textarea>
+            </label>
+            <label>What happened instead? (optional)
+              <textarea id="feedbackActual" maxlength="1500"></textarea>
+            </label>
+          </div>
+          <button class="btn green" id="sendFeedback">SEND REPORT</button>
+        </div>
+        <h3>Shared Feedback Inbox</h3>
+        <p class="note">
+          New reports appear here on every connected workstation. Update a
+          report's status as it is reviewed. Reporter names are workstation
+          labels, not verified identities.
+        </p>
+        <div class="grid">
+          <label>Search reports
+            <input type="text" id="feedbackSearch"
+              placeholder="Search ID, button, request ID, or report text" />
+          </label>
+          <label>Show
+            <select id="feedbackFilter">
+              <option value="all">All statuses</option>
+              <option value="open">Open and planned</option>
+              <option value="completed">Completed</option>
+              <option value="not-planned">Not planned</option>
+            </select>
+          </label>
+        </div>
+        <div id="feedbackSummary" class="note"></div>
+        <div id="feedbackInbox"></div>
         <div id="offlineStatus"></div>
         <hr />
         <div class="row noPrint">
@@ -1056,7 +1141,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "3.0.0",
+        var APP_VERSION = "3.1.0",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1130,6 +1215,7 @@
           "inventoryChecks",
           "messages",
           "comments",
+          "feedback",
         ];
         var STD = ["L", "XL", "2X", "3X", "4X", "5X", "6X"],
           PCOL = ["Green/White", "Black/White"];
@@ -1252,6 +1338,7 @@
             inventoryChecks: [],
             settings: { lastBackup: null, minStock: {}, displayName: "" },
             comments: [],
+            feedback: [],
           };
         }
         function validData(d) {
@@ -1328,6 +1415,7 @@
             d.settings.displayName = "";
           d.comments = d.comments || [];
           d.messages = d.messages || [];
+          d.feedback = d.feedback || [];
           d.reminders = d.reminders || [];
           d.inventoryChecks = d.inventoryChecks || [];
           d.comments.forEach(function (c) {
@@ -1373,6 +1461,7 @@
             inventoryCheck: { collection: "inventoryChecks", prefix: "IC" },
             message: { collection: "messages", prefix: "M" },
             comment: { collection: "comments", prefix: "C" },
+            feedback: { collection: "feedback", prefix: "F" },
           };
           Object.keys(sequenceSources).forEach(function (key) {
             var source = sequenceSources[key],
@@ -5053,6 +5142,128 @@
               : ".") +
             " They sync to the server automatically as soon as it can be reached again.</div>";
         }
+        function renderFeedbackInbox() {
+          var query = $("feedbackSearch").value.trim().toLowerCase(),
+            filter = $("feedbackFilter").value,
+            reports = (db.feedback || []).filter(function (report) {
+              var status = report.status || "New",
+                open = ["New", "Reviewing", "Planned"].indexOf(status) > -1,
+                matchesStatus =
+                  filter === "all" ||
+                  (filter === "open" && open) ||
+                  (filter === "completed" && status === "Completed") ||
+                  (filter === "not-planned" && status === "Not planned"),
+                text = [
+                  report.id,
+                  report.type,
+                  report.area,
+                  report.target,
+                  report.requestId,
+                  report.title,
+                  report.details,
+                  report.steps,
+                  report.expected,
+                  report.actual,
+                  report.reporter,
+                ]
+                  .join(" ")
+                  .toLowerCase();
+              return matchesStatus && (!query || text.indexOf(query) > -1);
+            }).sort(function (a, b) {
+            return a.created < b.created ? 1 : a.created > b.created ? -1 : 0;
+          });
+          $("feedbackSummary").textContent =
+            reports.length +
+            (reports.length === 1 ? " report" : " reports") +
+            (query || filter !== "all"
+              ? " match the current search and filter."
+              : " total.");
+          $("feedbackInbox").innerHTML = reports.length
+            ? reports
+                .slice(0, 250)
+                .map(function (report) {
+                  function detail(label, value) {
+                    return value
+                      ? '<p><b>' + label + ":</b><br>" +
+                          esc(value).replace(/\n/g, "<br>") +
+                        "</p>"
+                      : "";
+                  }
+                  var statuses = [
+                    "New",
+                    "Reviewing",
+                    "Planned",
+                    "Completed",
+                    "Not planned",
+                  ];
+                  return (
+                    '<article class="card"><div class="row" style="justify-content:space-between;align-items:center"><div><b>' +
+                    esc(report.id) +
+                    " · " +
+                    esc(report.title) +
+                    '</b><br><span class="note">' +
+                    esc(report.type) +
+                    " · " +
+                    esc(report.area) +
+                    " · " +
+                    esc(fmtDateTime(report.created)) +
+                    " · " +
+                    esc(report.reporter || "Name not provided") +
+                    '</span></div><label>Status<select data-feedback-id="' +
+                    esc(report.id) +
+                    '">' +
+                    statuses
+                      .map(function (status) {
+                        return (
+                          '<option value="' +
+                          esc(status) +
+                          '"' +
+                          (report.status === status ? " selected" : "") +
+                          ">" +
+                          esc(status) +
+                          "</option>"
+                        );
+                      })
+                      .join("") +
+                    "</select></label></div>" +
+                    detail("Specific screen control", report.target) +
+                    detail("Related request", report.requestId) +
+                    detail("Details", report.details) +
+                    detail("Steps to reproduce", report.steps) +
+                    detail("Expected", report.expected) +
+                    detail("Actual", report.actual) +
+                    (report.updated
+                      ? '<p class="note">Status updated ' +
+                        esc(fmtDateTime(report.updated)) +
+                        (report.updatedBy
+                          ? " by " + esc(report.updatedBy)
+                          : "") +
+                        ".</p>"
+                      : "") +
+                    "</article>"
+                  );
+                })
+                .join("") +
+              (reports.length > 250
+                ? '<p class="note">Showing the 250 most recent of ' +
+                  reports.length +
+                  " reports.</p>"
+                : "")
+            : '<div class="empty">No reports yet. Staff can submit a problem or suggestion using the form above.</div>';
+          Array.prototype.forEach.call(
+            $("feedbackInbox").querySelectorAll("select[data-feedback-id]"),
+            function (select) {
+              select.onchange = function () {
+                updateFeedbackStatus(
+                  select.getAttribute("data-feedback-id"),
+                  select.value,
+                );
+              };
+            },
+          );
+        }
+        $("feedbackSearch").oninput = renderFeedbackInbox;
+        $("feedbackFilter").onchange = renderFeedbackInbox;
         function renderSetup() {
           $("versionNote").textContent =
             "State Issue — Version " +
@@ -5061,6 +5272,7 @@
           if ($("displayName") && document.activeElement !== $("displayName"))
             $("displayName").value = displayName();
           renderOfflineStatus();
+          renderFeedbackInbox();
           $("lastBackup").textContent = db.settings.lastBackup
             ? fmt(ymd(new Date(db.settings.lastBackup)))
             : "never";
@@ -5773,6 +5985,115 @@
               box.innerHTML =
                 '<div class="note">Could not load today\'s changes. Check the connection to the server.</div>';
             });
+        }
+
+        /* ---------- Shared problem and suggestion inbox ---------- */
+        function feedbackReady() {
+          if (!storageOK) {
+            toast("Reports are unavailable because app data could not be read.", true);
+            return false;
+          }
+          if (offlinePending || offlineConflict || saveBusy || messageSaving) {
+            toast(
+              "Wait for this computer's changes to sync before submitting or updating a report.",
+              true,
+            );
+            return false;
+          }
+          return true;
+        }
+        function saveFeedbackResponse(res, successMessage) {
+          if (!res || !res.state || typeof res.rev !== "number") {
+            throw new Error("The server returned an invalid feedback response.");
+          }
+          serverRev = res.rev;
+          db = fixupSafe(JSON.parse(JSON.stringify(res.state)));
+          db.rev = serverRev;
+          persistLocalCopy(false);
+          renderAll();
+          loadAudit();
+          toast(successMessage);
+        }
+        function feedbackPost(path, payload, successMessage) {
+          return fetch(path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+            .then(function (response) {
+              return response.json().then(function (res) {
+                if (!response.ok)
+                  throw new Error(res.error || "The server rejected the report.");
+                return res;
+              });
+            })
+            .then(function (res) {
+              saveFeedbackResponse(res, successMessage);
+              return true;
+            })
+            .catch(function (error) {
+              renderFeedbackInbox();
+              toast(
+                "Could not save the report. Check the server connection and try again. " +
+                  error.message,
+                true,
+              );
+              return false;
+            });
+        }
+        $("sendFeedback").onclick = function () {
+          if (!feedbackReady()) return;
+          var report = {
+            type: $("feedbackType").value,
+            area: $("feedbackArea").value,
+            target: $("feedbackTarget").value.trim(),
+            requestId: $("feedbackRequestId").value.trim(),
+            title: $("feedbackTitle").value.trim(),
+            details: $("feedbackDetails").value.trim(),
+            steps: $("feedbackSteps").value.trim(),
+            expected: $("feedbackExpected").value.trim(),
+            actual: $("feedbackActual").value.trim(),
+          };
+          if (!report.area || !report.title || !report.details) {
+            toast("Choose an app area and enter a summary and details.", true);
+            return;
+          }
+          $("sendFeedback").disabled = true;
+          feedbackPost(
+            "/api/feedback",
+            { report: report, who: displayName() },
+            "Report sent. Thank you for the detailed feedback.",
+          )
+            .then(function (saved) {
+              if (!saved) return;
+              $("feedbackType").value = "Bug / problem";
+              $("feedbackArea").value = "";
+              [
+                "feedbackTarget",
+                "feedbackRequestId",
+                "feedbackTitle",
+                "feedbackDetails",
+                "feedbackSteps",
+                "feedbackExpected",
+                "feedbackActual",
+              ].forEach(function (id) {
+                $(id).value = "";
+              });
+            })
+            .then(function () {
+              $("sendFeedback").disabled = false;
+            });
+        };
+        function updateFeedbackStatus(id, status) {
+          if (!feedbackReady()) {
+            renderFeedbackInbox();
+            return;
+          }
+          feedbackPost(
+            "/api/feedback/status",
+            { id: id, status: status, who: displayName() },
+            "Feedback status updated.",
+          );
         }
 
         /* ---------- COMMENTS AND OPERATIONAL MESSAGE QUEUE ---------- */

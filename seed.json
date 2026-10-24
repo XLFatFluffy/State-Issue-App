@@ -127,6 +127,7 @@
   "deletions": [],
   "reminders": [],
   "inventoryChecks": [],
+  "feedback": [],
   "settings": {
     "lastBackup": null,
     "minStock": {}

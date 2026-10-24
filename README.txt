@@ -1,5 +1,5 @@
-STATE ISSUE 3.0.0
-Official operational baseline
+STATE ISSUE 3.1.0
+Official operational release
 =============================
 
 State Issue is a browser-based application for tracking clothing and property
@@ -7,11 +7,9 @@ requests, inventory, issue history, and staff messages. One Windows computer
 hosts the app and its shared database. Other computers connect to that host
 through a trusted local network or VPN.
 
-This release marks the first official working and running baseline for version
-3. It establishes the current application, data-protection procedures, and
-operational documentation as the starting point for future V3 work. It does not
-claim that the app has user accounts, role-based permissions, or a security
-certification.
+Version 3.1 adds a shared, structured feedback inbox in Setup for staff to
+report problems and suggest improvements. It does not add user accounts,
+role-based permissions, or a security certification.
 
 Project repository:
 https://github.com/XLFatFluffy/State-Issue-App
@@ -55,6 +53,7 @@ FEATURES
 - Reports and CSV export.
 - Shared messages with replies and optional links to records.
 - Comments, request snapshots, and an audit view of recent changes.
+- Shared Setup inbox for detailed problem reports and improvement suggestions.
 - JSON export/restore and automatic SQLite backups.
 
 IMPORTANT LIMITATIONS
@@ -70,6 +69,9 @@ IMPORTANT LIMITATIONS
 - An offline reconnect conflict is not merged automatically. The local copy is
   retained for review; save/export it and reconcile it against the server copy
   before discarding it.
+- Problem reports and suggestions are shared with everyone who can access the
+  app. They are included in normal app backups. Do not include sensitive
+  personal information in a report.
 - Automated tests cover the server, storage, HTTP behavior, and backup integrity.
   They do not replace manual testing of browser workflows or a verified restore.
 
