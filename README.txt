@@ -53,6 +53,18 @@ FEATURES
 - Dashboard, inmate profiles, request review and fulfillment.
 - Dashboard priority queue for requests, stock alerts, and open messages;
   live inmate search (press / to focus); alphabetical inmate and inventory lists.
+- Unified prioritized work queue for pending requests, outstanding issues,
+  overdue reminders, open messages, and stock exceptions; shared search across
+  inmates, requests, messages, reminders, and inventory.
+- Inmate activity timeline combining requests, issues, comments, messages, and
+  review-level history. Request saves warn about likely duplicates and stock
+  shortages; issue flows keep approved and available quantities explicit.
+- Inventory planning guidance compares the past 30 days of recorded issues and
+  approved outstanding demand with current stock; it never changes stock or
+  places an order automatically.
+- In-app alert count and action panel for pending work; alerts remain until the
+  related request, stock issue, reminder, or message is handled. The app must be
+  open and connected to receive current updates; these are not OS push alerts.
 - Each browser remembers its last tab and common list filters locally.
 - Item and size catalog, inventory tracking, stock history, and low-stock alerts.
 - Reports and CSV export.

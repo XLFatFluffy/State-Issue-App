@@ -130,6 +130,7 @@
         margin-bottom: 5px;
       }
       input[type="text"],
+      input[type="search"],
       input[type="number"],
       input[type="date"],
       input:not([type]),
@@ -591,6 +592,7 @@
         font-size: 16px;
       }
       input[type="text"],
+      input[type="search"],
       input[type="number"],
       input[type="date"],
       input:not([type]),
@@ -845,6 +847,45 @@
         font-size: 22px;
         letter-spacing: 0.09em;
       }
+      .header-tools {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      #notificationButton {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        padding: 7px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      #notificationButton:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      #notificationCount {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 11px;
+        background: #d69b60;
+        color: #1c2e28;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      #notificationCount:empty {
+        display: none;
+      }
       .brand-subtitle {
         color: #c4d0c8;
         font-size: 13px;
@@ -981,6 +1022,7 @@
         font-weight: 620;
       }
       input[type="text"],
+      input[type="search"],
       input[type="number"],
       input[type="date"],
       input:not([type]),
@@ -1158,6 +1200,60 @@
       .inventory-alert.low {
         border-left: 4px solid #b27a32;
       }
+      .app-alert {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 10px;
+      }
+      .app-alert h3 {
+        margin: 0 0 4px;
+      }
+      .app-alert p {
+        margin: 0;
+      }
+      .global-search {
+        position: relative;
+        z-index: 9;
+        max-width: 780px;
+        margin: 0 0 22px;
+      }
+      #globalSearchResults {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        max-height: 60vh;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        box-shadow: 0 12px 32px rgba(17, 31, 23, 0.16);
+      }
+      .search-result {
+        display: block;
+        width: 100%;
+        padding: 11px 14px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .search-result:hover,
+      .search-result:focus {
+        background: #f1f5f0;
+      }
+      .search-result small {
+        display: block;
+        color: var(--muted);
+      }
+      .queue-table td {
+        vertical-align: middle;
+      }
       tr.inventory-negative {
         background: #fbefed;
       }
@@ -1171,6 +1267,11 @@
         header {
           min-height: 72px;
           padding: 12px 16px;
+        }
+        .header-tools {
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 6px;
         }
         header h1 {
           font-size: 19px;
@@ -1276,9 +1377,19 @@
         <span id="verTag" style="font-size: 15px; font-weight: normal"></span>
         <span class="brand-subtitle">Clothing &amp; linen issue management</span>
       </h1>
-      <div id="status">
-        Data: <span id="saved" class="ok">✓ Saved</span><br />Last backup:
-        <span id="lastBackup">never</span><br /><span id="backupWarn"></span>
+      <div class="header-tools">
+        <button
+          type="button"
+          id="notificationButton"
+          class="noPrint"
+          aria-label="Open in-app alerts"
+        >
+          Alerts <span id="notificationCount" aria-live="polite"></span>
+        </button>
+        <div id="status">
+          Data: <span id="saved" class="ok">✓ Saved</span><br />Last backup:
+          <span id="lastBackup">never</span><br /><span id="backupWarn"></span>
+        </div>
       </div>
     </header>
 
@@ -1296,6 +1407,16 @@
     </nav>
 
     <main>
+      <div class="global-search noPrint">
+        <input
+          type="search"
+          id="globalSearch"
+          aria-label="Search all records"
+          placeholder="Search inmates, requests, messages, inventory…"
+          autocomplete="off"
+        />
+        <div id="globalSearchResults" hidden></div>
+      </div>
       <section id="dashboard" class="on">
         <h2>Dashboard</h2>
         <div class="row noPrint">
@@ -1366,6 +1487,7 @@
         <h2>Inventory</h2>
         <div class="statgrid" id="invStats"></div>
         <div id="inventoryAlerts"></div>
+        <div id="inventoryGuidance"></div>
         <div class="row">
           <button class="btn green" id="addStock">ADD STOCK</button>
           <button class="btn" id="adjustStock">ADJUST INVENTORY</button>
@@ -2363,6 +2485,9 @@
         $("toast").onclick = function () {
           this.style.display = "none";
         };
+        $("notificationButton").onclick = function () {
+          openNotifications();
+        };
         var linkedRecordContext = null;
         function openModal(title, html) {
           linkedRecordContext = null;
@@ -2571,6 +2696,253 @@
           if (tab === "setup") loadAudit();
           if (tab === "dashboard") loadTodayActivity();
         }
+        function renderGlobalSearch() {
+          var input = $("globalSearch"),
+            box = $("globalSearchResults"),
+            query = input.value.trim(),
+            ws = words(query),
+            results = [];
+          if (!ws.length) {
+            box.hidden = true;
+            box.innerHTML = "";
+            return;
+          }
+          function add(type, title, detail, text, id) {
+            var haystack = String(text || "").toLowerCase();
+            if (ws.every(function (word) {
+              return haystack.indexOf(word) > -1;
+            }))
+              results.push({
+                type: type,
+                title: title,
+                detail: detail,
+                id: id,
+              });
+          }
+          db.inmates.forEach(function (i) {
+            add(
+              "inmate",
+              i.last + ", " + i.first,
+              "Inmate · MDOC " + i.mdoc + (i.zone ? " · Zone " + i.zone : ""),
+              [
+                i.first,
+                i.last,
+                i.mdoc,
+                i.zone,
+                i.notes,
+                i.highRiskReason,
+              ].join(" "),
+              i.id,
+            );
+          });
+          db.requests.forEach(function (r) {
+            var i = inmateById(r.inmateId);
+            add(
+              "request",
+              "Request " + r.id,
+              (i ? i.first + " " + i.last + " · " : "") +
+                fmt(r.date) +
+                " · " +
+                (r.status || "pending"),
+              [
+                r.id,
+                r.date,
+                r.type,
+                r.status,
+                r.notes,
+                i && i.first,
+                i && i.last,
+                i && i.mdoc,
+                reqItems(r)
+                  .map(function (x) {
+                    return itemName(x.itemId) + " " + x.size;
+                  })
+                  .join(" "),
+              ].join(" "),
+              r.id,
+            );
+          });
+          db.items.forEach(function (it) {
+            add(
+              "item",
+              it.name,
+              "Inventory · " +
+                (it.category || "Uncategorized") +
+                " · " +
+                sizesOf(it)
+                  .map(function (size) {
+                    return size + ": " + getInventory(it.id, size);
+                  })
+                  .join(", "),
+              [
+                it.name,
+                it.category,
+                it.notes,
+                sizesOf(it).join(" "),
+              ].join(" "),
+              it.id,
+            );
+          });
+          db.messages.forEach(function (m) {
+            var replies = commentList("message", m.id)
+              .map(function (c) {
+                return c.text || "";
+              })
+              .join(" "),
+              linkedRecords = (m.links || [])
+                .map(function (link) {
+                  if (link.type === "inmate") {
+                    var linkedInmate = inmateById(link.id);
+                    return linkedInmate
+                      ? [
+                          linkedInmate.first,
+                          linkedInmate.last,
+                          linkedInmate.mdoc,
+                        ].join(" ")
+                      : "";
+                  }
+                  var linkedRequest = db.requests.find(function (r) {
+                    return r.id === link.id;
+                  });
+                  var linkedInmate = linkedRequest
+                    ? inmateById(linkedRequest.inmateId)
+                    : null;
+                  return [
+                    link.id,
+                    linkedInmate && linkedInmate.first,
+                    linkedInmate && linkedInmate.last,
+                    linkedInmate && linkedInmate.mdoc,
+                  ].join(" ");
+                })
+                .join(" ");
+            add(
+              "message",
+              m.title || (m.body || "Message").slice(0, 90),
+              "Message · " + fmt((m.created || m.at || "").slice(0, 10)),
+              [m.title, m.body, m.author, replies, linkedRecords].join(" "),
+              m.id,
+            );
+          });
+          db.reminders.forEach(function (r) {
+            if (!reminderOpen(r)) return;
+            var i = inmateById(r.inmateId);
+            add(
+              "reminder",
+              r.message || reminderLabel(r.type),
+              "Reminder · " +
+                (i ? i.first + " " + i.last + " · " : "") +
+                (r.dueDate ? fmt(r.dueDate) : "Open"),
+              [
+                r.message,
+                r.notes,
+                r.id,
+                i && i.first,
+                i && i.last,
+                i && i.mdoc,
+                itemName(r.itemId),
+              ].join(" "),
+              r.id,
+            );
+          });
+          if (!results.length) {
+            box.innerHTML = '<div class="empty">No matching records.</div>';
+          } else {
+            results.sort(function (a, b) {
+              var queryLower = query.toLowerCase(),
+                exact = function (result) {
+                  return (
+                    result.title.toLowerCase() === queryLower
+                      ? 0
+                      : result.title.toLowerCase().indexOf(queryLower) === 0
+                        ? 1
+                        : result.title.toLowerCase().indexOf(queryLower) > -1
+                          ? 2
+                          : 3
+                  );
+                };
+              return exact(a) - exact(b) || a.title.localeCompare(b.title);
+            });
+            box.innerHTML = results
+              .slice(0, 25)
+              .map(function (result, index) {
+                return (
+                  '<button type="button" class="search-result" data-search-result="' +
+                  index +
+                  '"><b>' +
+                  esc(result.title) +
+                  "</b><small>" +
+                  esc(result.detail) +
+                  "</small></button>"
+                );
+              })
+              .join("");
+            Array.prototype.forEach.call(
+              box.querySelectorAll("[data-search-result]"),
+              function (button) {
+                button.onclick = function () {
+                  var result =
+                    results[parseInt(
+                      button.getAttribute("data-search-result"),
+                      10,
+                    )];
+                  box.hidden = true;
+                  input.value = "";
+                  openGlobalSearchResult(result, query);
+                };
+              },
+            );
+            if (results.length > 25) {
+              box.insertAdjacentHTML(
+                "beforeend",
+                '<div class="note" style="padding:10px 14px">Showing 25 of ' +
+                  results.length +
+                  " matches. Add more search terms to narrow results.</div>",
+              );
+            }
+          }
+          box.hidden = false;
+        }
+        function openGlobalSearchResult(result, query) {
+          if (result.type === "inmate") showInmate(result.id);
+          else if (result.type === "request") viewRequest(result.id);
+          else if (result.type === "item") {
+            $("invFilter").value = result.id;
+            selectTab("inventory");
+            $("invFilter").value = result.id;
+            renderInventory();
+          } else if (result.type === "message") {
+            $("msgFilter").value = "all";
+            $("msgSearch").value = query;
+            selectTab("messages");
+            $("msgFilter").value = "all";
+            $("msgSearch").value = query;
+            renderMessages();
+          } else if (result.type === "reminder") {
+            selectTab("dashboard");
+            setTimeout(function () {
+              $("dashboardReminders").scrollIntoView({ behavior: "smooth" });
+            }, 0);
+          }
+        }
+        $("globalSearch").oninput = renderGlobalSearch;
+        $("globalSearch").onkeydown = function (e) {
+          if (e.key === "Escape") {
+            $("globalSearch").value = "";
+            renderGlobalSearch();
+          } else if (e.key === "Enter") {
+            var first = $("globalSearchResults").querySelector(
+              "[data-search-result]",
+            );
+            if (first) first.click();
+          }
+        };
+        document.addEventListener("click", function (e) {
+          if (
+            !$("globalSearch").contains(e.target) &&
+            !$("globalSearchResults").contains(e.target)
+          )
+            $("globalSearchResults").hidden = true;
+        });
 
         /* ---------- INMATES ---------- */
         function renderInmates() {
@@ -2785,6 +3157,158 @@
               : "")
           );
         }
+        function inmateTimelineHTML(inmateId) {
+          var events = [],
+            inmate = inmateById(inmateId);
+          if (inmate.dateAdded)
+            events.push({
+              at: inmate.dateAdded,
+              title: "Inmate added to roster",
+              detail: "MDOC " + inmate.mdoc,
+              link: "",
+            });
+          db.requests
+            .filter(function (r) {
+              return r.inmateId === inmateId;
+            })
+            .forEach(function (r) {
+              events.push({
+                at: r.created || r.date || "",
+                title: "Request " + r.id + " created",
+                detail:
+                  (r.type || "Request") +
+                  " · " +
+                  (r.status || "pending") +
+                  (r.notes ? " · " + r.notes : ""),
+                link: recordLink("request", r.id),
+              });
+              (Array.isArray(r.history) ? r.history : []).forEach(function (h) {
+                if (h.action === "Created") return;
+                events.push({
+                  at: h.at || "",
+                  title:
+                    h.action === "Created"
+                      ? "Request " + r.id + " created"
+                      : "Request " + r.id + " updated",
+                  detail:
+                    (h.by ? "By " + h.by + " · " : "") +
+                    (h.notes || ""),
+                  link: recordLink("request", r.id),
+                });
+              });
+            });
+          db.issues
+            .filter(function (issue) {
+              return issue.inmateId === inmateId;
+            })
+            .forEach(function (issue) {
+              events.push({
+                at: issue.issuedAt || issue.date || "",
+                title:
+                  (issue.voided ? "Issue voided: " : "Issued: ") +
+                  (issue.itemName || itemName(issue.itemId)),
+                detail:
+                  issue.qty +
+                  " × " +
+                  (issue.size || "N/A") +
+                  (issue.issuedBy ? " · By " + issue.issuedBy : "") +
+                  (issue.voidReason ? " · " + issue.voidReason : ""),
+                link: issue.requestId
+                  ? recordLink("request", issue.requestId)
+                  : "",
+              });
+            });
+          commentList("inmate", inmateId).forEach(function (comment) {
+            events.push({
+              at: comment.at || "",
+              title: "Inmate note",
+              detail:
+                (comment.author ? comment.author + " · " : "") +
+                (comment.text || ""),
+              link: "",
+            });
+          });
+          db.requests.forEach(function (request) {
+            if (request.inmateId !== inmateId) return;
+            commentList("request", request.id).forEach(function (comment) {
+              events.push({
+                at: comment.at || "",
+                title: "Request " + request.id + " comment",
+                detail:
+                  (comment.author ? comment.author + " · " : "") +
+                  (comment.text || ""),
+                link: recordLink("request", request.id),
+              });
+            });
+          });
+          db.messages.forEach(function (message) {
+            var linked = (message.links || []).some(function (link) {
+              return (
+                link.type === "inmate" && link.id === inmateId
+              ) ||
+                (link.type === "request" &&
+                  db.requests.some(function (r) {
+                    return r.id === link.id && r.inmateId === inmateId;
+                  }));
+            });
+            if (linked)
+              events.push({
+                at: message.created || message.at || "",
+                title: "Linked message",
+                detail:
+                  (message.author ? message.author + " · " : "") +
+                  (message.body || message.title || ""),
+                link: "",
+              });
+            if (linked)
+              commentList("message", message.id).forEach(function (comment) {
+                events.push({
+                  at: comment.at || "",
+                  title: "Message reply",
+                  detail:
+                    (comment.author ? comment.author + " · " : "") +
+                    (comment.text || ""),
+                  link: "",
+                });
+              });
+          });
+          (inmate.highRiskHistory || []).forEach(function (entry) {
+            events.push({
+              at: entry.at || "",
+              title: entry.action || "Review level updated",
+              detail:
+                (entry.level ? riskLabel({ riskLevel: entry.level }) + " · " : "") +
+                (entry.reason || ""),
+              link: "",
+            });
+          });
+          events.sort(function (a, b) {
+            return (b.at || "").localeCompare(a.at || "");
+          });
+          return events.length
+            ? '<table><thead><tr><th>Date</th><th>Activity</th><th>Details</th></tr></thead><tbody>' +
+              events
+                .slice(0, 100)
+                .map(function (event) {
+                  return (
+                    "<tr><td>" +
+                    esc(fmtDateTime(event.at)) +
+                    "</td><td><b>" +
+                    esc(event.title) +
+                    "</b>" +
+                    (event.link ? "<br>" + event.link : "") +
+                    "</td><td>" +
+                    esc(event.detail) +
+                    "</td></tr>"
+                  );
+                })
+                .join("") +
+              "</tbody></table>" +
+              (events.length > 100
+                ? '<p class="note">Showing the 100 most recent events.</p>'
+                : "")
+            : '<div class="empty">No linked requests, issues, comments, or messages yet.</div>';
+        }
         window.showInmate = function (id) {
           var i = inmateById(id);
           if (!i) return;
@@ -2886,6 +3410,8 @@
                   id +
                   "')\">REMOVE FROM ROSTER</button></div>"
                 : "") +
+              "<h3>Activity Timeline</h3>" +
+              inmateTimelineHTML(id) +
               "<h3>Issue History</h3>" +
               histTable(id, 0, true) +
               linkedMessagesHTML("inmate", id) +
@@ -3654,6 +4180,221 @@
           if (arrow) arrow.textContent = open ? "▶" : "▼";
           btn.setAttribute("aria-expanded", String(!open));
         };
+        function unifiedQueueItems() {
+          var queue = [];
+          db.requests.forEach(function (r) {
+            if (!activeInmate(r.inmateId)) return;
+            var i = inmateById(r.inmateId),
+              items = reqItems(r),
+              pending = reqNeedsDecision(r),
+              ready = reqNeedsIssue(r),
+              overdueIssue = ready
+                ? db.reminders.filter(function (reminder) {
+                    return (
+                      reminderOpen(reminder) &&
+                      reminder.type === "outstanding" &&
+                      reminder.requestId === r.id &&
+                      reminder.dueDate &&
+                      reminder.dueDate < today()
+                    );
+                  })[0]
+                : null;
+            if (!pending && !ready) return;
+            queue.push({
+              priority: overdueIssue ? 0 : pending ? 1 : 2,
+              date: overdueIssue ? overdueIssue.dueDate : r.date || "",
+              kind: overdueIssue
+                ? "Overdue issue"
+                : pending
+                  ? "Needs review"
+                  : "Ready to issue",
+              person: i.first + " " + i.last + " · MDOC " + i.mdoc,
+              detail:
+                "Request " +
+                r.id +
+                " · " +
+                items
+                  .filter(function (x) {
+                    return pending
+                      ? x.decision !== "approved" && x.decision !== "denied"
+                      : x.decision === "approved" &&
+                          (x.issuedQty || 0) < x.qty;
+                  })
+                  .map(function (x) {
+                    return (
+                      itemName(x.itemId) +
+                      " (" +
+                      x.size +
+                      ") " +
+                      (pending
+                        ? "needs a decision"
+                        : (x.qty - (x.issuedQty || 0)) + " remaining")
+                    );
+                  })
+                  .join(", "),
+              action: "request",
+              target: r.id,
+            });
+          });
+          db.reminders.forEach(function (r) {
+            if (!reminderOpen(r)) return;
+            if (
+              r.type === "outstanding" &&
+              r.requestId &&
+              db.requests.some(function (request) {
+                return request.id === r.requestId && reqNeedsIssue(request);
+              })
+            )
+              return;
+            var i = inmateById(r.inmateId),
+              overdue = r.dueDate && r.dueDate < today();
+            queue.push({
+              priority: overdue ? 0 : r.type === "outstanding" ? 2 : 3,
+              date: r.dueDate || r.created || "",
+              kind: overdue
+                ? "Overdue reminder"
+                : r.type === "outstanding"
+                  ? "Outstanding issue"
+                  : "Open reminder",
+              person: i ? i.first + " " + i.last + " · MDOC " + i.mdoc : "",
+              detail:
+                (r.message || reminderLabel(r.type)) +
+                (r.qtyOwed ? " · " + r.qtyOwed + " owed" : ""),
+              action:
+                r.type === "outstanding"
+                  ? getInventory(r.itemId, r.size) > 0
+                    ? "outstanding"
+                    : "stock"
+                  : "reminders",
+              target: r.id,
+              stockTarget: r.itemId + "|" + r.size,
+            });
+          });
+          lowStockRows().forEach(function (x) {
+            queue.push({
+              priority: 3,
+              date: "",
+              kind: x.qty < 0 ? "Negative stock" : "Low stock",
+              person: "",
+              detail:
+                itemName(x.itemId) +
+                " · " +
+                x.size +
+                " · " +
+                x.qty +
+                " in stock" +
+                (x.min ? " (minimum " + x.min + ")" : ""),
+              action: "stock",
+              target: x.itemId + "|" + x.size,
+              stockTarget: x.itemId + "|" + x.size,
+            });
+          });
+          db.messages.forEach(function (m) {
+            if ((m.status || "open") !== "open") return;
+            queue.push({
+              priority: 4,
+              date: (m.created || m.at || "").slice(0, 10),
+              kind: "Open message",
+              person: m.author || "",
+              detail: m.title || m.body || "Message needs follow-up",
+              action: "messages",
+              target: m.id,
+            });
+          });
+          return queue.sort(function (a, b) {
+            return (
+              a.priority - b.priority ||
+              (a.date || "9999-99-99").localeCompare(
+                b.date || "9999-99-99",
+              ) ||
+              a.kind.localeCompare(b.kind)
+            );
+          });
+        }
+        function renderUnifiedQueue() {
+          var queue = unifiedQueueItems();
+          if (!queue.length) {
+            $("dashboardActions").innerHTML =
+              '<div class="empty">All caught up. No requests, reminders, messages, or stock alerts need attention.</div>';
+            return;
+          }
+          $("dashboardActions").innerHTML =
+            '<table class="queue-table"><thead><tr><th>Priority</th><th>Work item</th><th>Record / details</th><th></th></tr></thead><tbody>' +
+            queue
+              .slice(0, 150)
+              .map(function (item) {
+                return (
+                  "<tr><td>" +
+                  (item.priority === 0
+                    ? '<span class="badge red">Overdue</span>'
+                    : item.priority === 1
+                      ? '<span class="badge orange">Review</span>'
+                      : '<span class="badge">Follow-up</span>') +
+                  "</td><td><b>" +
+                  esc(item.kind) +
+                  "</b>" +
+                  (item.date
+                    ? '<br><span class="note">' + fmt(item.date) + "</span>"
+                    : "") +
+                  "</td><td>" +
+                  (item.person
+                    ? "<b>" + esc(item.person) + "</b><br>"
+                    : "") +
+                  esc(item.detail) +
+                  '</td><td><button type="button" class="btn small" data-queue-action="' +
+                  esc(item.action) +
+                  '" data-queue-target="' +
+                  esc(item.target) +
+                  '" data-queue-stock="' +
+                  esc(item.stockTarget || "") +
+                  '">' +
+                  (item.action === "request"
+                    ? "OPEN REQUEST"
+                    : item.action === "outstanding"
+                      ? "OPEN REMINDER"
+                      : item.action === "stock"
+                        ? "ADJUST STOCK"
+                        : item.action === "messages"
+                          ? "VIEW MESSAGES"
+                          : "VIEW REMINDERS") +
+                  "</button></td></tr>"
+                );
+              })
+              .join("") +
+            "</tbody></table>" +
+            (queue.length > 150
+              ? '<p class="note">Showing the 150 highest-priority of ' +
+                queue.length +
+                " items.</p>"
+              : "");
+          Array.prototype.forEach.call(
+            $("dashboardActions").querySelectorAll("[data-queue-action]"),
+            function (button) {
+              button.onclick = function () {
+                var action = button.getAttribute("data-queue-action"),
+                  target = button.getAttribute("data-queue-target");
+                if (action === "request") viewRequest(target);
+                else if (action === "outstanding") issueOutstanding(target);
+                else if (action === "stock") {
+                  var itemTarget = button.getAttribute("data-queue-stock"),
+                    parts = (itemTarget || target).split("|");
+                  selectTab("inventory");
+                  stockForm(true, parts[0], parts[1]);
+                } else if (action === "messages") {
+                  $("msgFilter").value = "open";
+                  selectTab("messages");
+                } else {
+                  selectTab("dashboard");
+                  setTimeout(function () {
+                    $("dashboardReminders").scrollIntoView({
+                      behavior: "smooth",
+                    });
+                  }, 0);
+                }
+              };
+            },
+          );
+        }
         function renderDashboard() {
           var pending = db.requests.filter(function (r) {
             return activeInmate(r.inmateId) && reqNeedsDecision(r);
@@ -3680,66 +4421,8 @@
             '</b></div><div class="stat">OPEN REMINDERS<b>' +
             rem +
             "</b></div>";
-          var action = "";
-          if (pending)
-            action +=
-              '<div class="card"><h3 style="margin-top:0">REQUESTS NEEDING A DECISION (' +
-              pending +
-              ')</h3><p class="note">Review pending items before they can be issued.</p><button class="btn small" onclick="openDashboardRequestFilter(\'needsDecision\')">VIEW REQUESTS</button>' +
-              dashboardRequestGroups("pending") +
-              "</div>";
-          if (awaiting)
-            action +=
-              '<div class="card"><h3 style="margin-top:0">REQUESTS READY TO ISSUE (' +
-              awaiting +
-              ')</h3><p class="note">Approved request items that still need fulfillment.</p><button class="btn small" onclick="openDashboardRequestFilter(\'needsIssue\')">VIEW READY TO ISSUE</button>' +
-              dashboardRequestGroups("approved") +
-              "</div>";
-          if (low) {
-            action +=
-              '<div class="card"><h3 style="margin-top:0">LOW STOCK (' +
-              low +
-              ')</h3><p class="note">Negative quantities and items at or below their configured minimum.</p><table><thead><tr><th>Item</th><th>Size</th><th>Stock</th><th>Minimum</th><th></th></tr></thead><tbody>' +
-              lowStockRows()
-                .map(function (x) {
-                  return (
-                    "<tr><td>" +
-                    esc(itemName(x.itemId)) +
-                    "</td><td>" +
-                    esc(x.size) +
-                    '</td><td class="neg"><b>' +
-                    x.qty +
-                    "</b></td><td>" +
-                    x.min +
-                    '</td><td><button class="btn small" data-stock-item="' +
-                    esc(x.itemId) +
-                    '" data-stock-size="' +
-                    esc(x.size) +
-                    '">ADJUST</button></td></tr>'
-                  );
-                })
-                .join("") +
-              "</tbody></table></div>";
-          }
-          $("dashboardActions").innerHTML =
-            action ||
-            '<div class="empty">All caught up. No requests or low-stock alerts need attention.</div>';
-          Array.prototype.forEach.call(
-            $("dashboardActions").querySelectorAll("[data-stock-item]"),
-            function (button) {
-              button.onclick = function () {
-                adjustDashboardStock(
-                  button.getAttribute("data-stock-item"),
-                  button.getAttribute("data-stock-size"),
-                );
-              };
-            },
-          );
-          $("dashMessages").innerHTML = openMessages
-            ? '<div class="card queueAction"><div><h3>OPEN MESSAGES (' +
-              openMessages +
-              ')</h3><p class="note">Messages that still need a follow-up.</p></div><button class="btn small" onclick="openDashboardMessages()">VIEW MESSAGES</button></div>'
-            : "";
+          renderUnifiedQueue();
+          $("dashMessages").innerHTML = "";
           $("dashboardReminders").innerHTML =
             dashboardReminderRows(showCompletedRem);
         }
@@ -4688,35 +5371,99 @@
             toast(bad, true);
             return;
           }
-          if (!reqId) {
-            var dup = db.requests.filter(function (r) {
-              return (
-                r.inmateId === inmateId &&
-                r.date === d &&
-                db.requestItems.some(function (x) {
+          var warnings = [],
+            exactDuplicate = !reqId
+              ? db.requests.filter(function (existing) {
                   return (
-                    x.requestId === r.id &&
-                    items.some(function (n) {
+                    existing.inmateId === inmateId &&
+                    existing.date === d &&
+                    db.requestItems.some(function (line) {
                       return (
-                        n.itemId === x.itemId &&
-                        n.size === x.size &&
-                        n.qty === x.qty
+                        line.requestId === existing.id &&
+                        items.some(function (item) {
+                          return (
+                            item.itemId === line.itemId &&
+                            item.size === line.size &&
+                            item.qty === line.qty
+                          );
+                        })
                       );
                     })
                   );
-                })
-              );
-            })[0];
-            if (
-              dup &&
-              !confirm(
-                "A similar request for this inmate on this date already exists (" +
-                  dup.id +
-                  ").\n\nSave another one anyway?",
+                })[0]
+              : null,
+            similar = db.requests.filter(function (existing) {
+              if (
+                existing.id === reqId ||
+                (exactDuplicate && existing.id === exactDuplicate.id) ||
+                existing.inmateId !== inmateId ||
+                !activeInmate(existing.inmateId) ||
+                (!reqNeedsDecision(existing) && !reqNeedsIssue(existing))
               )
+                return false;
+              return reqItems(existing).some(function (line) {
+                return items.some(function (item) {
+                  return (
+                    line.decision !== "denied" &&
+                    item.itemId === line.itemId &&
+                    item.size === line.size &&
+                    item.decision !== "denied"
+                  );
+                });
+              });
+            }),
+            shortStock = items.filter(function (item) {
+              return (
+                item.decision === "approved" &&
+                Math.max(0, item.qty - item.issuedQty) >
+                  getInventory(item.itemId, item.size)
+              );
+            });
+          if (exactDuplicate)
+            warnings.push(
+            "An identical item request for this inmate and date already exists (" +
+              exactDuplicate.id +
+              ").",
+            );
+          if (similar.length)
+            warnings.push(
+            "Other open requests for this inmate include the same item/size: " +
+                similar
+                  .slice(0, 4)
+                  .map(function (r) {
+                    return r.id + " (" + fmt(r.date) + ")";
+                  })
+                  .join(", ") +
+                ".",
+            );
+          if (shortStock.length)
+            warnings.push(
+              "Approved quantity exceeds current stock for " +
+                shortStock
+                  .map(function (item) {
+                    return (
+                      itemName(item.itemId) +
+                      " (" +
+                      item.size +
+                      "): " +
+                      getInventory(item.itemId, item.size) +
+                      " in stock, " +
+                      Math.max(0, item.qty - item.issuedQty) +
+                      " requested"
+                    );
+                  })
+                  .join("; ") +
+                ". Partial issue may create an outstanding reminder.",
+            );
+          if (
+            warnings.length &&
+            !confirm(
+              "Please review before saving:\n\n" +
+                warnings.join("\n\n") +
+                "\n\nSave this request anyway?",
             )
-              return;
-          }
+          )
+            return;
           var rid = reqId;
           if (
             tx(function () {
@@ -5217,7 +5964,13 @@
             var q = posInt($("isQty").value);
             if (isNaN(q) || q < 1 || q > rem || q > avail) {
               toast(
-                "Enter a quantity from 1 to " + Math.min(rem, avail) + ".",
+                "Quantity cannot exceed the approved amount remaining (" +
+                  rem +
+                  ") or available stock (" +
+                  avail +
+                  "). Enter 1 to " +
+                  Math.min(rem, avail) +
+                  ".",
                 true,
               );
               return;
@@ -5247,6 +6000,12 @@
                   "?" +
                   (same
                     ? "\n\nNOTE: this inmate already received this item and size TODAY."
+                    : "") +
+                  (lowStockLevel(it.id, ri.size) > 0 &&
+                  avail - q <= lowStockLevel(it.id, ri.size)
+                    ? "\n\nStock will be at or below its configured minimum (" +
+                      lowStockLevel(it.id, ri.size) +
+                      ") after this issue."
                     : ""),
               )
             )
@@ -5398,6 +6157,7 @@
               };
             },
           );
+          renderInventoryGuidance();
           $("inventoryTable").innerHTML =
             '<table><thead><tr><th>Category</th><th>Item</th><th>Size</th><th class="n">Quantity</th></tr></thead><tbody>' +
             rows.join("") +
@@ -5482,6 +6242,105 @@
                   ".</p>"
                 : "")
             : '<div class="empty">No stock changes yet. Select ADD STOCK to enter your starting inventory.</div>';
+        }
+        function renderInventoryGuidance() {
+          var since = addDays(today(), -29),
+            suggestions = [];
+          activeItems().forEach(function (it) {
+            sizesOf(it).forEach(function (size) {
+              var used = db.issues.reduce(function (sum, issue) {
+                  return (
+                    sum +
+                    (issue.itemId === it.id &&
+                    issue.size === size &&
+                    !issue.voided &&
+                    issue.date >= since &&
+                    issue.date <= today()
+                      ? issue.qty
+                      : 0)
+                  );
+                }, 0),
+                demand = db.requestItems.reduce(function (sum, line) {
+                  var request = db.requests.find(function (r) {
+                    return r.id === line.requestId;
+                  });
+                  return (
+                    sum +
+                    (request &&
+                    activeInmate(request.inmateId) &&
+                    line.itemId === it.id &&
+                    line.size === size &&
+                    line.decision === "approved"
+                      ? Math.max(0, line.qty - (line.issuedQty || 0))
+                      : 0)
+                  );
+                }, 0);
+              db.reminders.forEach(function (reminder) {
+                if (
+                  reminderOpen(reminder) &&
+                  reminder.type === "outstanding" &&
+                  !reminder.requestId &&
+                  reminder.itemId === it.id &&
+                  reminder.size === size &&
+                  activeInmate(reminder.inmateId)
+                )
+                  demand += reminder.qtyOwed || 0;
+              });
+              var stock = getInventory(it.id, size),
+                suggested = Math.max(0, Math.ceil(used + demand - stock));
+              if (used || demand || lowStockLevel(it.id, size) > 0)
+                suggestions.push({
+                  item: it,
+                  size: size,
+                  used: used,
+                  demand: demand,
+                  stock: stock,
+                  suggested: suggested,
+                });
+            });
+          });
+          $("inventoryGuidance").innerHTML = suggestions.length
+            ? '<div class="card"><h3 style="margin-top:0">Replenishment guidance</h3><p class="note">A planning estimate only: issues recorded in the last 30 days plus approved quantities still outstanding, minus current stock. It does not create orders or change inventory.</p><table><thead><tr><th>Item</th><th>Size</th><th>Issued · 30 days</th><th>Approved outstanding</th><th>On hand</th><th>Suggested to cover that demand</th><th></th></tr></thead><tbody>' +
+              suggestions
+                .sort(function (a, b) {
+                  return byItemName(a.item, b.item) || a.size.localeCompare(b.size);
+                })
+                .map(function (x) {
+                  return (
+                    "<tr><td>" +
+                    esc(x.item.name) +
+                    "</td><td>" +
+                    esc(x.size) +
+                    "</td><td>" +
+                    x.used +
+                    "</td><td>" +
+                    x.demand +
+                    "</td><td>" +
+                    x.stock +
+                    "</td><td><b>" +
+                    x.suggested +
+                    "</b></td><td><button class=\"btn small\" data-guidance-item=\"" +
+                    esc(x.item.id) +
+                    "\" data-guidance-size=\"" +
+                    esc(x.size) +
+                    '">ADD STOCK</button></td></tr>'
+                  );
+                })
+                .join("") +
+              "</tbody></table></div>"
+            : "";
+          Array.prototype.forEach.call(
+            $("inventoryGuidance").querySelectorAll("[data-guidance-item]"),
+            function (button) {
+              button.onclick = function () {
+                stockForm(
+                  false,
+                  button.getAttribute("data-guidance-item"),
+                  button.getAttribute("data-guidance-size"),
+                );
+              };
+            },
+          );
         }
         $("invFilter").onchange = function () {
           renderInventory();
@@ -7644,6 +8503,158 @@
           renderRequests();
           renderInventory();
           renderSetup();
+          renderNotificationButton();
+        }
+        function appNotifications() {
+          var pending = db.requests.filter(function (r) {
+              return activeInmate(r.inmateId) && reqNeedsDecision(r);
+            }).length,
+            ready = db.requests.filter(function (r) {
+              return activeInmate(r.inmateId) && reqNeedsIssue(r);
+            }).length,
+            stock = lowStockRows().length,
+            overdue = db.reminders.filter(function (r) {
+              return reminderOpen(r) && r.dueDate && r.dueDate < today();
+            }).length,
+            reminders = db.reminders.filter(function (r) {
+              return (
+                reminderOpen(r) &&
+                (!r.dueDate || r.dueDate >= today())
+              );
+            }).length,
+            messages = db.messages.filter(function (m) {
+              return (m.status || "open") === "open";
+            }).length;
+          return [
+            {
+              id: "review",
+              title: "Requests need review",
+              count: pending,
+              detail: "Pending decisions are waiting.",
+              action: "VIEW REQUESTS",
+            },
+            {
+              id: "issue",
+              title: "Requests ready to issue",
+              count: ready,
+              detail: "Approved requests still need fulfillment.",
+              action: "VIEW READY TO ISSUE",
+            },
+            {
+              id: "stock",
+              title: "Inventory needs attention",
+              count: stock,
+              detail: "Negative stock or quantities at/below minimum.",
+              action: "REVIEW STOCK",
+            },
+            {
+              id: "overdue",
+              title: "Overdue reminders",
+              count: overdue,
+              detail: "Open reminders have passed their due date.",
+              action: "VIEW REMINDERS",
+            },
+            {
+              id: "reminders",
+              title: "Open reminders",
+              count: reminders,
+              detail: "Follow-ups are still active.",
+              action: "VIEW REMINDERS",
+            },
+            {
+              id: "messages",
+              title: "Open messages",
+              count: messages,
+              detail: "Messages still need a follow-up.",
+              action: "VIEW MESSAGES",
+            },
+          ].filter(function (item) {
+            return item.count > 0;
+          });
+        }
+        function renderNotificationButton() {
+          var notifications = appNotifications(),
+            total = notifications.reduce(function (sum, item) {
+              return sum + item.count;
+            }, 0);
+          $("notificationCount").textContent = total
+            ? total > 99
+              ? "99+"
+              : String(total)
+            : "";
+          $("notificationButton").setAttribute(
+            "aria-label",
+            total
+              ? "Open in-app alerts; " + total + " items need attention"
+              : "Open in-app alerts; no items need attention",
+          );
+          $("notificationButton").title = total
+            ? total + " in-app alert items"
+            : "No outstanding in-app alerts";
+        }
+        function openNotifications() {
+          var notifications = appNotifications();
+          var html = notifications.length
+            ? '<p class="note">These alerts come from saved app records and remain here until the underlying work is completed. Closing this panel does not clear them.</p>' +
+              notifications
+                .map(function (item) {
+                  return (
+                    '<div class="card app-alert"><div><h3>' +
+                    esc(item.title) +
+                    ' <span class="badge orange">' +
+                    item.count +
+                    '</span></h3><p class="note">' +
+                    esc(item.detail) +
+                    '</p></div><button type="button" class="btn small" data-notification-action="' +
+                    esc(item.id) +
+                    '">' +
+                    esc(item.action) +
+                    "</button></div>"
+                  );
+                })
+                .join("")
+            : '<div class="empty">No outstanding alerts. New items will appear here as the app receives updated data.</div>';
+          openModal("In-app alerts", html);
+          Array.prototype.forEach.call(
+            $("modalBody").querySelectorAll("[data-notification-action]"),
+            function (button) {
+              button.onclick = function () {
+                var action = button.getAttribute("data-notification-action");
+                closeModal();
+                if (action === "review") {
+                  $("requestFilter").value = "needsDecision";
+                  selectTab("requests");
+                } else if (action === "issue") {
+                  $("requestFilter").value = "needsIssue";
+                  selectTab("requests");
+                } else if (action === "stock") {
+                  selectTab("inventory");
+                  setTimeout(function () {
+                    $("inventoryAlerts").scrollIntoView({ behavior: "smooth" });
+                  }, 0);
+                } else if (action === "messages") {
+                  $("msgFilter").value = "open";
+                  selectTab("messages");
+                } else {
+                  var reminder = db.reminders.find(function (r) {
+                    return r.id === result.id;
+                  });
+                  if (
+                    reminder &&
+                    reminder.type === "outstanding" &&
+                    getInventory(reminder.itemId, reminder.size) > 0
+                  )
+                    issueOutstanding(result.id);
+                  else {
+                    selectTab("dashboard");
+                    setTimeout(function () {
+                      $("dashboardReminders").scrollIntoView({ behavior: "smooth" });
+                    }, 0);
+                  }
+                }
+              };
+            },
+          );
         }
         var validTabs = [
             "dashboard",
@@ -7694,8 +8705,7 @@
           )
             return;
           e.preventDefault();
-          selectTab("inmates");
-          $("q").focus();
+          $("globalSearch").focus();
         });
         renderAll();
         if (initialTab === "setup") loadAudit();
