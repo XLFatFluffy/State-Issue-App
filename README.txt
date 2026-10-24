@@ -9,6 +9,9 @@ computer can be any computer on that network.
 For installation, daily operation, backups, and recovery, see ADMIN_GUIDE.txt.
 On the Windows host, INSTALL_STATE_ISSUE_SERVICE.bat installs the server as a
 Windows service so it runs independently of an open terminal.
+To update the host from the published GitHub version, run
+UPDATE_STATE_ISSUE.bat as administrator. Workstations use the host's version
+after they reload the application.
 
 
 WHERE THE APP IS NOW
@@ -102,6 +105,7 @@ CONNECT_AND_TROUBLESHOOT.txt  Connection instructions and troubleshooting.
 SETUP_NEW_COMPUTER.bat   Windows host setup.
 INSTALL_STATE_ISSUE_SERVICE.bat  Install and start the Windows server service.
 UNINSTALL_STATE_ISSUE_SERVICE.bat Remove the service without deleting data.
+UPDATE_STATE_ISSUE.bat   Download, test, and apply the published host update.
 START_STATE_ISSUE.bat    Open State Issue on the host computer.
 OPEN_STATE_ISSUE.bat     Windows shortcut for connecting workstations.
 

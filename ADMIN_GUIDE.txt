@@ -237,12 +237,17 @@ LIVE UPDATES
 
 10. UPDATING THE PROGRAM
 -----------------------
-  1. Stop the "State Issue Server" service in Windows Services.
-  2. Copy the whole program folder to a safe place (this includes the database).
-  3. Replace the program files with the new ones. Do not replace or delete state_issue_v2.db.
-  4. Start the "State Issue Server" service in Windows Services. The database updates itself when needed.
-  5. Check the version in the header and run a test: find an inmate, view a report, export a CSV.
-  6. Keep the old copy for at least a month.
+  1. On the host, right-click UPDATE_STATE_ISSUE.bat and choose "Run as administrator".
+  2. The updater downloads the published version from GitHub and runs the automated
+     server tests before changing the installation. It stops and restarts the
+     State Issue Server service when the service is already running.
+  3. The updater changes only application files. It does not replace or delete
+     state_issue_v2.db or the backups folder. If the update or service restart
+     fails, it restores the previous application files.
+  4. After a successful update, reload State Issue on the host and workstations.
+     Check the version in the header and test a normal workflow.
+  5. The host needs internet access to download updates. If updating is not
+     possible, use the manual update procedure and retain the database and backups.
 
 11. MESSAGES AND COMMENTS
 ----------------------------
