@@ -83,9 +83,9 @@ WHAT CHANGED IN 2.2.0
   1. Copy the whole State Issue folder to a permanent folder on the Windows host
      (for example C:\StateIssue). Do not run it from Downloads, a temporary folder,
      or a removable drive.
-  2. Double-click SETUP_NEW_COMPUTER.bat. It installs Python if needed, opens the network port,
-     and checks the program. If it asks for administrator rights, right-click the file,
-     choose "Run as administrator", and run it again.
+  2. Double-click SETUP_NEW_COMPUTER.bat. It installs Python if needed, checks the program,
+     and configures the firewall for private networks and the host VPN address. Run it as
+     administrator so it can apply both firewall rules.
   3. Right-click INSTALL_STATE_ISSUE_SERVICE.bat and choose "Run as administrator".
      The installer installs pywin32, registers the Windows service to start automatically,
      configures Windows to restart it after failures, and starts it. Internet is needed
@@ -106,10 +106,14 @@ http://127.0.0.1:8787. Continue using that local address on the host to retain i
 behavior (see section 1a). If the browser says it cannot connect, have an administrator
 check the "State Issue Server" service in Windows Services.
 
-Other computers: open http://<host-computer-address>:8787 in a browser, or edit
-OPEN_STATE_ISSUE.bat on that computer to contain that address and double-click it. Bookmark it.
-To find the host address, open Command Prompt on the host and run ipconfig; use its IPv4
-address. To keep the address fixed, ask whoever manages the network to reserve it.
+Other computers: double-click OPEN_STATE_ISSUE.bat to connect to the configured host at
+http://25.34.230.125:8787. The workstation must be able to reach that host address (for
+example, by joining the same VPN/network). The VPN firewall rule permits only connections
+to 25.34.230.125 from the 25.0.0.0/8 address range. If the host address changes, update
+OPEN_STATE_ISSUE.bat on each workstation and the VPN rule in SETUP_NEW_COMPUTER.bat, then
+rerun setup as administrator. You can also open the address directly in a browser and bookmark
+it. Keep using START_STATE_ISSUE.bat on the host: its localhost address preserves the host's
+offline behavior.
 Other computers need nothing installed. Opening Stateissue.html from a folder does NOT work:
 the page must be opened from the server address so it can share data.
 

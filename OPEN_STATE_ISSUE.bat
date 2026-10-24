@@ -1,5 +1,5 @@
 @echo off
 setlocal
-rem Replace this example with the host computer's IPv4 address.
-set "STATE_ISSUE_ADDRESS=http://192.168.1.20:8787/"
+rem Connect workstations to the State Issue host.
+set "STATE_ISSUE_ADDRESS=http://25.34.230.125:8787/"
 start "State Issue" "%STATE_ISSUE_ADDRESS%"

@@ -98,6 +98,7 @@ seed.json                Initial application state for a new database.
 sw.js                    Offline application-shell cache for the host computer.
 test_server.py           Automated server and data-handling tests.
 ADMIN_GUIDE.txt          Installation and administrator operating instructions.
+CONNECT_AND_TROUBLESHOOT.txt  Connection instructions and troubleshooting.
 SETUP_NEW_COMPUTER.bat   Windows host setup.
 INSTALL_STATE_ISSUE_SERVICE.bat  Install and start the Windows server service.
 UNINSTALL_STATE_ISSUE_SERVICE.bat Remove the service without deleting data.
