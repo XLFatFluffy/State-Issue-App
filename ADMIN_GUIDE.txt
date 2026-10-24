@@ -127,6 +127,10 @@ Routine staff workflows
 - Review each request and decide its item lines. Record reasons when needed.
   Issue only approved quantities through the app's issue workflow; use partial
   fulfillment when only part of a request can be supplied.
+- Set each item/size's reorder trigger and desired stock target under Setup >
+  Stock Targets & Reorder Alerts. The dashboard flags quantities at or below
+  the trigger; inventory guidance shows recent demand and quantity needed to
+  reach the target. These settings do not place orders or change stock.
 - Record stock receipts and adjustments through inventory transactions. Run
   the Monthly Inventory Check and reconcile differences before saving.
 - Use messages, replies, and comments for factual operational context. Link a
@@ -143,9 +147,13 @@ Routine staff workflows
 - Use Reports for review and export only the data needed. CSV and JSON files
   are downloaded to the browser's download location and may contain sensitive
   records. Store them securely and remove unneeded copies according to policy.
-- Use Setup > Backup Data and Restore Data only with care. Make a fresh backup
-  before a restore; the restore confirmation explains that current data will
-  be replaced.
+- Use Setup > Back Up to Host to create an on-demand SQLite snapshot in the
+  host's backups folder. Daily and monthly backups are created automatically
+  by the server. Download JSON Export only when you deliberately need a
+  portable copy; it downloads to the current browser's workstation.
+- Before a restore, the app automatically creates a fresh host-side SQLite
+  safety copy. If that backup fails, restore is cancelled and current data is
+  left unchanged. Restore still replaces all current records if it proceeds.
 
 5. DATA FILES AND BACKUPS
 -------------------------
@@ -158,11 +166,14 @@ The running server creates:
 - Daily backups named backups\daily_YYYY-MM-DD.db; keeps the latest 30.
 - Monthly backups named backups\monthly_YYYY-MM.db; keeps the latest 12.
 - Backups at server startup and periodic checks while it is running.
+- On-demand backups named backups\manual_YYYY-MM-DD_HHMMSS_microseconds.db
+  when staff select Back Up to Host, and immediately before a restore; keeps
+  the latest 30.
 
-Automatic backups are on the same computer as the database. At least daily,
-copy a recent backup to a separate approved, secure device or location. Keep
-the copy protected from unauthorized access, loss, and ransomware. Do not
-store production data or backups in the source repository.
+Automatic and on-demand host backups are on the same computer as the database.
+At least daily, copy a recent backup to a separate approved, secure device or
+location. Keep the copy protected from unauthorized access, loss, and
+ransomware. Do not store production data or backups in the source repository.
 
 Verify a backup
 ---------------

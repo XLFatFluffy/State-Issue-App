@@ -467,14 +467,15 @@
       /* Theme refinements override a few base styles above; later rules win in CSS. */
       :root {
         color-scheme: light;
-        --ink: #1d2d3b;
-        --muted: #526373;
-        --navy: #18384f;
-        --teal: #14766f;
-        --teal-dark: #105e59;
-        --line: #d7e0e6;
-        --surface: #fff;
-        --canvas: #f1f5f7;
+        --ink: #293844;
+        --muted: #65737d;
+        --navy: #304b60;
+        --teal: #67879b;
+        --teal-dark: #4f6f83;
+        --line: #e2e5e6;
+        --surface: #fffdfa;
+        --canvas: #f6f3ec;
+        --accent: #c9b28e;
       }
       body {
         color: var(--ink);
@@ -537,7 +538,7 @@
       }
       nav button.on {
         border-bottom: 3px solid var(--teal);
-        background: #f3f8f7;
+        background: #eef4f7;
         color: var(--teal-dark);
       }
       main {
@@ -811,15 +812,15 @@
 
       :root {
         color-scheme: light;
-        --ink: #23312c;
-        --muted: #66736d;
-        --navy: #1c2e28;
-        --teal: #387a67;
-        --teal-dark: #2c6253;
-        --line: #e2e5de;
+        --ink: #293844;
+        --muted: #65737d;
+        --navy: #304b60;
+        --teal: #67879b;
+        --teal-dark: #4f6f83;
+        --line: #e2e5e6;
         --surface: #fffefa;
-        --canvas: #f5f4ef;
-        --accent: #c18453;
+        --canvas: #f6f3ec;
+        --accent: #c9b28e;
       }
       html {
         min-height: 100%;
@@ -839,7 +840,8 @@
         grid-column: 1 / -1;
         min-height: 82px;
         padding: 14px clamp(22px, 4vw, 58px);
-        background: var(--navy);
+        background: #e6eef2;
+        color: #293f4f;
         border: 0;
         border-bottom: 3px solid var(--accent);
       }
@@ -858,17 +860,17 @@
         gap: 8px;
         min-height: 38px;
         padding: 7px 11px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid #c5d2da;
         border-radius: 7px;
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
+        background: rgba(255, 255, 255, 0.68);
+        color: #304b60;
         font: inherit;
         font-size: 13px;
         font-weight: 650;
         cursor: pointer;
       }
       #notificationButton:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: #fffdfa;
       }
       #notificationCount {
         display: inline-flex;
@@ -879,7 +881,7 @@
         padding: 0 6px;
         border-radius: 11px;
         background: #d69b60;
-        color: #1c2e28;
+        color: #293844;
         font-size: 12px;
         font-weight: 750;
       }
@@ -887,16 +889,16 @@
         display: none;
       }
       .brand-subtitle {
-        color: #c4d0c8;
+        color: #637784;
         font-size: 13px;
         letter-spacing: 0.015em;
       }
       #status {
-        color: #d7e0d9;
+        color: #526572;
         font-size: 13px;
       }
       .ok {
-        color: #b6e0c3;
+        color: #39694f;
       }
       .bad {
         border-radius: 5px;
@@ -905,7 +907,7 @@
         border-radius: 5px;
       }
       #backupWarn {
-        color: #f4c68b;
+        color: #9a5b19;
       }
       nav {
         grid-column: 1;
@@ -921,12 +923,12 @@
         gap: 5px;
         overflow-x: hidden;
         padding: 23px 14px;
-        background: var(--navy);
+        background: #e9eff1;
         border: 0;
       }
       .nav-caption {
         padding: 13px 12px 5px;
-        color: #9daea5;
+        color: #74838b;
         font-size: 10px;
         font-weight: 700;
         letter-spacing: 0.14em;
@@ -939,7 +941,7 @@
         border: 0;
         border-radius: 7px;
         background: transparent;
-        color: #d2ddd5;
+        color: #405866;
         font-size: 14px;
         font-weight: 550;
         letter-spacing: 0.01em;
@@ -947,13 +949,13 @@
         transition: color 140ms ease, background-color 140ms ease;
       }
       nav button:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
+        background: rgba(255, 255, 255, 0.72);
+        color: #263e4f;
       }
       nav button.on {
         border: 0;
-        background: #f5f4ef;
-        color: var(--navy);
+        background: #fffdfa;
+        color: #315873;
         box-shadow: inset 3px 0 var(--accent);
       }
       main {
@@ -1043,7 +1045,7 @@
       textarea:focus {
         border-color: var(--teal);
         outline: 0;
-        box-shadow: 0 0 0 3px rgba(56, 122, 103, 0.16);
+        box-shadow: 0 0 0 3px rgba(103, 135, 155, 0.18);
       }
       .btn {
         min-height: 43px;
@@ -1056,7 +1058,7 @@
         transition: background-color 140ms ease, transform 140ms ease;
       }
       .btn:hover {
-        background: #2c4439;
+        background: #3e5d70;
         transform: translateY(-1px);
       }
       .btn.green {
@@ -1292,8 +1294,8 @@
           gap: 2px;
           overflow-x: auto;
           padding: 7px 8px 0;
-          background: var(--navy);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+          background: #e9eff1;
+          border-bottom: 1px solid var(--line);
           scrollbar-width: thin;
         }
         .nav-caption {
@@ -1303,13 +1305,13 @@
           min-width: max-content;
           padding: 11px 12px;
           border-radius: 7px 7px 0 0;
-          color: #d2ddd5;
+          color: #405866;
           font-size: 13px;
         }
         nav button.on {
           box-shadow: inset 0 -3px var(--accent);
-          background: rgba(255, 255, 255, 0.1);
-          color: #fff;
+          background: #fffdfa;
+          color: #315873;
         }
         main {
           margin: 0 auto;
@@ -1387,7 +1389,7 @@
           Alerts <span id="notificationCount" aria-live="polite"></span>
         </button>
         <div id="status">
-          Data: <span id="saved" class="ok">✓ Saved</span><br />Last backup:
+          Data: <span id="saved" class="ok">✓ Saved</span><br />Last host backup:
           <span id="lastBackup">never</span><br /><span id="backupWarn"></span>
         </div>
       </div>
@@ -1678,25 +1680,18 @@
         <div id="offlineStatus"></div>
         <hr />
         <div class="row noPrint">
-          <button class="btn green" id="backup">BACKUP DATA</button>
+          <button class="btn" id="backup">BACK UP TO HOST</button>
+          <button class="btn grey" id="jsonExport">DOWNLOAD JSON EXPORT</button>
           <button class="btn red" id="restore">RESTORE DATA</button>
           <input type="file" id="file" accept=".json" style="display: none" />
         </div>
         <p class="note">
-          This downloads a backup file. Save it somewhere separate, such as a
-          flash drive. The app saves changes to the host, but you'll still need
-          another copy if that computer fails. Back up at least once a week.
+          Routine backups are SQLite snapshots saved on the host in the
+          application's <b>backups</b> folder, not downloads on this workstation.
+          Daily and monthly copies are automatic. Download a JSON export only
+          when you deliberately need a portable copy. Keep a separate secure
+          copy outside the host in case that computer fails.
         </p>
-        <div class="warnbox noPrint">
-          <b>Turn on automatic backups in Firefox</b><br />1. Create a folder
-          called <b>StateIssue_Backups</b>, for example on your C: drive.<br />2.
-          In Firefox, open Menu &rarr; Options &rarr; General &rarr; Downloads.
-          Choose that folder and turn off "Always ask you where to save files."
-          <br />3. Under Privacy, make sure Firefox isn't set to clear site data
-          when it closes.<br />4. Select TURN ON AUTOMATIC BACKUPS below and
-          follow the prompts.<br />5. <b>Once a week</b>, copy the newest backup
-          to a separate drive, such as a USB drive.
-        </div>
         <div id="safety"></div>
         <hr />
         <h3>Recent Changes</h3>
@@ -1721,11 +1716,12 @@
           ><button class="btn grey" id="exRequests">REQUESTS</button>
         </div>
         <hr />
-        <h3>Low-Stock Levels</h3>
+        <h3>Stock Targets &amp; Reorder Alerts</h3>
         <p class="note">
-          Set the minimum quantity you want on hand for each item and size.
-          The Dashboard will flag stock at or below that number. Leave it blank
-          or set it to 0 to turn off the warning.
+          Set the on-hand quantity you aim to keep and a separate reorder
+          trigger. The app flags stock at or below the trigger and suggests how
+          many units would bring it back to target. Set a value to 0 to disable
+          that target or alert.
         </p>
         <div id="minStockTable"></div>
         <hr />
@@ -1819,7 +1815,8 @@
         var db,
           storageOK = true,
           loadNote = "",
-          freshInstall = false;
+          freshInstall = false,
+          hostBackupLatest = null;
         var serverRev = SERVER_BOOTSTRAP.rev || 0,
           saveBusy = false,
           saveAgain = false;
@@ -1989,7 +1986,12 @@
             deletions: [],
             reminders: [],
             inventoryChecks: [],
-            settings: { lastBackup: null, minStock: {}, displayName: "" },
+            settings: {
+              lastBackup: null,
+              minStock: {},
+              targetStock: {},
+              displayName: "",
+            },
             comments: [],
             feedback: [],
           };
@@ -2064,6 +2066,7 @@
           d.seq = d.seq || {};
           d.settings = d.settings || { lastBackup: null };
           d.settings.minStock = d.settings.minStock || {};
+          d.settings.targetStock = d.settings.targetStock || {};
           if (typeof d.settings.displayName !== "string")
             d.settings.displayName = "";
           d.comments = d.comments || [];
@@ -3768,9 +3771,18 @@
           activeItems().forEach(function (it) {
             sizesOf(it).forEach(function (sz) {
               var min = lowStockLevel(it.id, sz),
-                q = getInventory(it.id, sz);
+              target =
+                parseInt(db.settings.targetStock[it.id + "|" + sz] || 0, 10) ||
+                0,
+              q = getInventory(it.id, sz);
               if (q < 0 || (min > 0 && q <= min))
-                a.push({ itemId: it.id, size: sz, qty: q, min: min });
+              a.push({
+                itemId: it.id,
+                size: sz,
+                qty: q,
+                min: min,
+                target: target,
+              });
             });
           });
           return a;
@@ -4283,7 +4295,8 @@
                 " · " +
                 x.qty +
                 " in stock" +
-                (x.min ? " (minimum " + x.min + ")" : ""),
+                (x.min ? " (reorder at " + x.min + ")" : "") +
+                (x.target ? " · desired " + x.target : ""),
               action: "stock",
               target: x.itemId + "|" + x.size,
               stockTarget: x.itemId + "|" + x.size,
@@ -6287,20 +6300,33 @@
                   demand += reminder.qtyOwed || 0;
               });
               var stock = getInventory(it.id, size),
-                suggested = Math.max(0, Math.ceil(used + demand - stock));
-              if (used || demand || lowStockLevel(it.id, size) > 0)
+                trigger = lowStockLevel(it.id, size),
+                target =
+                  parseInt(
+                    db.settings.targetStock[it.id + "|" + size] || 0,
+                    10,
+                  ) || 0,
+                demandEstimate = Math.max(
+                  0,
+                  Math.ceil(used + demand - stock),
+                ),
+                toTarget = target > 0 ? Math.max(0, target - stock) : 0;
+              if (used || demand || trigger > 0 || target > 0)
                 suggestions.push({
                   item: it,
                   size: size,
                   used: used,
                   demand: demand,
                   stock: stock,
-                  suggested: suggested,
+                  trigger: trigger,
+                  target: target,
+                  demandEstimate: demandEstimate,
+                  toTarget: toTarget,
                 });
             });
           });
           $("inventoryGuidance").innerHTML = suggestions.length
-            ? '<div class="card"><h3 style="margin-top:0">Replenishment guidance</h3><p class="note">A planning estimate only: issues recorded in the last 30 days plus approved quantities still outstanding, minus current stock. It does not create orders or change inventory.</p><table><thead><tr><th>Item</th><th>Size</th><th>Issued · 30 days</th><th>Approved outstanding</th><th>On hand</th><th>Suggested to cover that demand</th><th></th></tr></thead><tbody>' +
+            ? '<div class="card"><h3 style="margin-top:0">Replenishment guidance</h3><p class="note">Planning estimates only. The demand estimate uses issues recorded in the last 30 days plus approved outstanding demand. The target quantity brings on-hand stock up to the configured target. No orders or inventory changes are made automatically.</p><table><thead><tr><th>Item</th><th>Size</th><th>Issued · 30 days</th><th>Approved outstanding</th><th>On hand</th><th>Reorder trigger</th><th>Stock target</th><th>Est. demand gap</th><th>Units to target</th><th></th></tr></thead><tbody>' +
               suggestions
                 .sort(function (a, b) {
                   return byItemName(a.item, b.item) || a.size.localeCompare(b.size);
@@ -6318,7 +6344,13 @@
                     "</td><td>" +
                     x.stock +
                     "</td><td><b>" +
-                    x.suggested +
+                    (x.trigger || "—") +
+                    "</b></td><td>" +
+                    (x.target || "—") +
+                    "</td><td>" +
+                    x.demandEstimate +
+                    "</td><td><b>" +
+                    x.toTarget +
                     "</b></td><td><button class=\"btn small\" data-guidance-item=\"" +
                     esc(x.item.id) +
                     "\" data-guidance-size=\"" +
@@ -6789,14 +6821,18 @@
                   lowStockLevel(it.id, sz) +
                   '" data-min-key="' +
                   esc(k) +
-                  '" style="max-width:130px"></td></tr>',
+                  '" style="max-width:110px"></td><td><input type="number" min="0" value="' +
+                  (parseInt(db.settings.targetStock[k] || 0, 10) || 0) +
+                  '" data-target-key="' +
+                  esc(k) +
+                  '" style="max-width:110px"></td></tr>',
               );
             });
           });
           $("minStockTable").innerHTML = rows.length
-            ? "<table><thead><tr><th>Item</th><th>Size</th><th>Minimum</th></tr></thead><tbody>" +
+            ? "<table><thead><tr><th>Item</th><th>Size</th><th>Reorder trigger</th><th>Desired stock</th></tr></thead><tbody>" +
               rows.join("") +
-              '</tbody></table><div class="row"><button class="btn green" id="saveMinStock">SAVE LOW-STOCK LEVELS</button></div>'
+              '</tbody></table><div class="row"><button class="btn green" id="saveMinStock">SAVE STOCK TARGETS</button></div>'
             : '<div class="empty">No active items.</div>';
           if ($("saveMinStock"))
             $("saveMinStock").onclick = function () {
@@ -6810,10 +6846,19 @@
                         isNaN(v) ? 0 : v;
                     },
                   );
+                  Array.prototype.forEach.call(
+                    document.querySelectorAll("[data-target-key]"),
+                    function (el) {
+                      var v = posInt(el.value);
+                      db.settings.targetStock[
+                        el.getAttribute("data-target-key")
+                      ] = isNaN(v) ? 0 : v;
+                    },
+                  );
                 })
               ) {
                 renderAll();
-                toast("Low-stock levels saved.");
+                toast("Reorder triggers and desired stock targets saved.");
               }
             };
         }
@@ -6991,21 +7036,7 @@
             $("displayName").value = displayName();
           renderOfflineStatus();
           renderFeedbackInbox();
-          $("lastBackup").textContent = db.settings.lastBackup
-            ? fmt(ymd(new Date(db.settings.lastBackup)))
-            : "never";
           renderSafety();
-          var days = db.settings.lastBackup
-            ? Math.floor(
-                (new Date() - new Date(db.settings.lastBackup)) / 86400000,
-              )
-            : 999;
-          $("backupWarn").textContent =
-            days >= 999
-              ? "⚠ BACK UP NOW"
-              : days >= 7
-                ? "⚠ Backup is " + days + " days old"
-                : "";
           renderMinStock();
           $("itemTable").innerHTML =
             "<table><thead><tr><th>Item</th><th>Category</th><th>Sizes</th><th>Active</th><th></th></tr></thead><tbody>" +
@@ -7168,19 +7199,73 @@
         function makeBackup(prefix) {
           download(prefix + stamp() + ".json", exportText());
         }
-        $("backup").onclick = function () {
-          if (
-            tx(function () {
-              db.settings.lastBackup = iso();
-              db.settings.backupRev = db.rev + 1;
+        function createHostBackup() {
+          return fetch("/api/backups", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+            cache: "no-store",
+          }).then(function (response) {
+            return response.json().then(function (body) {
+              if (!response.ok || !body.ok)
+                throw new Error(body.error || "The host backup could not be created.");
+              hostBackupLatest = body.latest || {
+                name: body.name,
+                created: new Date().toISOString(),
+              };
+              return hostBackupLatest;
+            });
+          });
+        }
+        function refreshHostBackupStatus() {
+          return fetch("/api/backups/status", { cache: "no-store" })
+            .then(function (response) {
+              if (!response.ok)
+                throw new Error("The host backup status could not be loaded.");
+              return response.json();
             })
-          ) {
-            makeBackup("StateIssue_Backup_");
-            renderSetup();
-            toast(
-              "Backup file created. Save it on the flash drive, then check the file is there.",
-            );
-          }
+            .then(function (body) {
+              hostBackupLatest = body.latest || null;
+              $("lastBackup").textContent = hostBackupLatest
+                ? fmt(ymd(new Date(hostBackupLatest.created)))
+                : "never";
+              var age = hostBackupLatest
+                ? Math.floor(
+                    (Date.now() - new Date(hostBackupLatest.created)) /
+                      86400000,
+                  )
+                : 999;
+              $("backupWarn").textContent =
+                age >= 7
+                  ? age >= 999
+                    ? "⚠ No host backup found"
+                    : "⚠ Host backup is " + age + " days old"
+                  : "";
+            })
+            .catch(function (error) {
+              $("lastBackup").textContent = "unavailable";
+              $("backupWarn").textContent = "⚠ " + error.message;
+            });
+        }
+        $("backup").onclick = function () {
+          $("backup").disabled = true;
+          createHostBackup()
+            .then(function (latest) {
+              return refreshHostBackupStatus().then(function () {
+                renderSafety();
+                toast("Host backup created: " + latest.name);
+              });
+            })
+            .catch(function (error) {
+              toast("Host backup failed: " + error.message, true);
+            })
+            .then(function () {
+              $("backup").disabled = false;
+            });
+        };
+        $("jsonExport").onclick = function () {
+          makeBackup("StateIssue_Export_");
+          toast("JSON export downloaded to this workstation.");
         };
         $("restore").onclick = function () {
           $("file").click();
@@ -7189,7 +7274,7 @@
           var f = e.target.files[0];
           if (!f) return;
           var r = new FileReader();
-          r.onload = function () {
+          r.onload = async function () {
             var data;
             try {
               data = JSON.parse(r.result);
@@ -7234,7 +7319,16 @@
               toast("Wait for the current save to finish before restoring.", true);
               return;
             }
-            makeBackup("StateIssue_BeforeRestore_");
+            try {
+              await createHostBackup();
+            } catch (error) {
+              toast(
+                "Restore cancelled because a safety backup could not be created: " +
+                  error.message,
+                true,
+              );
+              return;
+            }
             var old = JSON.stringify(db);
             db = fixupSafe(data);
             delete db._backup;
@@ -7251,125 +7345,28 @@
           e.target.value = "";
         };
 
-        function changes() {
-          return db.rev > (db.settings.backupRev || 0);
-        }
-        function hasData() {
-          return Object.keys(db).some(function (key) {
-            return Array.isArray(db[key]) && db[key].length > 0;
-          });
-        }
-        function autoBackup() {
-          if (!db.settings.autoBackup || !changes() || !hasData()) return;
-          var n = iso();
-          if (
-            tx(function () {
-              db.settings.lastBackup = n;
-              db.settings.lastAuto = n;
-              db.settings.backupRev = db.rev + 1;
-            })
-          ) {
-            makeBackup("StateIssue_Auto_");
-            renderSetup();
-            toast("Automatic backup saved.");
-          }
-        }
         function renderSafety() {
-          var st = db.settings,
-            kb = Math.round(JSON.stringify(db).length / 1024),
-            on = !!st.autoBackup;
+          var kb = Math.round(JSON.stringify(db).length / 1024);
           $("safety").innerHTML =
-            '<div class="card"><b>Automatic backups:</b> ' +
-            (on
-              ? '<span class="badge green">ON</span>'
-              : '<span class="badge red">OFF</span>') +
-            "<br><b>Last automatic backup:</b> " +
-            (st.lastAuto ? fmt(ymd(new Date(st.lastAuto))) : "never") +
+            '<div class="card"><b>Host backups:</b> Automatic daily and monthly SQLite snapshots' +
+            "<br><b>Most recent host copy:</b> " +
+            (hostBackupLatest
+              ? esc(hostBackupLatest.name) +
+                " (" +
+                fmt(ymd(new Date(hostBackupLatest.created))) +
+                ")"
+              : "checking…") +
             "<br><b>Data size:</b> " +
             kb +
             " KB" +
             (kb > 1200
               ? ' <span class="neg">— getting full. Tell your support person.</span>'
               : "") +
-            '<div class="row noPrint" style="margin:12px 0 0"><button class="btn ' +
-            (on ? "grey" : "green") +
-            '" id="autoBtn">' +
-            (on ? "TURN OFF AUTOMATIC BACKUPS" : "TURN ON AUTOMATIC BACKUPS") +
-            "</button></div></div>";
-          $("autoBtn").onclick = function () {
-            if (on) {
-              if (confirm("Turn OFF automatic backups?"))
-                tx(function () {
-                  db.settings.autoBackup = false;
-                });
-              renderSetup();
-              return;
-            }
-            if (
-              !confirm(
-                "A test backup file will now be saved.\n\nThen look in your StateIssue_Backups folder. Press OK to make the test file.",
-              )
-            )
-              return;
-            makeBackup("StateIssue_Test_");
-            if (
-              confirm(
-                "Did the test file appear in your backup folder WITHOUT asking where to save it?\n\nOK = Yes, it saved by itself\nCancel = No / it asked me",
-              )
-            ) {
-              if (
-                tx(function () {
-                  db.settings.autoBackup = true;
-                })
-              ) {
-                renderSetup();
-                toast("Automatic backups are ON.");
-              }
-            } else
-              toast(
-                "Not turned on. Finish the Firefox steps above, then try again.",
-                true,
-              );
-          };
+            "</div>";
+          refreshHostBackupStatus();
         }
-        function reminder() {
-          openModal(
-            "Backup Reminder",
-            '<p style="font-size:22px">You have changes since your last backup. <b>Back up now</b> to keep a separate copy.</p><div class="row"><button class="btn green" id="rbNow">BACK UP NOW</button><button class="btn grey" onclick="closeModal()">LATER</button></div><p class="note">You can turn on automatic backups in Setup to save a file whenever you make changes.</p>',
-          );
-          $("rbNow").onclick = function () {
-            $("backup").onclick();
-            closeModal();
-          };
-        }
-        setInterval(function () {
-          var la = db.settings.lastAuto;
-          if (
-            db.settings.autoBackup &&
-            changes() &&
-            (!la || new Date() - new Date(la) >= 7200000)
-          )
-            autoBackup();
-        }, 60000);
         db = load();
-        (function () {
-          if (!storageOK || !hasData() || !changes()) return;
-          var st = db.settings,
-            act = null;
-          if (st.autoBackup) {
-            if (!st.lastAuto || ymd(new Date(st.lastAuto)) !== today())
-              act = autoBackup;
-          } else if (
-            !st.lastBackup ||
-            new Date() - new Date(st.lastBackup) > 86400000
-          )
-            act = reminder;
-          if (act)
-            setTimeout(function () {
-              if ($("modal").className.indexOf("on") < 0 || act === autoBackup)
-                act();
-            }, 1500);
-        })();
+        refreshHostBackupStatus();
         try {
           if (navigator.storage && navigator.storage.persist)
             navigator.storage.persist();

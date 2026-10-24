@@ -175,16 +175,27 @@ class T(unittest.TestCase):
         self.assertEqual(len([f for f in files if f.startswith("daily_")]), 1)
         self.assertEqual(len([f for f in files if f.startswith("monthly_")]), 1)
 
+    def test_manual_backup_is_created_in_host_backup_directory(self):
+        path = srv.create_manual_backup()
+        self.assertEqual(os.path.dirname(path), srv.BACKUP_DIR)
+        self.assertTrue(os.path.basename(path).startswith("manual_"))
+        self.assertTrue(path.endswith(".db"))
+        self.assertTrue(os.path.isfile(path))
+        self.assertEqual(srv.latest_backup()["name"], os.path.basename(path))
+
     def test_prune_keeps_limits(self):
         os.makedirs(srv.BACKUP_DIR, exist_ok=True)
         for i in range(40):
             open(os.path.join(srv.BACKUP_DIR, "daily_2000-01-%03d.db" % i), "w").close()
         for i in range(20):
             open(os.path.join(srv.BACKUP_DIR, "monthly_2000-%03d.db" % i), "w").close()
+        for i in range(40):
+            open(os.path.join(srv.BACKUP_DIR, "manual_2000-%03d.db" % i), "w").close()
         srv.prune_backups()
         files = os.listdir(srv.BACKUP_DIR)
         self.assertEqual(len([f for f in files if f.startswith("daily_")]), srv.DAILY_KEEP)
         self.assertEqual(len([f for f in files if f.startswith("monthly_")]), srv.MONTHLY_KEEP)
+        self.assertEqual(len([f for f in files if f.startswith("manual_")]), srv.MANUAL_KEEP)
 
     def test_messages_counted_in_audit_without_text(self):
         rev, st = srv.load_state()
@@ -357,6 +368,43 @@ class T(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertEqual(body["version"], srv.APP_VERSION)
         self.assertEqual(body["rev"], 0)
+
+    def test_http_manual_backup_saves_on_server_and_status_reports_it(self):
+        import urllib.request
+        base = self._start_http_server()
+        request = urllib.request.Request(
+            base + "/api/backups",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=3) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["name"].startswith("manual_"))
+        self.assertTrue(os.path.isfile(os.path.join(srv.BACKUP_DIR, result["name"])))
+        with urllib.request.urlopen(base + "/api/backups/status", timeout=3) as response:
+            status = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(status["latest"]["name"], result["name"])
+
+    def test_http_manual_backup_failure_returns_safe_error(self):
+        import urllib.request, urllib.error
+        from unittest.mock import patch
+        base = self._start_http_server()
+        request = urllib.request.Request(
+            base + "/api/backups",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with patch.object(srv, "create_manual_backup", side_effect=OSError("private/path")):
+            with self.assertRaises(urllib.error.HTTPError) as error:
+                urllib.request.urlopen(request, timeout=3)
+        body = json.loads(error.exception.read().decode("utf-8"))
+        error.exception.close()
+        self.assertFalse(body["ok"])
+        self.assertIn("backup-folder permissions", body["error"])
+        self.assertNotIn("private/path", body["error"])
 
     def test_http_state_endpoint_returns_seeded_state(self):
         import urllib.request
@@ -716,12 +764,16 @@ class ClientSourceChecks(unittest.TestCase):
             compact,
         )
 
-    def test_automatic_backup_includes_inventory_catalog_changes(self):
+    def test_routine_backups_are_host_side_and_json_export_is_explicit(self):
         compact = re.sub(r"\s+", "", self.html)
-        idx = compact.index("functionhasData(){")
-        body = compact[idx:idx + 150]
-        self.assertIn("Object.keys(db).some", body)
-        self.assertIn("Array.isArray(db[key])&&db[key].length>0", body)
+        self.assertIn('fetch("/api/backups",{method:"POST"', compact)
+        self.assertIn('id="backup">BACKUPTOHOST', compact)
+        self.assertIn('id="jsonExport">DOWNLOADJSONEXPORT', compact)
+        self.assertNotIn("functionautoBackup(){", compact)
+        self.assertIn("awaitcreateHostBackup()", compact)
+        self.assertIn("d.settings.targetStock=d.settings.targetStock||{}", compact)
+        self.assertIn('data-target-key="', compact)
+        self.assertIn("Unitstotarget", compact)
 
     def test_work_queue_record_links_are_searchable_and_require_a_match(self):
         compact = re.sub(r"\s+", "", self.html)

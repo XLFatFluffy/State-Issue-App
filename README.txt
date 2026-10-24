@@ -36,7 +36,9 @@ HOW IT WORKS
   the application folder by default. Set STATE_ISSUE_DATA to use a different
   data folder.
 - The server makes daily and monthly SQLite backups in the backups folder
-  while it is running. Keep a separate copy on another secure device.
+  while it is running. Setup can create an additional on-demand SQLite backup
+  in the same host folder; no routine backup file is downloaded to workstations.
+  Keep a separate copy on another secure device.
 - The host's localhost browser tab can work offline after it has loaded the app.
   Pending changes are stored in that browser and sync when the server returns,
   unless a concurrent edit creates a reconnect conflict that needs review.
@@ -59,9 +61,10 @@ FEATURES
 - Inmate activity timeline combining requests, issues, comments, messages, and
   review-level history. Request saves warn about likely duplicates and stock
   shortages; issue flows keep approved and available quantities explicit.
-- Inventory planning guidance compares the past 30 days of recorded issues and
-  approved outstanding demand with current stock; it never changes stock or
-  places an order automatically.
+- Setup lets staff set per-size reorder triggers and desired on-hand stock
+  targets. Inventory guidance compares recent issues and approved outstanding
+  demand with current stock, and shows the quantity needed to reach the target;
+  it never changes stock or places an order automatically.
 - In-app alert count and action panel for pending work; alerts remain until the
   related request, stock issue, reminder, or message is handled. The app must be
   open and connected to receive current updates; these are not OS push alerts.
@@ -75,7 +78,9 @@ FEATURES
   on profiles and linked requests. Request activity brings together saved
   request snapshots, item issuance/voids, and comments in time order.
 - Shared Setup inbox for detailed problem reports and improvement suggestions.
-- JSON export/restore and automatic SQLite backups.
+- Explicit JSON export/restore and automatic daily/monthly SQLite backups.
+  Restore creates a host-side SQLite safety copy first and stops if that copy
+  cannot be created.
 
 IMPORTANT LIMITATIONS
 ---------------------
@@ -88,8 +93,8 @@ IMPORTANT LIMITATIONS
   inmate has never had an issue. Record factual reasons for review/high-risk.
 - The server is intended for a trusted private network or VPN. Do not expose it
   directly to the public internet.
-- CSV exports and database backups may contain sensitive personal information.
-  Store them securely and limit access.
+- CSV/JSON exports and database backups may contain sensitive personal
+  information. Store them securely and limit access.
 - An offline reconnect conflict is not merged automatically. The local copy is
   retained for review; save/export it and reconcile it against the server copy
   before discarding it.

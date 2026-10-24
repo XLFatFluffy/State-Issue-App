@@ -130,6 +130,7 @@
   "feedback": [],
   "settings": {
     "lastBackup": null,
-    "minStock": {}
+    "minStock": {},
+    "targetStock": {}
   }
 }

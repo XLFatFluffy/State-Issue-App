@@ -31,6 +31,7 @@ HOST = "0.0.0.0"
 PORT = int(os.environ.get("STATE_ISSUE_PORT", "8787"))
 DAILY_KEEP = 30
 MONTHLY_KEEP = 12
+MANUAL_KEEP = 30
 BACKUP_CHECK_SECONDS = 3600
 TRACKED = [
     ("inmates", "inmate records"), ("requests", "requests"),
@@ -527,6 +528,34 @@ def backup_now(name):
     os.replace(tmp, dest)
     return dest
 
+def create_manual_backup():
+    """Create a uniquely named SQLite snapshot in the host backup directory."""
+    name = "manual_%s.db" % datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
+    path = backup_now(name)
+    prune_backups()
+    return path
+
+def latest_backup():
+    """Return metadata for the newest managed backup without exposing its path."""
+    if not os.path.isdir(BACKUP_DIR):
+        return None
+    candidates = [
+        os.path.join(BACKUP_DIR, name)
+        for name in os.listdir(BACKUP_DIR)
+        if name.startswith(("daily_", "monthly_", "manual_"))
+        and name.endswith(".db")
+        and os.path.isfile(os.path.join(BACKUP_DIR, name))
+    ]
+    if not candidates:
+        return None
+    newest = max(candidates, key=os.path.getmtime)
+    return {
+        "name": os.path.basename(newest),
+        "created": datetime.datetime.fromtimestamp(
+            os.path.getmtime(newest)
+        ).astimezone().isoformat(timespec="seconds"),
+    }
+
 def verify_backup(path):
     """Check that a backup (or the live database) is intact and readable.
     Opens it read-only so it is never modified, prints a plain-language report,
@@ -597,6 +626,7 @@ def prune_backups():
             os.remove(os.path.join(BACKUP_DIR, f))
     old_files("daily_", DAILY_KEEP)
     old_files("monthly_", MONTHLY_KEEP)
+    old_files("manual_", MANUAL_KEEP)
 
 def run_backups_if_due():
     if not os.path.exists(DB_PATH):
@@ -672,6 +702,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_json(200, {"rev": wait_for_revision(since, wait)}); return
         if path == "/api/audit":
             self.send_json(200, {"rows": recent_audit()}); return
+        if path == "/api/backups/status":
+            self.send_json(200, {"latest": latest_backup()}); return
         if path == "/sw.js":
             if not os.path.exists(SW_PATH):
                 self.send_error(404); return
@@ -705,6 +737,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # Work queue posts use a narrow append operation; other edits use the
         # revision-checked full-state endpoint below.
         path = urlparse(self.path).path
+        if path == "/api/backups":
+            try:
+                backup_path = create_manual_backup()
+                self.send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "name": os.path.basename(backup_path),
+                        "latest": latest_backup(),
+                    },
+                )
+            except Exception as e:
+                self.log_error("Host backup failed: %s", e)
+                self.send_json(
+                    500,
+                    {
+                        "ok": False,
+                        "error": "The host could not create a backup. Check available disk space and backup-folder permissions.",
+                    },
+                )
+            return
         if path in ("/api/feedback", "/api/feedback/status"):
             try:
                 n = int(self.headers.get("Content-Length", "0"))
