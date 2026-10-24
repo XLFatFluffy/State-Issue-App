@@ -1,272 +1,264 @@
-STATE ISSUE 2.5.1 ADMIN GUIDE UPDATE
-------------------------------------
-Set the Display Name separately on each workstation's browser. New requests,
-comments, messages, replies, and issuance records use that browser's configured
-label so the officer can distinguish work recorded on the worker's workstation.
-The previous shared display name is copied to a workstation the first time the
-new version is opened there; set the correct name on each workstation after
-upgrading. The label is stored in browser storage, not on the server, and is not
-verified authentication. It does not provide a secure audit identity.
+STATE ISSUE 3.0.0 — ADMINISTRATOR GUIDE
+========================================
 
-Inmate profiles can now be flagged HIGH-RISK / NEEDS REVIEW with a required reason.
-The flag and its change history are visible on the profile, request screens, and
-issuance screens. The flag is a staff review reminder only; it does not approve or
-deny requests automatically.
+Purpose
+-------
+This guide is for the person who installs, operates, updates, and recovers the
+State Issue host. Keep a copy with the application and make sure more than one
+trusted staff member knows where it is.
 
-Each request creation or edit now records a snapshot of its request lines, decision,
-reason, quantity, status, and configured workstation name. New issuance records include
-the workstation name and timestamp. Existing records remain intact, but do
-not receive invented history.
-
-Officer and inmate-worker workflows have equivalent access so either can enter,
-review, and issue items. There are still no logins or per-user permissions. Display
-names are optional attribution labels, not verified identities; anyone with network
-access can make changes. Keep the server on a trusted network and do not treat the
-program's displayed name as authentication.
-
-Before upgrading, make a backup and retain the database. After updating, test the
-high-risk flag, request creation and edit history, issuance from requests, intake
-issuance, and issuance from outstanding reminders. Confirm the configured display
-name and timestamp appear in issue history.
-
-STATE ISSUE 2.4.5 ADMIN GUIDE UPDATE
-The Work Queue is simplified into a shared message board. Staff can send a message,
-optionally link a request or inmate, and reply in the conversation. New messages no
-longer need a title, category, or priority, and do not need to be resolved or reopened.
-Existing messages, replies, and links remain available after the update.
-
-Messages are still assigned IDs and appended atomically by the server, preventing
-concurrent posts from different workstations from overwriting one another. Older
-server processes are supported through a state-save fallback.
-
-Automatic backups now include inventory catalog-only changes, such as adding or
-editing an item before any stock is received. Backup files include collection
-counts, and restore checks those counts for missing or truncated data. Existing
-backup files remain compatible.
-
-Use SETUP -> Display Name to set the name attached to new entries on this workstation.
-Each workstation has a separate setting. The name is optional and is not a login or
-verified identity. It is stored with each new entry, so changing the setting does not
-change historical attribution. Comments can also be added to inmate profiles,
-requests, and individual issuance-history entries.
-
-When upgrading, retain the server database and use the normal backup process before
-replacing program files. The application adds the comments collection and display-name
-setting automatically when reading existing state. Verify the backup with VERIFY_BACKUP.bat
-before relying on it. After upgrading, manually send a message, reply to it, test request
-and inmate links, add a comment on each record type, and verify backup/restore using a test copy.
-No automated browser test is claimed for these UI workflows.
-
-STATE ISSUE — ADMINISTRATOR GUIDE (Version 2.5.1)
-
-WHAT CHANGED IN 2.3.0
-----------------------
-- Added VERIFY_BACKUP.bat and the matching "server.py --verify" check: confirms a
-  backup file is not damaged and shows what's in it, without changing anything.
-  This is the repeatable restore test — see section 4.
-- Restoring a backup (section 5) now starts with verifying the file first.
-
-WHAT CHANGED IN 2.2.0
----------------------
-- Expanded the automated server/API test suite from 18 to 27 tests.
-- Added checks for real-world-shaped state data, HTTP save conflicts, invalid payloads,
-  application bootstrap delivery, service-worker delivery, and backup database integrity.
-- Reviewed the supplied October 9 JSON export's structure and used anonymized patterns
-  to build representative tests. The real backup and its personal records are not included
-  in this release.
-- See README.txt for the full implementation plan, version history, and test limitations.
-
-==================================================
-
-0. FIRST TIME ON A NEW COMPUTER
--------------------------------
-  1. Copy the whole State Issue folder to a permanent folder on the Windows host
-     (for example C:\StateIssue). Do not run it from Downloads, a temporary folder,
-     or a removable drive.
-  2. Double-click SETUP_NEW_COMPUTER.bat. It installs Python if needed, checks the program,
-     and configures the firewall for private networks and the host VPN address. Run it as
-     administrator so it can apply both firewall rules.
-  3. Right-click INSTALL_STATE_ISSUE_SERVICE.bat and choose "Run as administrator".
-     The installer installs pywin32, registers the Windows service to start automatically,
-     configures Windows to restart it after failures, and starts it. Internet is needed
-     for the one-time pywin32 installation.
-  4. Double-click START_STATE_ISSUE.bat to open the app on this computer.
-
-1. STARTING AND STOPPING
+Repository and reference
 ------------------------
-The State Issue Server Windows service runs in the background, including when nobody is
-signed in. Closing a command prompt or browser does not stop it. Windows starts it after
-reboot and is configured for three automatic restart attempts after a service failure.
-Keep the host powered on and prevent it from sleeping during operating hours. Worker
-accounts should be standard Windows accounts, not local administrators; an administrator
-can still stop or reconfigure the service.
+Source code, published updates, and project history:
+https://github.com/XLFatFluffy/State-Issue-App
 
-Host computer: double-click START_STATE_ISSUE.bat to open the host's local app at
-http://127.0.0.1:8787. Continue using that local address on the host to retain its offline
-behavior (see section 1a). If the browser says it cannot connect, have an administrator
-check the "State Issue Server" service in Windows Services.
+Use the repository's Issues page for reproducible software problems. Do not
+post names, inmate records, database files, screenshots, exports, passwords,
+or network credentials to a public issue. Include the app version, Windows
+version, steps to reproduce, and sanitized error text instead.
 
-Other computers: double-click OPEN_STATE_ISSUE.bat to connect to the configured host at
-http://25.34.230.125:8787. The workstation must be able to reach that host address (for
-example, by joining the same VPN/network). The VPN firewall rule permits only connections
-to 25.34.230.125 from the 25.0.0.0/8 address range. If the host address changes, update
-OPEN_STATE_ISSUE.bat on each workstation and the VPN rule in SETUP_NEW_COMPUTER.bat, then
-rerun setup as administrator. You can also open the address directly in a browser and bookmark
-it. Keep using START_STATE_ISSUE.bat on the host: its localhost address preserves the host's
-offline behavior.
-Other computers need nothing installed. Opening Stateissue.html from a folder does NOT work:
-the page must be opened from the server address so it can share data.
+1. IMPORTANT SECURITY AND PRIVACY LIMITS
+----------------------------------------
+- The app has no login, authentication, or role-based access. Every person
+  who can reach it has the same access to view and change records.
+- Display names are optional and can be changed by the user. They are labels,
+  not verified identities or a security audit trail.
+- Run the server only on a trusted private network/VPN. Never forward its port
+  from a router or expose it directly to the public internet.
+- Treat the database, its backups, offline browser data, and CSV/JSON exports
+  as sensitive operational records. Restrict access and store copies securely.
+- Use standard Windows accounts for routine work. Limit administrator rights
+  to people responsible for maintaining the host.
 
-For planned maintenance, an administrator can stop or start "State Issue Server" in the
-Windows Services app (services.msc). Do not stop or disable the service for routine use.
-If it is stopped, other computers cannot use the app until it starts again. The app saves
-changes automatically; no terminal needs to remain open.
+2. NETWORK AND INTERNET REQUIREMENTS
+------------------------------------
+The host computer runs the server on TCP port 8787. Workstations connect using
+the host address configured in OPEN_STATE_ISSUE.bat. All computers must be able
+to communicate through the same approved local network or VPN.
 
-1a. WORKING OFFLINE (host computer only)
------------------------------------------
-Only the host computer — opened at its own address, not the network address — keeps working
-if the server program stops or the network drops. Changes made there are saved on that
-computer first: the status at the top turns orange and reads "Saved on this computer —
-will sync." As soon as the server can be reached again, those changes are sent to it
-automatically. Nothing is lost.
-Other computers work exactly as before: if they cannot reach the server, they can see the
-last data they loaded but cannot save until it is back.
-If the status stays orange for a long time, check that the "State Issue Server" service is
-running and the network is connected. If it ever turns into a red message reading "RECONNECT
-CONFLICT," go to SETUP — it means a change was made somewhere else while this computer
-was offline, and the two could not be combined automatically. SETUP explains how to save
-and review the stranded changes; nothing is deleted automatically.
+Normal app use on an already configured local network does not require internet.
+Internet access is needed for optional online Python installation, downloading
+pywin32 during the first service installation, and downloading updates with
+UPDATE_STATE_ISSUE.bat. If internet is unavailable, do not repeatedly run an
+online installer or updater; the installed app can continue on its local
+network. Schedule updates for when the host can reach GitHub.
 
-2. WHAT THE PROGRAM SAVES
+For the host computer use START_STATE_ISSUE.bat, which opens
+http://127.0.0.1:8787/. Do not use the workstation shortcut on the host for
+offline operation. For workstations use OPEN_STATE_ISSUE.bat or the exact URL
+configured inside that file. Opening Stateissue.html directly from a folder
+does not connect to shared data.
+
+If the host's local network/VPN address changes, update OPEN_STATE_ISSUE.bat on
+each workstation and the matching host/local-address restrictions in
+SETUP_NEW_COMPUTER.bat. Re-run the setup script as administrator and test from
+a workstation. Keep firewall access limited to the approved private network;
+never disable the firewall as a troubleshooting shortcut.
+
+3. INITIAL HOST SETUP
+---------------------
+1. Copy the complete project folder to a permanent location on the Windows
+   host, such as C:\StateIssue. Do not run it from Downloads, a temporary
+   folder, or removable media.
+2. Run SETUP_NEW_COMPUTER.bat. It checks for Python, checks required files,
+   runs test_server.py, and offers Python installation if needed. Allow the
+   firewall rule only on the intended private network/VPN.
+3. Run INSTALL_STATE_ISSUE_SERVICE.bat as administrator. The initial install
+   downloads pywin32, registers the "State Issue Server" Windows service, and
+   configures automatic startup and restart attempts.
+4. Run START_STATE_ISSUE.bat on the host and confirm the app loads at
+   http://127.0.0.1:8787/.
+5. From each workstation, connect to the approved host network/VPN and run
+   OPEN_STATE_ISSUE.bat. Confirm that shared changes appear on both computers.
+6. Confirm the database and backups folder are in the expected location. Make
+   and verify a backup before entering operational data.
+
+The Windows service runs in the background and starts with Windows. Keep the
+host powered on and prevent it from sleeping while staff need the app. Closing
+the browser does not stop the service. To check or control it, open Services
+(services.msc) and find "State Issue Server".
+
+4. DAILY OPERATION AND CONNECTIVITY
+-----------------------------------
+- Host: open the app with START_STATE_ISSUE.bat.
+- Workstations: connect to the host network/VPN, then use OPEN_STATE_ISSUE.bat.
+- Confirm the app's save/connection status before relying on a change.
+- Review Dashboard / Today's Changes and Setup / Recent Changes as appropriate.
+- Use the separate CONNECT_AND_TROUBLESHOOT.txt for step-by-step diagnostics.
+
+Host-only offline work: the host's localhost tab can continue using browser-
+stored data when the server is unreachable. The app indicates that changes are
+saved on this computer and will sync. Keep that browser profile and its site
+data intact until sync finishes. After connectivity returns, verify that the
+pending status clears and the records appear on the shared app.
+
+Workstation outage: a workstation may display the last data it loaded, but
+cannot save changes until it reconnects. Do not assume a visible form or record
+was saved. Stop entering changes until the app confirms saving.
+
+Reconnect conflict: if changes were made on the host while it was offline and
+the server received newer changes elsewhere, the app may show RECONNECT
+CONFLICT. The server copy remains active and the host's offline copy is kept
+in that browser. In Setup, export/save that offline copy, compare it with the
+server's current records, re-enter only the needed changes, and discard the
+offline copy only after review.
+
+Routine staff workflows
+------------------------
+- Keep inmate profiles and recorded sizes current. Check identity and source
+  information before creating or changing an operational record.
+- Review each request and decide its item lines. Record reasons when needed.
+  Issue only approved quantities through the app's issue workflow; use partial
+  fulfillment when only part of a request can be supplied.
+- Record stock receipts and adjustments through inventory transactions. Run
+  the Monthly Inventory Check and reconcile differences before saving.
+- Use messages, replies, and comments for factual operational context. Link a
+  message to its request or inmate when useful. These records are shared; do not
+  use them for information that must remain private.
+- Use Reports for review and export only the data needed. CSV and JSON files
+  are downloaded to the browser's download location and may contain sensitive
+  records. Store them securely and remove unneeded copies according to policy.
+- Use Setup > Backup Data and Restore Data only with care. Make a fresh backup
+  before a restore; the restore confirmation explains that current data will
+  be replaced.
+
+5. DATA FILES AND BACKUPS
 -------------------------
-All data is in one file: state_issue_v2.db, in the same folder as the program.
-DO NOT DELETE, MOVE OR RENAME it while the server is stopped unless you are restoring a backup.
+By default the live SQLite database is state_issue_v2.db beside the program;
+backups are in the backups subfolder. If STATE_ISSUE_DATA is configured, the
+database and backups are in that data folder instead. Confirm the actual
+location before maintenance.
 
-3. AUTOMATIC BACKUPS
---------------------
-The server backs itself up automatically:
-  - Daily files: backups\daily_YYYY-MM-DD.db. The last 30 days are kept.
-  - Monthly files: backups\monthly_YYYY-MM.db. The last 12 months are kept.
-  - Checks happen every hour while the server runs, and when it starts.
-  - A backup is only made if the server is running. If it has been off for a day,
-    the backup is made the next time it starts.
+The running server creates:
+- Daily backups named backups\daily_YYYY-MM-DD.db; keeps the latest 30.
+- Monthly backups named backups\monthly_YYYY-MM.db; keeps the latest 12.
+- Backups at server startup and periodic checks while it is running.
 
-Each day, copy the newest daily file to a flash drive or another computer. Automatic backups
-are on the same computer as the data. A copy elsewhere protects against a failed or stolen computer.
+Automatic backups are on the same computer as the database. At least daily,
+copy a recent backup to a separate approved, secure device or location. Keep
+the copy protected from unauthorized access, loss, and ransomware. Do not
+store production data or backups in the source repository.
 
-4. VERIFYING A BACKUP (do this regularly - it is quick and changes nothing)
------------------------------------------------------------------------
-Double-click VERIFY_BACKUP.bat, then drag a file from the backups folder onto it
-when asked (or just drop the file directly onto the VERIFY_BACKUP.bat icon in
-Windows Explorer, which skips the prompt). It opens the backup read-only, checks
-it is not damaged, and prints what is in it: the date of the last change saved,
-and a count of inmates, items, requests, issues, stock transactions, reminders
-and inventory checks. Nothing is changed or restored - it only reads the file.
+Verify a backup
+---------------
+Run VERIFY_BACKUP.bat and provide a .db backup path, or drag a backup onto the
+batch file. A PASSED result verifies that the database can be read; it does
+not replace testing a full recovery procedure. Verify the newest daily backup
+at least monthly and before restoring it. The check is read-only.
 
-PASSED means the backup is safe to use if you ever need it.
-FAILED means that specific file is damaged - try an older one from the backups
-folder, and tell the support person which date failed.
-
-This is the repeatable restore test: run it on your newest daily backup once a
-month (for example, the first time you open the program each month) so you know
-your backups are actually good before you ever need one. It takes under a minute
-and does not touch the live database, so there is no harm in running it often.
-
-5. RESTORING A BACKUP (an actual recovery - not the same as verifying one)
----------------------------------------------------------------------------
-Only do this if the data is damaged or lost.
-  a. Stop the "State Issue Server" service in Windows Services.
-  b. Copy the current state_issue_v2.db somewhere safe, for example into a folder named "damaged".
-  c. Copy the backup file you want from the backups folder into the program folder.
-  d. Rename the copy to exactly:  state_issue_v2.db
-  e. Start the "State Issue Server" service in Windows Services. Check the Setup tab and dashboard.
-Check the date on the backup you choose. Anything saved after that date is not in it.
-Run VERIFY_BACKUP.bat on the backup file BEFORE step c, so you know it is good
-before you commit to using it.
-
-6. RECENT CHANGES (AUDIT LOG)
------------------------------
-SETUP -> Recent Changes shows the last 500 saves: date, time, the configured workstation name of
-whoever saved it (set in SETUP -> Display Name on that workstation; shows as — if none was set), the computer
-address, and what changed (for example "issues: 2 added"). It does not show inmate or personal
-names. The display name is not a login — anyone can change it — so use it as a general guide,
-not proof of who made a change. Use it to spot unexpected changes. Records of the log are kept
-in the database and are not removed by the program.
-
-The DASHBOARD also has a "Today's Changes" board — the same log, narrowed to just today, so it
-is quick to review at a glance. It updates by itself as changes are saved, on any computer, with
-no need to reload the page.
-
-7. EXCEL (CSV) EXPORTS
-----------------------
-SETUP -> Export to Excel: press a button, then open the file in Excel.
-REPORTS -> EXPORT REPORT (CSV): exports the report currently on screen.
-These files contain personal information. Store them only on the host computer or a secure drive,
-and delete copies you no longer need.
-
-8. INVENTORY AND DAILY USE
---------------------------
-  - Use the Monthly Inventory Check every month. It is recorded in stock history.
-  - Low-stock levels are set in SETUP. The dashboard shows an alert when stock reaches the minimum.
-
-9. IF SOMETHING GOES WRONG
---------------------------
-"Could not start" or a service error:
-  - Make sure Python 3.8 or newer is installed. Do not change any other files.
-  - Open Event Viewer -> Windows Logs -> Application and look for a State Issue Server error.
-  - Write down the exact message and send it to the program's support person.
-"DATA NOT SAVED" or "CHANGED ON ANOTHER COMPUTER" on screen:
-  - Do not keep entering work. Press Refresh or reopen the page so the current copy loads.
-  - If the message keeps returning, ask an administrator to check the service in Windows Services.
-"DATA NOT LOADED" message:
-  - The saved data could not be read. Changes are turned off to protect the data. Contact the
-    support person before doing anything else. Do not restore a backup without advice.
-  - Once you have advice, run VERIFY_BACKUP.bat on the backup you plan to use (section 4) before
-    restoring it, so you restore a good copy the first time.
-Nothing appears on other computers: check the address, check that the "State Issue Server"
-service is running, and check the network connection on that computer. If the address works
-on the host computer but not on others, run SETUP_NEW_COMPUTER.bat as administrator to open
-the port and verify that Windows Firewall permits State Issue on the private network.
-
-LIVE UPDATES
-  Changes made on one computer appear on the others within about a second. If someone has a
-  form open, the update waits until the form is closed. A short message appears when new data arrives.
-  If the screen shows "SERVER CONNECTION LOST", that computer cannot reach the host computer.
-  Check that the "State Issue Server" service is running. (The host computer itself does
-  not show this message — see section 1a, WORKING OFFLINE.)
-
-10. UPDATING THE PROGRAM
------------------------
-  1. On the host, right-click UPDATE_STATE_ISSUE.bat and choose "Run as administrator".
-  2. The updater downloads the published version from GitHub and runs the automated
-     server tests before changing the installation. It stops and restarts the
-     State Issue Server service when the service is already running.
-  3. The updater changes only application files. It does not replace or delete
-     state_issue_v2.db or the backups folder. If the update or service restart
-     fails, it restores the previous application files.
-  4. After a successful update, reload State Issue on the host and workstations.
-     Check the version in the header and test a normal workflow.
-  5. The host needs internet access to download updates. If updating is not
-     possible, use the manual update procedure and retain the database and backups.
-
-11. MESSAGES AND COMMENTS
-----------------------------
-  - Open Messages. Set your name in SETUP -> Display Name on this workstation if you want it
-    attached to messages and replies. It is optional and is not a login — anyone can change it.
-  - Type a message, optionally link a request and/or inmate, then press SEND MESSAGE.
-  - Reply inside a conversation to keep follow-up communication together. Use search to find
-    messages or replies.
-  - Messages and replies are shared with everyone who can access the program.
-  - Comments can also be added on inmate profiles, requests,
-    and individual issuance-history entries (via the COMMENTS button on each issue row). Use
-    comments to record updates or context without changing the underlying record.
-  - Nothing in Messages or comments can be deleted from the program. Anyone with access
-    can read all of it. Keep entries factual and appropriate, and do not use them for anything
-    that must be kept private.
-
-12. REQUIREMENTS
+Restore a backup
 ----------------
-  - Host computer: Windows with Python 3.8 or newer. SETUP_NEW_COMPUTER.bat installs it.
-  - Other computers: any Windows computer with a web browser. Nothing else.
-  - Other computers need no installation. The host needs internet only for the one-time pywin32
-    installation; normal operation does not require internet access.
+Restoration replaces the current live database and loses changes made after
+the chosen backup. Schedule downtime and tell users to stop work first.
+1. Choose a backup and run VERIFY_BACKUP.bat on it. Continue only if it passes.
+2. Stop "State Issue Server" in Services (services.msc).
+3. Make a separate safe copy of the current state_issue_v2.db. Do not delete it.
+4. Copy the verified backup into the configured data folder and name the copy
+   exactly state_issue_v2.db. Keep the original backup untouched.
+5. Start the service. Open the app on the host and confirm the expected
+   records and dashboard are present. Then test from a workstation.
+6. Keep the replaced database and backup until the restored app is confirmed.
+
+If the database is unreadable or the restore is uncertain, stop and preserve all
+copies. Do not repeatedly attempt recovery on the only copy; get help from an
+experienced administrator.
+
+6. UPDATING AND MAINTENANCE
+---------------------------
+Before an update:
+1. Ask users to finish work and confirm all computers are connected.
+2. Make and verify a database backup, then copy it to a separate secure place.
+3. Confirm internet is available on the host and retain a copy of current
+   application files if local changes have been made.
+
+Run UPDATE_STATE_ISSUE.bat as administrator on the host. It downloads the
+published repository files, stages them, runs the server tests, and only then
+replaces changed application files. It does not replace the live database or
+backups. If an update or service restart fails, it attempts to restore the
+previous program files. Afterward reload the host and workstation browsers,
+check the displayed version and test a normal workflow.
+
+If the host has no internet connection, wait until it is available to use the
+updater. Do not overwrite the database when copying program files. Never apply
+an untrusted archive or unofficial code.
+
+To uninstall the Windows service, use UNINSTALL_STATE_ISSUE_SERVICE.bat as
+administrator. Uninstalling the service does not delete the program folder,
+database, or backups. Keep the data until it has been separately backed up and
+verified.
+
+7. TROUBLESHOOTING
+------------------
+No connection on the host
+- Open Services and check whether "State Issue Server" is Running.
+- Try http://127.0.0.1:8787/ on the host.
+- If the service is stopped, start it. If it fails, note the exact error and
+  inspect Event Viewer > Windows Logs > Application.
+- Verify the host is using the expected program and data folder. Do not delete
+  or rename the database as a startup fix.
+
+Host works, but workstations cannot connect
+- Confirm the host and workstation are on the approved same network/VPN.
+- Check the URL configured in OPEN_STATE_ISSUE.bat and confirm the host address
+  has not changed.
+- On the host, run SETUP_NEW_COMPUTER.bat as administrator to check its tests
+  and firewall setup. Confirm TCP 8787 is allowed only on the intended private
+  network/VPN.
+- From the workstation, open the configured URL directly in a browser. If it
+  works directly but the shortcut fails, correct the shortcut.
+- If the host URL works locally but not remotely, ask the network administrator
+  to check VPN routing/firewall policy. Do not open the port to the public
+  internet or turn off Windows Firewall.
+
+Internet unavailable
+- Existing host and workstation use can continue over the local network.
+- Online setup steps, first-time pywin32 installation, and GitHub updates will
+  not work until internet access is restored. Do not remove Python or the
+  service; record the pending maintenance and retry later.
+
+Page looks old or does not update
+- Reload the page; if necessary, use Ctrl+F5 to reload the application shell.
+- Do not clear browser site data while the host shows pending offline changes.
+- Check that the server and application files are from the same release.
+
+"SERVER CONNECTION LOST" or changes not saving
+- Stop entering changes on that workstation. Check service status and network.
+- Reopen the configured host URL after connectivity is restored and confirm the
+  current data loads before continuing.
+- Do not restore a database merely because one client is disconnected.
+
+"DATA NOT LOADED" or repeated save conflict
+- Stop editing and preserve the database and backups. Record the exact message.
+- Do not delete data, browser site data, or restore a backup without first
+  verifying a backup and understanding which changes would be lost.
+
+Service will not start
+- Confirm Python is installed and available to the service, then inspect
+  Windows Event Viewer > Windows Logs > Application.
+- Confirm required program files exist and the service points to the intended
+  installation folder. Rerun the service installer as administrator only after
+  recording the error.
+- Do not run a second server against the same database at the same time.
+
+Backup verification fails
+- Do not use that backup. Try an older backup and verify it.
+- Preserve the failed file for diagnosis. Do not overwrite the live database
+  until a verified restore file is available.
+
+8. SUPPORT AND HANDOVER
+-----------------------
+Keep the repository URL, this guide, the host folder location, the configured
+data folder, and the names of responsible administrators available to the
+team. Do not put passwords or private network credentials in this guide.
+
+When handing over, show at least two administrators how to:
+- Check and restart the Windows service.
+- Open the host and workstation URLs.
+- Locate the database and backups.
+- Verify a backup and perform a supervised restore.
+- Run the automated tests and updater.
+- Preserve and report an offline reconnect conflict.
+
+When reporting a problem, include the app version, operating system, steps,
+time of occurrence, and sanitized error text. Never attach operational records
+to a public repository issue.

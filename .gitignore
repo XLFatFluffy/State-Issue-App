@@ -1,0 +1,12 @@
+# Python runtime and virtual-environment files
+__pycache__/
+*.py[cod]
+.venv/
+
+# Operational data and exports must not be committed
+*.db
+*.db-*
+backups/
+StateIssue_Backups/
+*.csv
+StateIssue_*.json

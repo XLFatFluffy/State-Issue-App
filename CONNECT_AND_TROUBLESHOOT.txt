@@ -1,89 +1,64 @@
-STATE ISSUE - CONNECT AND TROUBLESHOOT
-======================================
+STATE ISSUE — CONNECTIVITY QUICK GUIDE
+=======================================
 
-HOST ADDRESS
-------------
-Host VPN address: 25.34.230.125
-State Issue port: 8787
-Workstation URL:  http://25.34.230.125:8787/
+CONNECTION ADDRESSES
+--------------------
+Host computer: run START_STATE_ISSUE.bat. It opens:
+    http://127.0.0.1:8787/
 
-The host and workstations must be connected to a network or VPN that can route
-between them. The host address above is intended for VPN access; it may not be
-reachable from an unrelated network or from the public internet.
+Workstation: connect to the approved network/VPN, then run
+OPEN_STATE_ISSUE.bat. The host URL is configured in that file. You can also
+enter that exact URL directly in the browser.
 
+The host and workstation must be able to reach each other over the approved
+private network. The server listens on TCP port 8787. Opening Stateissue.html
+directly from a folder does not connect to shared data.
 
-CONNECT FROM THE HOST COMPUTER
-------------------------------
-1. Make sure the State Issue Server service is installed and running.
-2. Double-click START_STATE_ISSUE.bat.
-3. The browser should open http://127.0.0.1:8787/.
+INTERNET VS. LOCAL CONNECTIVITY
+-------------------------------
+After installation, normal app use does not require internet access. Host and
+workstations do need their local network/VPN path to the server. Internet is
+needed for online setup downloads, first-time pywin32 installation, and the
+GitHub update utility. A loss of internet alone does not stop local-network use.
 
-Use this localhost address on the host. It enables the host computer's offline
-behavior. Do not change START_STATE_ISSUE.bat to the VPN address.
-
-
-CONNECT FROM A WORKSTATION
---------------------------
-1. Connect the workstation to the same VPN/network as the host.
-2. Double-click OPEN_STATE_ISSUE.bat, or enter this address in a browser:
-   http://25.34.230.125:8787/
-3. You do not need to install State Issue on a workstation.
-
-The workstation must open the app through the server URL. Opening Stateissue.html
-directly from a folder will not connect to shared data.
-
+If the host's network/VPN address changes, update OPEN_STATE_ISSUE.bat on each
+workstation and the matching firewall configuration in SETUP_NEW_COMPUTER.bat.
+Run the setup script as administrator, then test the new URL.
 
 TROUBLESHOOTING
 ---------------
+1. Host browser cannot connect
+   - Check "State Issue Server" in Windows Services (services.msc).
+   - Start the service if it is stopped.
+   - On the host, open http://127.0.0.1:8787/ directly.
+   - If that fails, check the Windows Application event log and the program
+     installation. Do not delete or move the database.
 
-1. Confirm the VPN/network connection
-   - Check that the host and workstation are both connected to the expected VPN.
-   - On the host, open Command Prompt and run:
-       ipconfig
-     Confirm that the VPN adapter has IPv4 address 25.34.230.125.
-   - If it has a different address, update OPEN_STATE_ISSUE.bat on each
-     workstation and the VPN firewall rule in SETUP_NEW_COMPUTER.bat. Then rerun
-     SETUP_NEW_COMPUTER.bat on the host as administrator.
+2. Host works, workstation cannot connect
+   - Confirm both computers are on the intended network/VPN.
+   - Check the host URL in OPEN_STATE_ISSUE.bat; test that same URL directly.
+   - On the host, run SETUP_NEW_COMPUTER.bat as administrator and check the
+     firewall rule for TCP 8787 on the approved private network/VPN.
+   - If the direct URL fails too, ask the network administrator to check VPN
+     routing and firewall policy. Do not disable the firewall or expose the
+     server to the public internet.
 
-2. Check the server on the host
-   - Open the Windows Services app (press Windows+R, enter services.msc).
-   - Find "State Issue Server" and confirm its status is "Running".
-   - If it is stopped, start it. If it will not start, check Windows Event
-     Viewer or rerun INSTALL_STATE_ISSUE_SERVICE.bat as administrator.
-   - On the host, test http://127.0.0.1:8787/ in a browser. If that does not
-     load, the issue is on the host (service, installation, or port), not the
-     workstation shortcut.
+3. URL works, shortcut does not
+   - Correct the address in OPEN_STATE_ISSUE.bat and use the updated shortcut.
 
-3. Test the connection from the workstation
-   - Open PowerShell and run:
-       Test-NetConnection 25.34.230.125 -Port 8787
-   - If TcpTestSucceeded is True, open
-     http://25.34.230.125:8787/ directly in the browser. If the direct URL
-     works but the shortcut does not, check the address in OPEN_STATE_ISSUE.bat.
-   - If TcpTestSucceeded is False, continue with the host firewall checks below.
+4. Page loads but data will not save
+   - Check the page's connection/save status and verify the host service is
+     running. Workstations cannot save while disconnected.
+   - Host-only offline changes are held in that browser. Keep its browser
+     profile and site data intact until it reconnects and syncs.
+   - If RECONNECT CONFLICT appears, export/save the local copy, compare it with
+     the server data, re-enter needed changes, and discard only after review.
 
-4. Check the host firewall
-   - On the host, rerun SETUP_NEW_COMPUTER.bat using "Run as administrator".
-   - The VPN rule should allow TCP port 8787 only when the destination is
-     25.34.230.125 and the connecting address is in 25.0.0.0/8.
-   - In Windows Defender Firewall with Advanced Security, check Inbound Rules
-     for "State Issue VPN TCP 8787". Confirm the rule is enabled and allows TCP
-     local port 8787, local IP 25.34.230.125, and remote IP range 25.0.0.0/8.
-   - Do not turn off the firewall or create an unrestricted public internet
-     access rule. If a managed firewall or VPN policy blocks the connection,
-     ask the network administrator to allow this host and port on the VPN.
+5. Page appears stale
+   - Reload, or press Ctrl+F5. Do not clear site data if offline work is pending.
+   - Confirm the browser is opening the server URL, not a local HTML file.
 
-5. If the page loads but looks stale or will not update
-   - Reload the page, or press Ctrl+F5 to force a browser refresh.
-   - Do not clear browser site data if the page shows unsynced or offline
-     changes. Those changes may exist only in that browser on that computer.
-   - If only one workstation has the problem, try the direct URL above in
-     another browser before changing host settings.
+For more detailed backup, service, and recovery instructions see ADMIN_GUIDE.txt.
 
-
-IMPORTANT
----------
-Do not delete the State Issue database or browser site data as a connection
-troubleshooting step. If the host address changes, update the workstation
-shortcut and host firewall rule together. Keep using START_STATE_ISSUE.bat on
-the host and OPEN_STATE_ISSUE.bat on workstations.
+Repository:
+https://github.com/XLFatFluffy/State-Issue-App
