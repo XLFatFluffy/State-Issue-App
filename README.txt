@@ -1,4 +1,4 @@
-STATE ISSUE 3.2.0
+STATE ISSUE 3.3.0
 Official operational release
 =============================
 
@@ -7,10 +7,11 @@ requests, inventory, issue history, and staff messages. One Windows computer
 hosts the app and its shared database. Other computers connect to that host
 through a trusted local network or VPN.
 
-Version 3.2 adds message completion and deletion, and shows linked messages on
-the related request and inmate records. Version 3.1 added the shared, structured
-feedback inbox in Setup. These features do not add user accounts, role-based
-permissions, or a security certification.
+Version 3.3 adds three staff-set inmate review levels, color-coded profiles and
+requests, and a combined request activity timeline. Version 3.2 added message
+completion and deletion and shows linked messages on related records. Version
+3.1 added the shared, structured feedback inbox in Setup. These features do not
+add user accounts, role-based permissions, or a security certification.
 
 Project repository:
 https://github.com/XLFatFluffy/State-Issue-App
@@ -55,6 +56,9 @@ FEATURES
 - Shared messages with replies, completion and deletion controls, and optional
   links that also appear on the related request or inmate record.
 - Comments, request snapshots, and an audit view of recent changes.
+- Staff-set Routine, Needs review, and High risk inmate levels are color-coded
+  on profiles and linked requests. Request activity brings together saved
+  request snapshots, item issuance/voids, and comments in time order.
 - Shared Setup inbox for detailed problem reports and improvement suggestions.
 - JSON export/restore and automatic SQLite backups.
 
@@ -64,6 +68,9 @@ IMPORTANT LIMITATIONS
   who can reach the app can view and change shared records.
 - Workstation display names are optional, user-editable attribution labels;
   they do not identify or authenticate a person.
+- Risk levels are staff-set review cues, not automatic decisions or a verified
+  risk assessment. "Routine" means no additional flag is set, not that the
+  inmate has never had an issue. Record factual reasons for review/high-risk.
 - The server is intended for a trusted private network or VPN. Do not expose it
   directly to the public internet.
 - CSV exports and database backups may contain sensitive personal information.

@@ -690,6 +690,44 @@
         background: #f7edda;
         color: #754c0e;
       }
+      .risk-row {
+        border-left: 5px solid transparent;
+      }
+      .risk-routine {
+        border-left-color: #2e7d32;
+        background: #edf6ef;
+      }
+      .risk-review {
+        border-left-color: #a86400;
+        background: #fff5df;
+      }
+      .risk-high {
+        border-left-color: #a52828;
+        background: #fbeaea;
+      }
+      .risk-row.risk-routine:hover {
+        background: #e3f0e6;
+      }
+      .risk-row.risk-review:hover {
+        background: #ffedc7;
+      }
+      .risk-row.risk-high:hover {
+        background: #f6dada;
+      }
+      .risk-profile {
+        padding: 14px;
+        border: 2px solid;
+        border-radius: 8px;
+      }
+      .risk-profile.risk-routine {
+        border-color: #2e7d32;
+      }
+      .risk-profile.risk-review {
+        border-color: #a86400;
+      }
+      .risk-profile.risk-high {
+        border-color: #a52828;
+      }
       .warnbox,
       .propbox {
         border-radius: 8px;
@@ -1143,7 +1181,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "3.2.0",
+        var APP_VERSION = "3.3.0",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1443,6 +1481,13 @@
           d.inmates.forEach(function (i) {
             i.sizes = i.sizes || {};
             if (!Array.isArray(i.highRiskHistory)) i.highRiskHistory = [];
+            if (
+              i.riskLevel !== "review" &&
+              i.riskLevel !== "high" &&
+              i.riskLevel !== "routine"
+            )
+              i.riskLevel = i.highRisk ? "high" : "routine";
+            i.highRisk = i.riskLevel === "high";
           });
           migrateArchive(d);
           d.requests.forEach(function (r) {
@@ -1924,6 +1969,58 @@
             return h.indexOf(w) > -1;
           });
         }
+        function inmateRiskLevel(i) {
+          if (!i) return "routine";
+          if (
+            i.riskLevel === "review" ||
+            i.riskLevel === "high" ||
+            i.riskLevel === "routine"
+          )
+            return i.riskLevel;
+          return i.highRisk ? "high" : "routine";
+        }
+        function riskClass(i) {
+          return "risk-" + inmateRiskLevel(i);
+        }
+        function riskLabel(i) {
+          var level = inmateRiskLevel(i);
+          return level === "high"
+            ? "High risk"
+            : level === "review"
+              ? "Needs review"
+              : "Routine";
+        }
+        function riskBadge(i) {
+          var level = inmateRiskLevel(i);
+          return (
+            '<span class="badge ' +
+            (level === "high"
+              ? "red"
+              : level === "review"
+                ? "orange"
+                : "green") +
+            '">' +
+            riskLabel(i) +
+            "</span>"
+          );
+        }
+        function riskNotice(i) {
+          if (!i) return "";
+          var level = inmateRiskLevel(i);
+          return (
+            '<div class="risk-profile ' +
+            riskClass(i) +
+            '"><b>Profile review level: ' +
+            riskLabel(i) +
+            "</b>" +
+            (level === "routine"
+              ? '<br><span class="note">No additional review flag is set. Check the recorded history before making a decision.</span>'
+              : '<br><b>Reason for review:</b> ' +
+                esc(i.highRiskReason || "No reason recorded") +
+                '<br><span class="note">This is a staff-set review indicator, not an automatic approval or denial.</span>') +
+            "</div>"
+          );
+        }
         function byName(a, b) {
           return (a.last + a.first).toLowerCase() <
             (b.last + b.first).toLowerCase()
@@ -1981,7 +2078,9 @@
             list
               .map(function (i) {
                 return (
-                  '<tr class="clickrow" data-id="' +
+                  '<tr class="clickrow risk-row ' +
+                  riskClass(i) +
+                  '" data-id="' +
                   esc(i.id) +
                   '"><td>' +
                   recordLink("inmate", i.id, i.mdoc) +
@@ -1990,9 +2089,8 @@
                   (i.hasProperty
                     ? '<span class="propbadge">PROPERTY</span>'
                     : "") +
-                  (i.highRisk
-                    ? ' <span class="badge red">HIGH RISK / REVIEW</span>'
-                    : "") +
+                  " " +
+                  riskBadge(i) +
                   "</td><td>" +
                   esc(i.zone) +
                   "</td><td>" +
@@ -2036,7 +2134,9 @@
             zone: "",
             intakeDate: today(),
             sizes: {},
+            riskLevel: "routine",
           };
+          var level = inmateRiskLevel(i);
           return (
             '<div class="grid"><label>MDOC Number<input id="imdoc" value="' +
             esc(i.mdoc) +
@@ -2070,9 +2170,14 @@
             '<div class="propbox"><label style="margin:0"><input type="checkbox" id="ihasprop"' +
             (i.hasProperty ? " checked" : "") +
             '> This inmate has PROPERTY being stored</label></div>' +
-            '<div class="warnbox"><label style="margin:0"><input type="checkbox" id="ihighrisk"' +
-            (i.highRisk ? " checked" : "") +
-            '> Needs extra review</label><p class="note">Use this flag when there is a specific concern to check before deciding on or issuing a request. It will not approve or deny a request on its own.</p><label>Reason for flag<textarea id="iriskreason" maxlength="1000" placeholder="Briefly describe what staff should review">' +
+            '<div class="card"><label for="irisklevel">Profile review level</label><select id="irisklevel"><option value="routine"' +
+            (level === "routine" ? " selected" : "") +
+            '>Routine — no additional flag</option><option value="review"' +
+            (level === "review" ? " selected" : "") +
+            '>Needs review — check history and notes</option><option value="high"' +
+            (level === "high" ? " selected" : "") +
+            '>High risk — heightened review</option></select>' +
+            '<p class="note">Choose based on the documented record. Routine means no extra flag is currently set, not that the inmate has never had an issue. This label does not approve or deny requests.</p><label>Reason (required for Needs review or High risk)<textarea id="iriskreason" maxlength="1000" placeholder="Record the specific, factual reason staff should review">' +
             esc(i.highRiskReason || "") +
             '</textarea></label></div><label>Notes (if property is stored, describe it here)<textarea id="inotes">' +
             esc(i.notes || "") +
@@ -2108,7 +2213,7 @@
                   "><td>" +
                   fmt(x.date) +
                   "</td><td>" +
-                  esc(itemName(x.itemId)) +
+                  esc(x.itemName || itemName(x.itemId)) +
                   "</td><td>" +
                   esc(x.size || "—") +
                   "</td><td>" +
@@ -2163,15 +2268,11 @@
               (i.hasProperty
                 ? '<br><b class="neg">⚠ HAS STORED PROPERTY</b>'
                 : "") +
-              (i.highRisk
-                ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
-                  esc(i.highRiskReason || "No reason recorded") +
-                  "<br><span class=\"note\">Review this flag when considering requests; it does not automatically deny a request.</span></div>"
-                : "") +
               (i.notes ? "<br><b>Notes:</b> " + esc(i.notes) : "") +
               "</div>" +
+              riskNotice(i) +
               (i.highRiskHistory && i.highRiskHistory.length
-                ? "<h3>High-Risk Flag History</h3><div class=\"card\">" +
+                ? "<h3>Profile Review-Level History</h3><div class=\"card\">" +
                   i.highRiskHistory
                     .slice()
                     .reverse()
@@ -2184,6 +2285,36 @@
                               ? "Flagged for review"
                               : "Flag cleared"),
                         ) +
+                        (entry.level
+                          ? " · " +
+                            esc(
+                              entry.level === "high"
+                                ? "High risk"
+                                : entry.level === "review"
+                                  ? "Needs review"
+                                  : "Routine",
+                            )
+                          : "") +
+                        (entry.previousLevel &&
+                        entry.previousLevel !== entry.level
+                          ? " (" +
+                            esc(
+                              entry.previousLevel === "high"
+                                ? "High risk"
+                                : entry.previousLevel === "review"
+                                  ? "Needs review"
+                                  : "Routine",
+                            ) +
+                            " → " +
+                            esc(
+                              entry.level === "high"
+                                ? "High risk"
+                                : entry.level === "review"
+                                  ? "Needs review"
+                                  : "Routine",
+                            ) +
+                            ")"
+                          : "") +
                         "</b> · " +
                         esc(fmtDateTime(entry.at)) +
                         " · " +
@@ -2255,10 +2386,10 @@
             toast("Property is checked. Describe the property in Notes.", true);
             return;
           }
-          var highRisk = $("ihighrisk").checked,
+          var reviewLevel = $("irisklevel").value,
             highRiskReason = $("iriskreason").value.trim();
-          if (highRisk && !highRiskReason) {
-            toast("Enter a factual reason for the high-risk review flag.", true);
+          if (reviewLevel !== "routine" && !highRiskReason) {
+            toast("Enter a factual reason for the selected review level.", true);
             return;
           }
           if ($("ipants").value && !$("ipcolor").value) {
@@ -2282,7 +2413,9 @@
             return;
           }
           var snap = JSON.stringify(db);
-          var previousHighRisk = !!(existing && existing.highRisk),
+          var previousRiskLevel = existing
+              ? inmateRiskLevel(existing)
+              : "routine",
             previousRiskReason = existing
               ? existing.highRiskReason || ""
               : "";
@@ -2298,22 +2431,25 @@
           obj.intakeDate = d;
           obj.notes = $("inotes").value.trim();
           obj.hasProperty = $("ihasprop").checked;
-          obj.highRisk = highRisk;
-          obj.highRiskReason = highRisk ? highRiskReason : "";
+          obj.riskLevel = reviewLevel;
+          obj.highRisk = reviewLevel === "high";
+          obj.highRiskReason =
+            reviewLevel === "routine" ? "" : highRiskReason;
           obj.highRiskHistory = obj.highRiskHistory || [];
           if (
-            previousHighRisk !== highRisk ||
+            previousRiskLevel !== reviewLevel ||
             previousRiskReason !== obj.highRiskReason
           ) {
             obj.highRiskHistory.push({
               at: iso(),
               by: displayName(),
-              flagged: highRisk,
-              action: highRisk
-                ? previousHighRisk
-                  ? "Flag details updated"
-                  : "Flagged for review"
-                : "Flag cleared",
+              level: reviewLevel,
+              previousLevel: previousRiskLevel,
+              flagged: reviewLevel !== "routine",
+              action:
+                previousRiskLevel === reviewLevel
+                  ? "Review reason updated"
+                  : "Review level changed",
               reason: obj.highRiskReason,
             });
           }
@@ -2902,7 +3038,7 @@
                 i = g.inmate,
                 name =
                   (i ? i.first + " " + i.last : "Removed inmate") +
-                  (i && i.highRisk ? " — HIGH-RISK / REVIEW" : "");
+                  (i ? " · " + riskLabel(i) : "");
               var body =
                 '<div class="reminderGroupBody" id="dashReqBody' +
                 kind +
@@ -2916,7 +3052,7 @@
                     var summary = items
                       .map(function (x) {
                         return (
-                          esc(itemName(x.itemId)) +
+                          esc(x.itemName || itemName(x.itemId)) +
                           " (" +
                           esc(x.size) +
                           ") ×" +
@@ -2932,7 +3068,9 @@
                       })
                       .join("<br>");
                     return (
-                      "<tr><td>" +
+                      '<tr class="risk-row ' +
+                      (i ? riskClass(i) : "risk-routine") +
+                      '"><td>' +
                       fmt(r.date) +
                       "</td><td>" +
                       recordLink("request", r.id) +
@@ -2954,7 +3092,9 @@
                 n +
                 ')" aria-expanded="false"><span class="reminderArrow">▶</span><span class="reminderName">' +
                 esc(name) +
-                '</span><span class="badge orange">' +
+                '</span>' +
+                (i ? riskBadge(i) + " " : "") +
+                '<span class="badge orange">' +
                 g.rows.length +
                 " request" +
                 (g.rows.length === 1 ? "" : "s") +
@@ -3071,11 +3211,7 @@
           }
           openModal(
             "Issue Outstanding Item",
-            (i.highRisk
-              ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
-                esc(i.highRiskReason || "No reason recorded") +
-                "</div>"
-              : "") +
+            riskNotice(i) +
               '<div class="card"><b>' +
               recordLink("inmate", i.id, i.first + " " + i.last) +
               "</b> — MDOC " +
@@ -3161,6 +3297,7 @@
                 issuedBy: displayName(),
                 zone: i.zone,
                 itemId: r.itemId,
+                itemName: itemName(r.itemId),
                 size: r.size,
                 qty: q2,
                 reason: "Outstanding issue",
@@ -3448,11 +3585,7 @@
           closeModal();
           openModal(
             "Intake Issue — " + i.first + " " + i.last,
-            (i.highRisk
-              ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
-                esc(i.highRiskReason || "No reason recorded") +
-                "</div>"
-              : "") +
+            riskNotice(i) +
               '<p class="note">Change the quantities as needed. Use 0 for anything not issued. Stock is updated when you select RECORD.</p>' +
               rows +
               '<div class="row" style="margin-top:14px"><button class="btn green" id="doIntake">RECORD INTAKE ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>',
@@ -3526,6 +3659,7 @@
                     issuedBy: displayName(),
                     zone: i.zone,
                     itemId: l.itemId,
+                    itemName: itemName(l.itemId),
                     size: l.size,
                     qty: l.qty,
                     reason: "New Arrival",
@@ -3609,6 +3743,8 @@
                   d = today();
                 y.voided = true;
                 y.voidDate = d;
+                y.voidedAt = iso();
+                y.voidedBy = displayName();
                 y.voidReason = why;
                 db.txns.push({
                   id: "T" + next("txn"),
@@ -3743,15 +3879,16 @@
                 l
                   .map(function (i) {
                     return (
-                      "<tr><td>" +
+                      '<tr class="risk-row ' +
+                      riskClass(i) +
+                      '"><td>' +
                       esc(i.mdoc) +
                       "</td><td>" +
                       esc(i.last + ", " + i.first) +
                       "</td><td>" +
                       esc(i.zone) +
-                      (i.highRisk
-                        ? ' <span class="badge red">HIGH RISK / REVIEW</span>'
-                        : "") +
+                      " " +
+                      riskBadge(i) +
                       '</td><td><button class="btn green small" onclick="newRequestFor(\'' +
                       i.id +
                       "')\">SELECT</button></td></tr>"
@@ -3895,11 +4032,7 @@
             " — Zone " +
             esc(i.zone || "—") +
             "</div>" +
-            (i.highRisk
-            ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
-              esc(i.highRiskReason || "No reason recorded") +
-              "</div>"
-            : "") +
+            riskNotice(i) +
             '<div class="grid">' +
             dateInput("reqDate", "Date", r ? r.date : today()) +
             '<label>Request Type<select id="reqType">' +
@@ -4062,6 +4195,7 @@
                 officer: r.officer,
                 notes: r.notes,
                 status: r.status,
+                riskLevelAtTime: inmateRiskLevel(requestInmate),
                 highRiskAtTime: !!(requestInmate && requestInmate.highRisk),
                 highRiskReasonAtTime:
                   (requestInmate && requestInmate.highRiskReason) || "",
@@ -4072,6 +4206,7 @@
                   .map(function (x) {
                     return {
                       itemId: x.itemId,
+                      itemName: itemName(x.itemId),
                       size: x.size,
                       qty: x.qty,
                       decision: x.decision,
@@ -4155,7 +4290,9 @@
               .map(function (r) {
                 var i = inmateById(r.inmateId);
                 return (
-                  "<tr><td>" +
+                  '<tr class="risk-row ' +
+                  (i ? riskClass(i) : "risk-routine") +
+                  '"><td>' +
                   recordLink("request", r.id) +
                   "</td><td>" +
                   fmt(r.date) +
@@ -4164,9 +4301,8 @@
                   "</td><td>" +
                   (i
                     ? recordLink("inmate", i.id, i.first + " " + i.last) +
-                      (i.highRisk
-                        ? ' <span class="badge red">HIGH RISK / REVIEW</span>'
-                        : "")
+                      " " +
+                      riskBadge(i)
                     : "Removed inmate") +
                   "</td><td>" +
                   esc(r.type) +
@@ -4185,6 +4321,143 @@
               : "");
         }
         $("requestFilter").onchange = renderRequests;
+        function requestHistoryHTML(r) {
+          var events = [];
+          (Array.isArray(r.history) ? r.history : []).forEach(function (entry) {
+            var items = Array.isArray(entry.items) ? entry.items : [],
+              details =
+                (entry.status
+                  ? "<p>Status at save: " +
+                    statusBadge(entry.status) +
+                    "</p>"
+                  : "") +
+                (entry.officer
+                  ? "<p>Officer: " + esc(entry.officer) + "</p>"
+                  : "") +
+                (entry.highRiskAtTime || entry.riskLevelAtTime === "high"
+                  ? '<p><span class="badge red">High risk at this time</span> ' +
+                    esc(entry.highRiskReasonAtTime || "") +
+                    "</p>"
+                  : entry.riskLevelAtTime === "review"
+                    ? '<p><span class="badge orange">Needs review at this time</span> ' +
+                      esc(entry.highRiskReasonAtTime || "") +
+                      "</p>"
+                    : "") +
+                (entry.notes
+                  ? "<p>Request notes: " +
+                    esc(entry.notes).replace(/\n/g, "<br>") +
+                    "</p>"
+                  : "") +
+                (items.length
+                  ? "<ul>" +
+                    items
+                      .map(function (item) {
+                        return (
+                          "<li><b>" +
+                            esc(item.itemName || itemName(item.itemId)) +
+                          " · " +
+                          esc(item.size || "—") +
+                          "</b>: requested " +
+                          esc(item.qty) +
+                          ", " +
+                          esc(item.decision || "pending") +
+                          (item.reason
+                            ? " · replaces: " + esc(item.reason)
+                            : "") +
+                          (item.decisionReason
+                            ? " · decision note: " +
+                              esc(item.decisionReason)
+                            : "") +
+                          " · issued " +
+                          esc(item.issuedQty || 0) +
+                          "</li>"
+                        );
+                      })
+                      .join("") +
+                    "</ul>"
+                  : "");
+            events.push({
+              at: entry.at || "",
+              title:
+                entry.action === "Created" ? "Request created" : "Request updated",
+              by: entry.by || "Name not provided",
+              details: details,
+            });
+          });
+          db.issues
+            .filter(function (issue) {
+              return issue.requestId === r.id;
+            })
+            .forEach(function (issue) {
+              events.push({
+                at: issue.issuedAt || issue.date || "",
+                title:
+                  "Issued " +
+                  issue.qty +
+                  " " +
+                  (issue.itemName || itemName(issue.itemId)) +
+                  " (" +
+                  (issue.size || "—") +
+                  ")",
+                by: issue.issuedBy || "Name not provided",
+                details: issue.reason
+                  ? "<p>Reason: " + esc(issue.reason) + "</p>"
+                  : "",
+              });
+              if (issue.voided) {
+                events.push({
+                  at: issue.voidedAt || issue.voidDate || issue.issuedAt || "",
+                  title: "Issue voided",
+                  by: issue.voidedBy || "Name not recorded",
+                  details:
+                    "<p>" +
+                    esc(issue.itemName || itemName(issue.itemId)) +
+                    " (" +
+                    esc(issue.size || "—") +
+                    ") · quantity " +
+                    esc(issue.qty) +
+                    "</p><p>Reason: " +
+                    esc(issue.voidReason || "No reason recorded") +
+                    "</p>",
+                });
+              }
+            });
+          commentList("request", r.id).forEach(function (comment) {
+            events.push({
+              at: comment.at || "",
+              title: "Request comment",
+              by: comment.author || "Name not provided",
+              details:
+                "<p>" + esc(comment.text || "").replace(/\n/g, "<br>") + "</p>",
+            });
+          });
+          events.sort(function (a, b) {
+            return (b.at || "").localeCompare(a.at || "");
+          });
+          if (!events.length)
+            return '<div class="empty">No saved activity is available for this older request yet.</div>';
+          return (
+            '<details class="card"><summary style="cursor:pointer;font-weight:600">Request activity &amp; history (' +
+            events.length +
+            ')</summary><ol style="padding-left:26px">' +
+            events
+              .map(function (event) {
+                return (
+                  '<li style="border-top:1px solid #d5dce4;padding:12px 4px"><b>' +
+                  esc(event.title) +
+                  "</b><div class=\"note\">" +
+                  esc(fmtDateTime(event.at)) +
+                  " · " +
+                  esc(event.by) +
+                  "</div>" +
+                  event.details +
+                  "</li>"
+                );
+              })
+              .join("") +
+            "</ol></details>"
+          );
+        }
         window.viewRequest = function (id) {
           var r = db.requests.find(function (x) {
             return x.id === id;
@@ -4248,65 +4521,7 @@
               );
             })
             .join("");
-          var history = Array.isArray(r.history) ? r.history.slice().reverse() : [],
-            historyHTML = history.length
-              ? "<details class=\"card\"><summary style=\"cursor:pointer;font-weight:600\">Request history (" +
-                history.length +
-                ")</summary>" +
-                history
-                  .map(function (entry) {
-                    return (
-                      '<div style="border-top:1px solid #d5dce4;padding:10px 0"><b>' +
-                      esc(entry.action || "Updated") +
-                      "</b> · " +
-                      esc(fmtDateTime(entry.at)) +
-                      " · " +
-                      esc(entry.by || "Name not provided") +
-                      "<br>Date: " +
-                      esc(fmt(entry.date)) +
-                      " · Status: " +
-                      esc(entry.status || "—") +
-                      (entry.officer
-                        ? "<br>Officer: " + esc(entry.officer)
-                        : "") +
-                      (entry.highRiskAtTime
-                        ? '<br><span class="neg">HIGH-RISK / REVIEW AT THIS TIME</span>' +
-                          (entry.highRiskReasonAtTime
-                            ? "<br>" + esc(entry.highRiskReasonAtTime)
-                            : "")
-                        : "") +
-                      (entry.notes ? "<br>Notes: " + esc(entry.notes) : "") +
-                      "<ul>" +
-                      (Array.isArray(entry.items)
-                        ? entry.items
-                            .map(function (x) {
-                              return (
-                                "<li>" +
-                                esc(itemName(x.itemId)) +
-                                " (" +
-                                esc(x.size) +
-                                ") — requested " +
-                                esc(x.qty) +
-                                ", " +
-                                esc(x.decision || "pending") +
-                                (x.reason ? ": " + esc(x.reason) : "") +
-                                (x.decisionReason
-                                  ? " — Decision note: " +
-                                    esc(x.decisionReason)
-                                  : "") +
-                                ", issued " +
-                                esc(x.issuedQty || 0) +
-                                "</li>"
-                              );
-                            })
-                            .join("")
-                        : "") +
-                      "</ul></div>"
-                    );
-                  })
-                  .join("") +
-                "</details>"
-              : '<p class="note">Changes to this request are recorded from now on. Older requests do not have a history here.</p>';
+          var historyHTML = requestHistoryHTML(r);
           openModal(
             "Request " + r.id,
             '<div class="card"><b>Inmate:</b> ' +
@@ -4325,11 +4540,7 @@
               statusBadge(r.status) +
               fulfilledBadge(r) +
               "</div>" +
-              (i && i.highRisk
-                ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
-                  esc(i.highRiskReason || "No reason recorded") +
-                  "<br><span class=\"note\">This flag does not automatically approve or deny requests.</span></div>"
-                : "") +
+              riskNotice(i) +
               (i
                 ? '<div class="row"><button class="btn" onclick="editRequest(\'' +
                   id +
@@ -4386,11 +4597,7 @@
             .slice(0, 3);
           openModal(
             "Issue " + it.name,
-            (i.highRisk
-              ? '<div class="warnbox"><b>HIGH-RISK / NEEDS REVIEW</b><br>Reason: ' +
-                esc(i.highRiskReason || "No reason recorded") +
-                "</div>"
-              : "") +
+            riskNotice(i) +
               '<div class="card"><b>' +
               recordLink("inmate", i.id, i.first + " " + i.last) +
               "</b> — MDOC " +
@@ -4476,6 +4683,7 @@
                 issuedBy: displayName(),
                 zone: i.zone,
                 itemId: it.id,
+                itemName: it.name,
                 size: ri.size,
                 qty: q,
                 reason: ri.reason || "",
@@ -5744,7 +5952,7 @@
               "Shoe",
               "Shower Shoes",
               "Property Stored",
-              "High Risk / Review",
+              "Profile Review Level",
               "High-Risk Reason",
               "Notes",
             ],
@@ -5767,7 +5975,7 @@
                   z.shoe,
                   z.showershoes,
                   i.hasProperty ? "Yes" : "No",
-                  i.highRisk ? "Yes" : "No",
+                  riskLabel(i),
                   i.highRiskReason || "",
                   i.notes,
                 ];
@@ -5803,7 +6011,7 @@
                   i ? i.mdoc : "",
                   i ? i.last : "Removed inmate",
                   i ? i.first : "",
-                  itemName(x.itemId),
+                  x.itemName || itemName(x.itemId),
                   x.size,
                   x.qty,
                   x.type,

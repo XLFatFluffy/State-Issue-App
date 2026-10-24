@@ -1,5 +1,22 @@
-STATE ISSUE 3.1.0 — ADMINISTRATOR GUIDE
+STATE ISSUE 3.3.0 — ADMINISTRATOR GUIDE
 ========================================
+
+Inmate profiles have three staff-set review levels:
+- Routine (green): no additional review flag is currently set.
+- Needs review (orange): check the profile, request history, and recorded reason.
+- High risk (red): heightened staff review; the recorded reason is required.
+
+These are visual staff cues, not automated decisions or an independently verified
+risk assessment. Routine does not mean the inmate has never had a problem. Choose
+based on documented facts; the level never auto-approves or denies a request.
+The same color and text appear on linked requests. Profile review-level changes
+are retained in profile history.
+
+Open a request's "Request activity & history" disclosure to see request snapshots,
+decisions and reasons, item issues and voids, timestamps, staff labels, and request
+comments in chronological order. Older requests may not have a full activity
+history if details were not retained at the time; older item labels may reflect
+the current catalog name if the item was not snapshotted before a rename.
 
 Purpose
 -------

@@ -669,6 +669,21 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn("workstationDisplayName=name", body)
         self.assertNotIn("db.settings.displayName=name", body)
 
+    def test_profile_review_levels_and_request_activity_are_available(self):
+        compact = re.sub(r"\s+", "", self.html)
+        for level in ('value="routine"', 'value="review"', 'value="high"'):
+            self.assertIn(level, compact)
+        self.assertIn('functioninmateRiskLevel(i)', compact)
+        self.assertIn('class="risk-row', compact)
+        self.assertIn('i.riskLevel=i.highRisk?"high":"routine"', compact)
+        self.assertIn('riskLevelAtTime:inmateRiskLevel(requestInmate)', compact)
+        self.assertIn("functionrequestHistoryHTML(r)", compact)
+        self.assertIn('itemName:itemName(x.itemId)', compact)
+        self.assertIn('commentList("request",r.id)', compact)
+        self.assertIn('issue.voidedAt||issue.voidDate||issue.issuedAt||""', compact)
+        self.assertIn('title: "Request comment"', self.html)
+        self.assertIn('title: "Issue voided"', self.html)
+
     def test_fixup_advances_all_id_sequences_from_existing_records(self):
         compact = re.sub(r"\s+", "", self.html)
         for source in (
