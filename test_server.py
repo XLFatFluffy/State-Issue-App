@@ -429,6 +429,10 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('$("displayName")', body)
         self.assertIn("displayName()", body)
 
+    def test_version_note_describes_connected_workstations_without_implying_access_control(self):
+        self.assertIn("shared across connected workstations", self.html)
+        self.assertNotIn("shared across authorized workstations", self.html)
+
     def test_display_name_is_local_to_each_workstation(self):
         compact = re.sub(r"\s+", "", self.html)
         self.assertIn('varDISPLAY_NAME_KEY="stateIssueWorkstationName"', compact)
