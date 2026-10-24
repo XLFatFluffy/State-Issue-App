@@ -806,9 +806,9 @@
         <div id="dashboardActions"></div>
         <h3>Today's Changes</h3>
         <p class="note">
-          Every change saved by anyone on the network shows up here as it
-          happens, with the configured workstation name, if one is set. Clears at
-          midnight — see Recent Changes in Setup for older history.
+          Changes saved today appear here as they happen. You'll see the
+          workstation name if one is set. This list starts over at midnight;
+          older changes are in Setup under Recent Changes.
         </p>
         <div id="dashboardToday"></div>
         <h3>Reminders</h3>
@@ -882,15 +882,15 @@
           <button class="btn grey" id="exReport">EXPORT REPORT (CSV)</button
           ><button class="btn grey" onclick="window.print()">PRINT</button>
         </div>
-        <div id="reportOutput"><div class="empty">Choose a report.</div></div>
+        <div id="reportOutput"><div class="empty">Run a report and it will show up here.</div></div>
       </section>
 
       <section id="messages">
         <h2>Messages</h2>
         <p class="note">
-          Use this shared board to communicate about requests and daily work.
-          Link a message to a request or inmate so everyone can find the record.
-          The optional name in Setup identifies your messages; it is not a sign-in.
+          Use this board to keep everyone up to date. Link a message to a request
+          or inmate so it also appears when someone opens that record. You can
+          mark messages complete or delete ones you no longer need.
         </p>
         <div class="card" style="background: #eef5ff; border-color: #1f3a5f">
           <h3 style="margin-top: 0">Send a message</h3>
@@ -932,10 +932,15 @@
             placeholder="Search messages and replies"
             aria-label="Search messages and replies"
           />
+          <select id="msgFilter" aria-label="Filter messages" style="max-width: 220px">
+            <option value="open">Open messages</option>
+            <option value="all">All messages</option>
+            <option value="completed">Completed messages</option>
+          </select>
         </div>
         <div id="msgList"></div>
         <p class="note">
-          Messages and replies are shared with everyone who can access the program.
+          Everyone who can open the app can read messages and replies.
         </p>
       </section>
 
@@ -944,9 +949,9 @@
         <div class="card">
           <h3 style="margin-top: 0">Display Name</h3>
           <p class="note">
-            Set this separately on each workstation's browser. It is saved with
-            new messages, comments, requests, and issue records. It can be left
-            blank. This is an attribution label, not a sign-in or verified identity.
+            Set a name for this browser so coworkers can tell who added a
+            message or record. It's optional and isn't a login or verified
+            identity.
           </p>
           <div class="row">
             <input
@@ -961,12 +966,11 @@
         <hr />
         <h3>Report a Problem or Suggestion</h3>
         <p class="note">
-          Send a detailed report to the shared app so it can be reviewed from
-          any workstation. Include the screen, button or field, and request ID
-          when relevant. Do not include inmate names, MDOC numbers, or other
-          sensitive personal information. Reports are visible to everyone who
-          can access this app. A connection to the host is required; reports
-          are not saved offline.
+          Tell us what went wrong or what would make the app better. Point to
+          the screen or button, and include a request ID—or a name or MDOC
+          number if that helps us find the right record. Reports are shared
+          with everyone who can open the app. You'll need a connection to send
+          one; reports aren't saved offline.
         </p>
         <div class="card">
           <div class="grid">
@@ -1023,9 +1027,8 @@
         </div>
         <h3>Shared Feedback Inbox</h3>
         <p class="note">
-          New reports appear here on every connected workstation. Update a
-          report's status as it is reviewed. Reporter names are workstation
-          labels, not verified identities.
+          Reports show up on every connected computer. Update the status as
+          you review each one. Names shown here are workstation labels.
         </p>
         <div class="grid">
           <label>Search reports
@@ -1051,36 +1054,35 @@
           <input type="file" id="file" accept=".json" style="display: none" />
         </div>
         <p class="note">
-          Backup creates one file. Save that file to a flash drive. The program
-          saves changes automatically on this computer, but a backup is the only
-          second copy. Back up at least weekly.
+          This downloads a backup file. Save it somewhere separate, such as a
+          flash drive. The app saves changes to the host, but you'll still need
+          another copy if that computer fails. Back up at least once a week.
         </p>
         <div class="warnbox noPrint">
-          <b>One-time Firefox setup for automatic backups</b><br />1. Make a
-          folder named <b>StateIssue_Backups</b> (for example on the C:
-          drive).<br />2. In Firefox: Menu &rarr; Options &rarr; General &rarr;
-          Downloads. Choose that folder, and <b>uncheck</b> "Always ask you
-          where to save files."<br />3. Options &rarr; Privacy: do NOT let
-          Firefox clear history when it closes.<br />4. Press TURN ON AUTOMATIC
-          BACKUPS below and follow the questions.<br />5. <b>Once a week</b>,
-          copy the newest file from that folder to the flash drive (right-click
-          the file &rarr; Send to &rarr; your USB drive).
+          <b>Turn on automatic backups in Firefox</b><br />1. Create a folder
+          called <b>StateIssue_Backups</b>, for example on your C: drive.<br />2.
+          In Firefox, open Menu &rarr; Options &rarr; General &rarr; Downloads.
+          Choose that folder and turn off "Always ask you where to save files."
+          <br />3. Under Privacy, make sure Firefox isn't set to clear site data
+          when it closes.<br />4. Select TURN ON AUTOMATIC BACKUPS below and
+          follow the prompts.<br />5. <b>Once a week</b>, copy the newest backup
+          to a separate drive, such as a USB drive.
         </div>
         <div id="safety"></div>
         <hr />
         <h3>Recent Changes</h3>
         <p class="note">
-          Every saved change is logged with the date, the time, the configured
-          workstation name (if set), and the computer it came from. The log records
-          counts only, not inmate or personal names.
+          We keep a log of saved changes with the time, workstation name (if
+          set), and computer. It shows counts of records changed, not their
+          names or details.
         </p>
         <div id="auditBox"></div>
         <hr />
         <h3>Export to Excel (CSV files)</h3>
         <p class="note">
-          Each button saves a spreadsheet file you can open in Excel. These
-          files contain personal information. Keep them secure and do not leave
-          them on shared computers.
+          These buttons download spreadsheets you can open in Excel. They may
+          include names and other record details, so store them securely and
+          remove them from shared computers when you're done.
         </p>
         <div class="row noPrint">
           <button class="btn grey" id="exInmates">INMATES</button
@@ -1092,9 +1094,9 @@
         <hr />
         <h3>Low-Stock Levels</h3>
         <p class="note">
-          Set a minimum quantity for each item/size. The Dashboard will warn you
-          when stock is at or below that level. A blank or 0 means no low-stock
-          warning.
+          Set the minimum quantity you want on hand for each item and size.
+          The Dashboard will flag stock at or below that number. Leave it blank
+          or set it to 0 to turn off the warning.
         </p>
         <div id="minStockTable"></div>
         <hr />
@@ -1141,7 +1143,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "3.1.0",
+        var APP_VERSION = "3.2.0",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1546,7 +1548,7 @@
               : msg ||
                 (state === "pending"
                   ? "⚠ Saved on this computer — will sync"
-                  : "⚠ DATA NOT SAVED");
+                  : "⚠ Your changes weren't saved");
         }
         /* Offline queueing applies only on the host computer (IS_MAIN). When this
    computer cannot reach the server, the change is still kept — written to
@@ -1630,14 +1632,14 @@
                   false,
                   err.message === "CONFLICT"
                     ? "⚠ CHANGED ON ANOTHER COMPUTER"
-                    : "⚠ DATA NOT SAVED",
+                    : "⚠ Your changes weren't saved",
                 );
                 if (rollbackState) {
                   db = JSON.parse(rollbackState);
                   db.rev = serverRev;
                   renderAll();
                   toast(
-                    "DATA NOT SAVED. The change was undone; check the server connection and try again.",
+                    "Your change wasn't saved and has been undone. Check the server connection and try again.",
                     true,
                   );
                 }
@@ -1825,12 +1827,15 @@
         $("toast").onclick = function () {
           this.style.display = "none";
         };
+        var linkedRecordContext = null;
         function openModal(title, html) {
+          linkedRecordContext = null;
           $("modalTitle").textContent = title;
           $("modalBody").innerHTML = html;
           $("modal").className = "modal on";
         }
         window.closeModal = function () {
+          linkedRecordContext = null;
           $("modal").className = "modal";
         };
         function recordLink(type, id, label) {
@@ -1957,7 +1962,7 @@
             box = $("inmateResults");
           if (!db.inmates.length) {
             box.innerHTML =
-              '<div class="empty">No active inmates yet. Press + NEW INMATE to add one.</div>';
+              '<div class="empty">No inmates yet. Select + NEW INMATE to add one.</div>';
             return;
           }
           var all = db.inmates
@@ -1967,7 +1972,7 @@
             .sort(byName);
           if (!all.length) {
             box.innerHTML =
-              '<div class="empty">No match found. Check the spelling or number.</div>';
+              '<div class="empty">No matches. Check the spelling or try another name or number.</div>';
             return;
           }
           var list = all.slice(0, 100);
@@ -2067,7 +2072,7 @@
             '> This inmate has PROPERTY being stored</label></div>' +
             '<div class="warnbox"><label style="margin:0"><input type="checkbox" id="ihighrisk"' +
             (i.highRisk ? " checked" : "") +
-            '> HIGH-RISK / NEEDS REVIEW flag</label><p class="note">Use for a documented concern that staff should review before deciding or issuing. This flag does not automatically approve or deny a request.</p><label>Reason for flag<textarea id="iriskreason" maxlength="1000" placeholder="Record the specific, factual reason for review">' +
+            '> Needs extra review</label><p class="note">Use this flag when there is a specific concern to check before deciding on or issuing a request. It will not approve or deny a request on its own.</p><label>Reason for flag<textarea id="iriskreason" maxlength="1000" placeholder="Briefly describe what staff should review">' +
             esc(i.highRiskReason || "") +
             '</textarea></label></div><label>Notes (if property is stored, describe it here)<textarea id="inotes">' +
             esc(i.notes || "") +
@@ -2088,7 +2093,7 @@
                     ? 1
                     : -1;
             });
-          if (!h.length) return '<div class="empty">No issue history.</div>';
+          if (!h.length) return '<div class="empty">No issue history yet.</div>';
           return (
             "<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th>Qty</th><th>Zone then</th><th>Request</th><th>Reason</th><th>Recorded by / at</th><th>Comments / Actions</th></tr></thead><tbody>" +
             h
@@ -2139,7 +2144,7 @@
               .join("") +
             "</tbody></table>" +
             (limit && h.length > limit
-              ? '<p class="note">Showing the ' + limit + " most recent.</p>"
+              ? '<p class="note">Showing the ' + limit + " most recent records.</p>"
               : "")
           );
         }
@@ -2220,8 +2225,10 @@
                 : "") +
               "<h3>Issue History</h3>" +
               histTable(id, 0, true) +
+              linkedMessagesHTML("inmate", id) +
               commentsHTML("inmate", id),
           );
+          linkedRecordContext = { type: "inmate", id: id };
         };
         window.editInmate = function (id) {
           var i = inmateById(id);
@@ -2259,7 +2266,7 @@
             return;
           }
           if (!isDate(d)) {
-            toast("Intake date must look like 2026-09-30.", true);
+            toast("Enter the date as YYYY-MM-DD, for example 2026-09-30.", true);
             return;
           }
           if (messageSaving || saveBusy) {
@@ -2323,7 +2330,7 @@
           if (!save(snap)) {
             db = JSON.parse(snap);
             toast(
-              "DATA NOT SAVED. Do not continue — see the red message at the top.",
+              "Your changes weren't saved. Stop here and check the red message at the top.",
               true,
             );
             return;
@@ -2360,7 +2367,7 @@
           openModal(
             "Remove " + i.first + " " + i.last,
             (i.hasProperty
-              ? '<div class="warnbox"><b>⚠ PROPERTY REMINDER</b><br>This inmate has stored property. Make sure it is returned or sent with him before he leaves.<br><b>Notes:</b> ' +
+              ? '<div class="warnbox"><b>⚠ PROPERTY REMINDER</b><br>Property is being held in storage. Make sure it is returned or sent with him before he leaves.<br><b>Notes:</b> ' +
                 esc(i.notes || "(none written)") +
                 "</div>"
               : "") +
@@ -2421,7 +2428,7 @@
           }
           if (!save(snap)) {
             db = JSON.parse(snap);
-            toast("DATA NOT SAVED. Nothing was changed.", true);
+            toast("Your changes weren't saved, so nothing was changed.", true);
             return false;
           }
           return true;
@@ -2636,7 +2643,7 @@
               return;
             }
             if (due && !isDate(due)) {
-              toast("Due date must look like 2026-09-30.", true);
+              toast("Enter the date as YYYY-MM-DD, for example 2026-09-30.", true);
               return;
             }
             if (
@@ -2736,7 +2743,7 @@
             return byName(A, B);
           });
           return (
-            '<div class="reminderGroups"><div class="note" style="margin:0 0 8px 2px"><b>REMINDERS BY INMATE</b> — click a name to view their items</div>' +
+            '<div class="reminderGroups"><div class="note" style="margin:0 0 8px 2px"><b>REMINDERS BY INMATE</b> — select a name to see their reminders</div>' +
             keys
               .map(function (key, gn) {
                 var g = groups[key],
@@ -2874,7 +2881,7 @@
             if (kind === "approved") return reqNeedsIssue(r);
             return false;
           });
-          if (!list.length) return '<div class="empty">None.</div>';
+          if (!list.length) return '<div class="empty">No reminders to show.</div>';
           var groups = {};
           list.forEach(function (r) {
             var key = r.inmateId || "__none__";
@@ -3041,7 +3048,7 @@
           }
           $("dashboardActions").innerHTML =
             action ||
-            '<div class="empty">No requests or low-stock alerts need attention.</div>';
+            '<div class="empty">All caught up. No requests or low-stock alerts need attention.</div>';
           $("dashboardReminders").innerHTML =
             dashboardReminderRows(showCompletedRem);
         }
@@ -3216,7 +3223,7 @@
           }
           openModal(
             "Monthly Inventory Check",
-            '<p class="note">Enter the physical count for every item/size. The system quantity is shown for comparison. Nothing changes until you review the differences and choose to apply them.</p><div class="row"><button class="btn grey small" id="fillSystem">FILL SYSTEM COUNTS</button></div><div style="overflow:auto"><table><thead><tr><th>Item</th><th>Size</th><th>System</th><th>Physical</th><th>Difference</th></tr></thead><tbody>' +
+            '<p class="note">Enter the quantity you counted for each item and size. Compare it with the system count below. Nothing changes until you review and save the differences.</p><div class="row"><button class="btn grey small" id="fillSystem">FILL SYSTEM COUNTS</button></div><div style="overflow:auto"><table><thead><tr><th>Item</th><th>Size</th><th>System</th><th>Physical</th><th>Difference</th></tr></thead><tbody>' +
               rows
                 .map(function (x, n) {
                   return (
@@ -3321,7 +3328,7 @@
                 : "") +
               '<div class="row" style="margin-top:14px"><button class="btn green" id="saveCheck">SAVE CHECK' +
               (dif.length ? " & ADJUST INVENTORY" : "") +
-              '</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div><p class="note">Saving with differences records an Inventory Check transaction for each difference. This is the monthly audit trail.</p>';
+              '</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div><p class="note">Saving records each difference in the stock history, so you can review the monthly count later.</p>';
             openModal("Review Monthly Inventory Check", html);
             $("saveCheck").onclick = function () {
               if (
@@ -3446,7 +3453,7 @@
                 esc(i.highRiskReason || "No reason recorded") +
                 "</div>"
               : "") +
-              '<p class="note">Change any quantity. Use 0 for items not issued. Inventory goes down when you press RECORD.</p>' +
+              '<p class="note">Change the quantities as needed. Use 0 for anything not issued. Stock is updated when you select RECORD.</p>' +
               rows +
               '<div class="row" style="margin-top:14px"><button class="btn green" id="doIntake">RECORD INTAKE ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>',
           );
@@ -3722,7 +3729,7 @@
             var ws = words($("pq").value);
             if (!ws.length) {
               $("pres").innerHTML =
-                '<div class="empty">Type a name or MDOC number.</div>';
+                '<div class="empty">Enter a name or MDOC number to search.</div>';
               return;
             }
             var l = db.inmates
@@ -3752,7 +3759,7 @@
                   })
                   .join("") +
                 "</tbody></table>"
-              : '<div class="empty">No match found.</div>';
+              : '<div class="empty">No matching records found.</div>';
           }
           $("pgo").onclick = go;
           $("pq").onkeydown = function (e) {
@@ -3863,7 +3870,7 @@
           return (
             "<h3>Recent Issue History</h3>" +
             histTable(inmateId, 10) +
-            '<p class="note">You decide. The program does not approve or deny anything for you.</p>'
+            '<p class="note">You make the decision; the app does not approve or deny requests for you.</p>'
           );
         }
         function openRequest(inmateId, reqId) {
@@ -3932,7 +3939,7 @@
             type = $("reqType").value,
             off = $("reqOfficer").value.trim();
           if (!isDate(d)) {
-            toast("Date must look like 2026-09-30.", true);
+            toast("Enter the date as YYYY-MM-DD, for example 2026-09-30.", true);
             return;
           }
           if (type === "Officer" && !off) {
@@ -4138,7 +4145,7 @@
             });
           if (!list.length) {
             $("requestList").innerHTML =
-              '<div class="empty">No requests found.</div>';
+              '<div class="empty">No requests match these filters.</div>';
             return;
           }
           $("requestList").innerHTML =
@@ -4174,7 +4181,7 @@
               .join("") +
             "</tbody></table>" +
             (list.length > 200
-              ? '<p class="note">Showing the 200 most recent.</p>'
+              ? '<p class="note">Showing the 200 most recent requests.</p>'
               : "");
         }
         $("requestFilter").onchange = renderRequests;
@@ -4299,7 +4306,7 @@
                   })
                   .join("") +
                 "</details>"
-              : '<p class="note">Request history is recorded as it is created or updated. Earlier history is not available for requests entered before this update.</p>';
+              : '<p class="note">Changes to this request are recorded from now on. Older requests do not have a history here.</p>';
           openModal(
             "Request " + r.id,
             '<div class="card"><b>Inmate:</b> ' +
@@ -4330,11 +4337,13 @@
                 : "") +
               "<h3>Requested Items</h3><table><thead><tr><th>Item</th><th>Size</th><th>Requested</th><th>Decision</th><th>Replaces</th><th>Decision notes</th><th>Issued</th><th></th></tr></thead><tbody>" +
               rows +
-              '</tbody></table><p class="note">Approved items come out of inventory only when you press ISSUE.</p>' +
+              '</tbody></table><p class="note">Approving items does not change stock. Stock is reduced when you select ISSUE.</p>' +
               historyHTML +
               (i ? recentBox(i.id) : "") +
+              linkedMessagesHTML("request", id) +
               commentsHTML("request", id),
           );
+          linkedRecordContext = { type: "request", id: id };
         };
         window.editRequest = function (id) {
           var r = db.requests.find(function (x) {
@@ -4407,7 +4416,7 @@
                     })
                     .join(", ") +
                   "</p>"
-                : '<p class="note">Never issued this item and size before.</p>') +
+                : '<p class="note">There are no earlier issues for this item and size.</p>') +
               '<div class="grid"><label>Quantity handed out now<input type="number" id="isQty" min="1" max="' +
               Math.min(rem, avail) +
               '" value="' +
@@ -4638,7 +4647,7 @@
                   t.length +
                   ".</p>"
                 : "")
-            : '<div class="empty">No stock changes recorded yet. Use ADD STOCK to enter starting inventory.</div>';
+            : '<div class="empty">No stock changes yet. Select ADD STOCK to enter your starting inventory.</div>';
         }
         $("invFilter").onchange = renderInventory;
         function itemSizePicker(p, cb) {
@@ -4684,7 +4693,7 @@
               return;
             }
             if (!isDate(d)) {
-              toast("Date must look like 2026-09-30.", true);
+              toast("Enter the date as YYYY-MM-DD, for example 2026-09-30.", true);
               return;
             }
             if (adjust && !n) {
@@ -4753,7 +4762,7 @@
           }
           openModal(
             "Physical Inventory Count",
-            '<p class="note">Type what you counted on the shelf. Leave a row EMPTY if you did not count it. Press Enter to jump to the next row.</p><p id="pcSum"></p><table><thead><tr><th>Item</th><th>Size</th><th class="n">Program</th><th>You counted</th><th class="n">Difference</th></tr></thead><tbody>' +
+            '<p class="note">Enter what you counted on the shelf. Leave a row blank if you did not count that item. Press Enter to move to the next row.</p><p id="pcSum"></p><table><thead><tr><th>Item</th><th>Size</th><th class="n">Program</th><th>You counted</th><th class="n">Difference</th></tr></thead><tbody>' +
               rows
                 .map(function (r, k) {
                   var sys = getInventory(r.it.id, r.s);
@@ -5103,12 +5112,12 @@
           var box = $("offlineStatus");
           if (!IS_MAIN) {
             box.innerHTML =
-              '<div class="note">This computer: <b>standard</b>. It needs the server to make changes, and shows the last data it loaded if the server cannot be reached.</div>';
+              '<div class="note">This computer needs a connection to the host to save changes. If the connection drops, you can still see the last data it loaded, but new changes will not save until the connection returns.</div>';
             return;
           }
           if (offlineConflict) {
             box.innerHTML =
-              '<div class="warnbox"><b>⚠ RECONNECT CONFLICT</b><br>This computer made changes while it could not reach the server. By the time it reconnected, the server already had newer data saved from somewhere else, so these two copies could not be combined automatically.<br><br>The server\'s saved data is what everyone is currently using — nothing on the server was lost. This computer\'s offline changes are still saved here and have NOT been applied or discarded.<br><br><b>Save a copy of this computer\'s offline changes below, review them against the current data, and re-enter anything still needed by hand.</b> Once you have done that, press DISCARD to clear this warning.</div><div class="row noPrint"><button class="btn green" id="exportOfflineCopy">SAVE OFFLINE CHANGES AS A FILE</button><button class="btn red" id="discardOfflineCopy">DISCARD OFFLINE CHANGES</button></div>';
+              '<div class="warnbox"><b>⚠ RECONNECT CONFLICT</b><br>This computer has offline changes, but the server has since been updated on another computer. To avoid overwriting either copy, the app has not merged them.<br><br>The server copy is live. Your offline changes are still saved on this computer, but have not been applied.<br><br><b>Save a copy below and compare it with the current data. Re-enter anything you still need, then discard the offline copy only after you have checked it.</b></div><div class="row noPrint"><button class="btn green" id="exportOfflineCopy">SAVE OFFLINE CHANGES AS A FILE</button><button class="btn red" id="discardOfflineCopy">DISCARD OFFLINE CHANGES</button></div>';
             $("exportOfflineCopy").onclick = function () {
               var raw = lsGet("stateIssueLocalDB");
               if (!raw) {
@@ -5136,7 +5145,7 @@
             return;
           }
           box.innerHTML =
-            '<div class="note">This computer: <b>host</b>. If the server program stops or the network drops, this computer keeps working and saves changes here first' +
+            '<div class="note">This is the host computer. If the server or network goes down, changes made here are saved in this browser and sync when the connection returns' +
             (offlinePending
               ? " — <b>it currently has changes waiting to sync.</b>"
               : ".") +
@@ -5249,7 +5258,7 @@
                   reports.length +
                   " reports.</p>"
                 : "")
-            : '<div class="empty">No reports yet. Staff can submit a problem or suggestion using the form above.</div>';
+            : '<div class="empty">No reports match those filters.</div>';
           Array.prototype.forEach.call(
             $("feedbackInbox").querySelectorAll("select[data-feedback-id]"),
             function (select) {
@@ -5617,7 +5626,7 @@
         function reminder() {
           openModal(
             "Backup Reminder",
-            '<p style="font-size:22px">Your data has changed since the last backup. <b>Back up now</b> so nothing is lost.</p><div class="row"><button class="btn green" id="rbNow">BACK UP NOW</button><button class="btn grey" onclick="closeModal()">LATER</button></div><p class="note">Turn on automatic backups in SETUP and this happens by itself.</p>',
+            '<p style="font-size:22px">You have changes since your last backup. <b>Back up now</b> to keep a separate copy.</p><div class="row"><button class="btn green" id="rbNow">BACK UP NOW</button><button class="btn grey" onclick="closeModal()">LATER</button></div><p class="note">You can turn on automatic backups in Setup to save a file whenever you make changes.</p>',
           );
           $("rbNow").onclick = function () {
             $("backup").onclick();
@@ -5940,11 +5949,11 @@
                     })
                     .join("") +
                   "</tbody></table>"
-                : '<div class="empty">No changes recorded yet.</div>';
+                : '<div class="empty">No changes have been recorded yet.</div>';
             })
             .catch(function () {
               $("auditBox").innerHTML =
-                '<div class="note">Could not load the change log. Check the connection to the server.</div>';
+                '<div class="note">The change log could not load. Check your connection and try again.</div>';
             });
         }
         /* ---------- Today's Changes board (Dashboard) ---------- */
@@ -5979,11 +5988,11 @@
                     })
                     .join("") +
                   "</tbody></table>"
-                : '<div class="empty">No changes saved yet today.</div>';
+                : '<div class="empty">No changes have been saved today.</div>';
             })
             .catch(function () {
               box.innerHTML =
-                '<div class="note">Could not load today\'s changes. Check the connection to the server.</div>';
+                '<div class="note">Today\'s changes could not load. Check your connection and try again.</div>';
             });
         }
 
@@ -6185,6 +6194,71 @@
             closing
           );
         }
+        function linkedMessagesHTML(recordType, recordId) {
+          var linked = db.messages.filter(function (message) {
+            var links = Array.isArray(message.links) ? message.links : [],
+              direct = links.some(function (link) {
+                return link.type === recordType && link.id === recordId;
+              });
+            if (direct || recordType !== "inmate") return direct;
+            return links.some(function (link) {
+              if (link.type !== "request") return false;
+              var request = db.requests.find(function (item) {
+                return item.id === link.id;
+              });
+              return request && request.inmateId === recordId;
+            });
+          }).sort(function (a, b) {
+            return (b.created || b.at || "").localeCompare(
+              a.created || a.at || "",
+            );
+          });
+          if (!linked.length) return "";
+          return (
+            "<h3>Linked Messages</h3>" +
+            linked
+              .map(function (message) {
+                var body = message.body || message.text || "",
+                  links = Array.isArray(message.links) ? message.links : [],
+                  requestLinks = links
+                    .filter(function (link) {
+                      return link.type === "request";
+                    })
+                    .map(function (link) {
+                      return recordLink("request", link.id);
+                    });
+                return (
+                  '<article class="card" data-linked-message-id="' +
+                  esc(message.id) +
+                  '"><div class="note"><b>' +
+                  esc(message.id) +
+                  "</b> · " +
+                  esc(message.author || "Name not provided") +
+                  " · " +
+                  esc(fmtDateTime(message.created || message.at)) +
+                  " · " +
+                  (message.status === "completed"
+                    ? '<span class="badge green">COMPLETED</span>'
+                    : '<span class="badge orange">OPEN</span>') +
+                  "</div>" +
+                  (message.title
+                    ? "<p><b>" + esc(message.title) + "</b></p>"
+                    : "") +
+                  (requestLinks.length
+                    ? '<p class="note">Linked request: ' +
+                      requestLinks.join(", ") +
+                      "</p>"
+                    : "") +
+                  '<div style="white-space:pre-wrap;margin:8px 0 12px">' +
+                  esc(body) +
+                  "</div>" +
+                  commentsHTML("message", message.id, true) +
+                  "</article>"
+                );
+              })
+              .join("")
+          );
+        }
         window.addComment = function (type, id, fieldId) {
           var el = $(fieldId || "commentText"),
             text = el ? el.value.trim() : "";
@@ -6210,6 +6284,20 @@
             else if (type === "issue") showIssueComments(id);
             else if (type === "message") {
               renderMessages();
+              if (linkedRecordContext) {
+                var context = linkedRecordContext;
+                if (context.type === "request") viewRequest(context.id);
+                else showInmate(context.id);
+                Array.prototype.forEach.call(
+                  $("modalBody").querySelectorAll("[data-linked-message-id]"),
+                  function (card) {
+                    if (card.getAttribute("data-linked-message-id") === id) {
+                      var thread = card.querySelector("details");
+                      if (thread) thread.open = true;
+                    }
+                  },
+                );
+              }
               Array.prototype.forEach.call(
                 $("msgList").children,
                 function (card) {
@@ -6277,7 +6365,8 @@
             .join("");
           var q = ($("msgSearch") ? $("msgSearch").value : "")
             .trim()
-            .toLowerCase();
+            .toLowerCase(),
+            filter = $("msgFilter") ? $("msgFilter").value : "open";
           var list = db.messages
             .slice()
             .sort(function (a, b) {
@@ -6289,14 +6378,27 @@
               var replies = commentList("message", m.id)
                 .map(function (c) {
                   return c.text || "";
-                })
-                .join(" ");
+                }).join(" "),
+                status = m.status || "open",
+                matchesStatus =
+                  filter === "all" ||
+                  (filter === "open" && status !== "completed") ||
+                  (filter === "completed" && status === "completed");
               return (
+                matchesStatus &&
                 (!q ||
                   (
+                    m.id +
+                    " " +
+                    status +
+                    " " +
                     (m.title || m.subject || "") +
                     " " +
                     (m.body || m.text || "") +
+                    " " +
+                    (m.links || []).map(function (link) {
+                      return link.id || "";
+                    }).join(" ") +
                     " " +
                     replies
                   )
@@ -6311,6 +6413,7 @@
                   var links = m.links || [],
                     body = m.body || m.text || "",
                     oldTitle = m.title || m.subject || "",
+                    status = m.status || "open",
                     showOldTitle =
                       oldTitle &&
                       body
@@ -6319,10 +6422,16 @@
                   return (
                     '<div class="card" data-message-id="' +
                     esc(m.id) +
-                    '" style="border-left:4px solid #1f3a5f"><div class="note">' +
+                    '" style="border-left:4px solid ' +
+                    (status === "completed" ? "#2e7d32" : "#1f3a5f") +
+                    '"><div class="note">' +
                     esc(m.author || "Name not provided") +
                     " · " +
                     esc(fmtDateTime(m.created || m.at)) +
+                    " · " +
+                    (status === "completed"
+                      ? '<span class="badge green">COMPLETED</span>'
+                      : '<span class="badge orange">OPEN</span>') +
                     "</div>" +
                     (showOldTitle
                       ? "<p><b>" + esc(oldTitle) + "</b></p>"
@@ -6374,13 +6483,112 @@
                         "</p>"
                       : "") +
                     commentsHTML("message", m.id, true) +
+                    '<div class="row noPrint" style="margin-top:12px"><button class="btn small ' +
+                    (status === "completed" ? "grey" : "green") +
+                    '" data-message-action="status" data-message-id="' +
+                    esc(m.id) +
+                    '" data-message-status="' +
+                    (status === "completed" ? "open" : "completed") +
+                    '">' +
+                    (status === "completed" ? "REOPEN MESSAGE" : "MARK COMPLETED") +
+                    '</button><button class="btn small red" data-message-action="delete" data-message-id="' +
+                    esc(m.id) +
+                    '">DELETE MESSAGE</button></div>' +
                     "</div>"
                   );
                 })
                 .join("")
-            : '<div class="empty">No messages yet. Start a conversation above.</div>';
+            : db.messages.length
+              ? '<div class="empty">No messages match your search or filter.</div>'
+              : '<div class="empty">No messages yet. Start a conversation when you have something to share.</div>';
         }
+        function saveWorkItemAction(path, payload, successMessage) {
+          if (!storageOK || offlineConflict || offlinePending || !navigator.onLine) {
+            toast(
+              "Connect to the host and sync any offline changes before updating a message.",
+              true,
+            );
+            return;
+          }
+          if (messageSaving || saveBusy) {
+            toast("Wait for the current save to finish, then try again.", true);
+            return;
+          }
+          messageSaving = true;
+          fetch(path, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: payload.id,
+              status: payload.status,
+              who: displayName(),
+            }),
+            cache: "no-store",
+          })
+            .then(function (response) {
+              return response.json().then(function (result) {
+                if (!response.ok)
+                  throw new Error(result.error || "The server rejected the change.");
+                return result;
+              });
+            })
+            .then(function (result) {
+              if (!result.state || typeof result.rev !== "number")
+                throw new Error("The server returned an incomplete save confirmation.");
+              serverRev = result.rev;
+              db = fixupSafe(result.state);
+              db.rev = serverRev;
+              persistLocalCopy(false);
+              setSaved(true);
+              renderAll();
+              loadTodayActivity();
+              toast(successMessage);
+            })
+            .catch(function (error) {
+              toast(
+                "The message was not changed. " +
+                  (error.message || "Check the connection and try again."),
+                true,
+              );
+            })
+            .then(function () {
+              messageSaving = false;
+            });
+        }
+        $("msgList").addEventListener("click", function (event) {
+          var button = event.target;
+          if (!button || button.getAttribute("data-message-action") === null)
+            return;
+          var id = button.getAttribute("data-message-id");
+          if (button.getAttribute("data-message-action") === "delete") {
+            var message = db.messages.find(function (item) {
+              return item.id === id;
+            });
+            if (!message) return;
+            if (
+              !confirm(
+                "Permanently delete this message and all its replies? This cannot be undone.",
+              )
+            )
+              return;
+            saveWorkItemAction(
+              "/api/messages/delete",
+              { id: id },
+              "Message and replies deleted.",
+            );
+          } else {
+            var status = button.getAttribute("data-message-status");
+            saveWorkItemAction(
+              "/api/messages/status",
+              { id: id, status: status },
+              status === "completed"
+                ? "Message marked completed."
+                : "Message reopened.",
+            );
+          }
+        });
         $("msgSearch").oninput = renderMessages;
+        $("msgFilter").onchange = renderMessages;
         $("msgSend").onclick = function () {
           var text = $("msgText").value.trim(),
             requestSearch = $("msgRequestLink").value.trim(),

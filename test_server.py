@@ -215,6 +215,49 @@ class T(unittest.TestCase):
         self.assertEqual(rev, 12)
         self.assertEqual(len(state["messages"]), 12)
 
+    def test_work_item_can_be_completed_reopened_and_deleted_with_replies(self):
+        rev, state = srv.load_state()
+        state["messages"] = [{
+            "id": "M1001",
+            "title": "Request fixed",
+            "body": "The request issue has been corrected.",
+            "status": "open",
+            "links": [{"type": "request", "id": "R1001"}],
+        }]
+        state["comments"] = [{
+            "id": "C1001",
+            "parentType": "message",
+            "parentId": "M1001",
+            "text": "Thanks for the update.",
+        }]
+        self.assertTrue(srv.save_state(rev, state, "host")[0])
+        rev, item, state = srv.update_work_item_status(
+            "M1001", "completed", "workstation", "Admin"
+        )
+        self.assertEqual(rev, 2)
+        self.assertEqual(item["status"], "completed")
+        self.assertEqual(item["updatedBy"], "Admin")
+        self.assertEqual(state["messages"][0]["status"], "completed")
+        self.assertEqual(srv.update_work_item_status("M1001", "completed")[0], rev)
+        rev, item, state = srv.update_work_item_status("M1001", "open")
+        self.assertEqual(rev, 3)
+        self.assertEqual(item["status"], "open")
+        rev, item, state = srv.delete_work_item("M1001", "workstation", "Admin")
+        self.assertEqual(rev, 4)
+        self.assertEqual(item["id"], "M1001")
+        self.assertEqual(state["messages"], [])
+        self.assertEqual(state["comments"], [])
+        self.assertIn("work queue items: 1 removed", srv.recent_audit(1)[0]["summary"])
+        self.assertIn("comments: 1 removed", srv.recent_audit(1)[0]["summary"])
+
+    def test_work_item_actions_reject_unknown_messages_and_statuses(self):
+        with self.assertRaises(ValueError):
+            srv.update_work_item_status("M9999", "completed")
+        with self.assertRaises(ValueError):
+            srv.update_work_item_status("M9999", "unknown")
+        with self.assertRaises(ValueError):
+            srv.delete_work_item("M9999")
+
     def test_comments_counted_in_audit_without_text(self):
         rev, st = srv.load_state()
         st["comments"] = [{"id": "C1", "parentType": "inmate", "parentId": "i1",
@@ -393,6 +436,43 @@ class T(unittest.TestCase):
             urllib.request.urlopen(req, timeout=3)
         self.assertEqual(ctx.exception.code, 400)
         ctx.exception.close()
+
+    def test_http_message_status_and_delete(self):
+        import urllib.request
+        base = self._start_http_server()
+        _, message, _ = srv.add_work_item(
+            {
+                "title": "Update request",
+                "body": "The issue was fixed.",
+                "links": [{"type": "request", "id": "R1001"}],
+                "comments": [],
+            },
+            "host",
+        )
+        req = urllib.request.Request(
+            base + "/api/messages/status",
+            data=json.dumps({
+                "id": message["id"],
+                "status": "completed",
+                "who": "Admin",
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            completed = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(completed["message"]["status"], "completed")
+
+        req = urllib.request.Request(
+            base + "/api/messages/delete",
+            data=json.dumps({"id": message["id"], "who": "Admin"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            deleted = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(deleted["message"]["id"], message["id"])
+        self.assertEqual(deleted["state"]["messages"], [])
 
     def test_http_feedback_submission_and_status_update(self):
         import urllib.request
@@ -574,7 +654,7 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('"/api/feedback"', compact)
         self.assertIn('"/api/feedback/status"', compact)
         self.assertIn("functionfeedbackPost(path,payload,successMessage)", compact)
-        self.assertIn("Do not include inmate names, MDOC numbers", self.html)
+        self.assertIn("a name or MDOC", self.html)
 
     def test_version_note_describes_connected_workstations_without_implying_access_control(self):
         self.assertIn("shared across connected workstations", self.html)
@@ -666,6 +746,18 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertNotIn('id="msgPriority"', compact)
         self.assertNotIn('id="msgCategory"', compact)
         self.assertNotIn("window.resolveMessage", compact)
+
+    def test_messages_can_be_completed_deleted_and_shown_on_linked_records(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('id="msgFilter"', compact)
+        self.assertIn('value="completed">Completedmessages</option>', compact)
+        self.assertIn('data-message-action="status"', compact)
+        self.assertIn('data-message-action="delete"', compact)
+        self.assertIn('"/api/messages/status"', compact)
+        self.assertIn('"/api/messages/delete"', compact)
+        self.assertIn('linkedMessagesHTML("request",id)', compact)
+        self.assertIn('linkedMessagesHTML("inmate",id)', compact)
+        self.assertIn('commentsHTML("message",message.id,true)', compact)
 
     def test_work_item_post_falls_back_for_servers_without_message_endpoint(self):
         compact = re.sub(r"\s+", "", self.html)

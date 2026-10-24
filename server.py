@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 3.1.0
+State Issue server, version 3.2.0
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
@@ -16,7 +16,7 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.2.0"
 SCHEMA_VERSION = 3
 # Keep program files separate from the database location so the server can
 # continue using a chosen data folder without moving the application itself.
@@ -200,6 +200,115 @@ def add_work_item(message, workstation="unknown", who=""):
         c.execute(
             "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
             (ts, workstation, newrev, summarize(old, state), who or ""),
+        )
+        c.execute("COMMIT")
+        with CHANGED:
+            CHANGED.notify_all()
+        return newrev, item, state
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
+
+def update_work_item_status(message_id, status, workstation="unknown", who=""):
+    """Mark a shared message complete or reopen it without replacing app state."""
+    if not isinstance(message_id, str) or len(message_id) > 30:
+        raise ValueError("invalid message ID")
+    if not isinstance(status, str) or status not in {"open", "completed"}:
+        raise ValueError("invalid message status")
+    if not isinstance(who, str):
+        who = ""
+
+    c = dbconn()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
+        if not row:
+            raise RuntimeError("application state is not initialized")
+        current, raw = row
+        old = json.loads(raw)
+        state = json.loads(raw)
+        messages = state.get("messages", [])
+        item = next((m for m in messages if isinstance(m, dict) and m.get("id") == message_id), None)
+        if item is None:
+            raise ValueError("message not found")
+        if item.get("status", "open") == status:
+            c.execute("COMMIT")
+            return current, item, state
+        item["status"] = status
+        item["updated"] = now()
+        item["updatedBy"] = who[:80]
+        newrev = current + 1
+        state["rev"] = newrev
+        ts = now()
+        c.execute(
+            "UPDATE app_state SET revision=?,state_json=?,updated_at=? WHERE id=1 AND revision=?",
+            (newrev, json.dumps(state, separators=(",", ":")), ts, current),
+        )
+        c.execute(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            (ts, workstation, newrev, summarize(old, state), who[:40]),
+        )
+        c.execute("COMMIT")
+        with CHANGED:
+            CHANGED.notify_all()
+        return newrev, item, state
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
+
+def delete_work_item(message_id, workstation="unknown", who=""):
+    """Permanently remove a shared message and its replies in one transaction."""
+    if not isinstance(message_id, str) or len(message_id) > 30:
+        raise ValueError("invalid message ID")
+    if not isinstance(who, str):
+        who = ""
+
+    c = dbconn()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
+        if not row:
+            raise RuntimeError("application state is not initialized")
+        current, raw = row
+        old = json.loads(raw)
+        state = json.loads(raw)
+        messages = state.get("messages", [])
+        item = next((m for m in messages if isinstance(m, dict) and m.get("id") == message_id), None)
+        if item is None:
+            raise ValueError("message not found")
+        state["messages"] = [
+            message for message in messages
+            if not isinstance(message, dict) or message.get("id") != message_id
+        ]
+        comments = state.get("comments", [])
+        state["comments"] = [
+            comment for comment in comments
+            if not (
+                isinstance(comment, dict)
+                and comment.get("parentType") == "message"
+                and comment.get("parentId") == message_id
+            )
+        ]
+        newrev = current + 1
+        state["rev"] = newrev
+        ts = now()
+        c.execute(
+            "UPDATE app_state SET revision=?,state_json=?,updated_at=? WHERE id=1 AND revision=?",
+            (newrev, json.dumps(state, separators=(",", ":")), ts, current),
+        )
+        c.execute(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            (ts, workstation, newrev, summarize(old, state), who[:40]),
         )
         c.execute("COMMIT")
         with CHANGED:
@@ -619,7 +728,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except Exception as e:
                 self.send_json(400, {"ok": False, "error": str(e)})
             return
-        if path == "/api/messages":
+        if path in ("/api/messages", "/api/messages/status", "/api/messages/delete"):
             try:
                 n = int(self.headers.get("Content-Length", "0"))
                 payload = json.loads(self.rfile.read(n).decode("utf-8"))
@@ -627,9 +736,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if not isinstance(who, str):
                     who = ""
                 who = who[:40]
-                rev, message, state = add_work_item(
-                    payload.get("message"), self.client_address[0], who
-                )
+                if path == "/api/messages":
+                    rev, message, state = add_work_item(
+                        payload.get("message"), self.client_address[0], who
+                    )
+                elif path == "/api/messages/status":
+                    rev, message, state = update_work_item_status(
+                        payload.get("id"),
+                        payload.get("status"),
+                        self.client_address[0],
+                        who,
+                    )
+                else:
+                    rev, message, state = delete_work_item(
+                        payload.get("id"), self.client_address[0], who
+                    )
                 self.send_json(200, {"ok": True, "rev": rev, "message": message, "state": state})
             except Exception as e:
                 self.send_json(400, {"ok": False, "error": str(e)})

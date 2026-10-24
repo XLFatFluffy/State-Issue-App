@@ -1,4 +1,4 @@
-STATE ISSUE 3.1.0
+STATE ISSUE 3.2.0
 Official operational release
 =============================
 
@@ -7,9 +7,10 @@ requests, inventory, issue history, and staff messages. One Windows computer
 hosts the app and its shared database. Other computers connect to that host
 through a trusted local network or VPN.
 
-Version 3.1 adds a shared, structured feedback inbox in Setup for staff to
-report problems and suggest improvements. It does not add user accounts,
-role-based permissions, or a security certification.
+Version 3.2 adds message completion and deletion, and shows linked messages on
+the related request and inmate records. Version 3.1 added the shared, structured
+feedback inbox in Setup. These features do not add user accounts, role-based
+permissions, or a security certification.
 
 Project repository:
 https://github.com/XLFatFluffy/State-Issue-App
@@ -51,7 +52,8 @@ FEATURES
 - Dashboard, inmate profiles, request review and fulfillment.
 - Item and size catalog, inventory tracking, stock history, and low-stock alerts.
 - Reports and CSV export.
-- Shared messages with replies and optional links to records.
+- Shared messages with replies, completion and deletion controls, and optional
+  links that also appear on the related request or inmate record.
 - Comments, request snapshots, and an audit view of recent changes.
 - Shared Setup inbox for detailed problem reports and improvement suggestions.
 - JSON export/restore and automatic SQLite backups.
@@ -70,8 +72,8 @@ IMPORTANT LIMITATIONS
   retained for review; save/export it and reconcile it against the server copy
   before discarding it.
 - Problem reports and suggestions are shared with everyone who can access the
-  app. They are included in normal app backups. Do not include sensitive
-  personal information in a report.
+  app and are included in backups. Add a name or MDOC number when it helps
+  identify the record involved.
 - Automated tests cover the server, storage, HTTP behavior, and backup integrity.
   They do not replace manual testing of browser workflows or a verified restore.
 
