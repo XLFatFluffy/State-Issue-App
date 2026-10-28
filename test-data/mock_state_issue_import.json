@@ -1,0 +1,232 @@
+{
+  "version": 3,
+  "seq": {
+    "inmate": 903,
+    "request": 904,
+    "issue": 901,
+    "txn": 906,
+    "ri": 905
+  },
+  "items": [
+    {
+      "id": "shirt",
+      "name": "Shirt",
+      "category": "Clothing",
+      "sizes": ["L", "XL", "2X"],
+      "active": true
+    },
+    {
+      "id": "pants",
+      "name": "Pants",
+      "category": "Clothing",
+      "sizes": ["L - Green/White", "XL - Green/White", "2X - Green/White"],
+      "active": true
+    },
+    {
+      "id": "towel",
+      "name": "Towel",
+      "category": "Linen",
+      "sizes": [],
+      "active": true
+    },
+    {
+      "id": "shoes",
+      "name": "Shoes",
+      "category": "Footwear",
+      "sizes": ["9", "10", "11"],
+      "active": true
+    }
+  ],
+  "inmates": [
+    {
+      "id": "i901",
+      "mdoc": "TEST-001",
+      "first": "Alex",
+      "last": "Example",
+      "zone": "A-1",
+      "intakeDate": "2026-10-20",
+      "dateAdded": "2026-10-20T09:00:00.000Z",
+      "status": "active",
+      "sizes": {"shirt": "L", "pants": "L", "pantsColor": "Green/White", "shoe": "10"},
+      "riskLevel": "routine",
+      "highRisk": false,
+      "hasProperty": false,
+      "notes": ""
+    },
+    {
+      "id": "i902",
+      "mdoc": "TEST-002",
+      "first": "Jordan",
+      "last": "Sample",
+      "zone": "B-2",
+      "intakeDate": "2026-10-22",
+      "dateAdded": "2026-10-22T10:30:00.000Z",
+      "status": "active",
+      "sizes": {"shirt": "XL", "pants": "XL", "pantsColor": "Green/White", "shoe": "11"},
+      "riskLevel": "routine",
+      "highRisk": false,
+      "hasProperty": false,
+      "notes": ""
+    },
+    {
+      "id": "i903",
+      "mdoc": "TEST-003",
+      "first": "Taylor",
+      "last": "Demo",
+      "zone": "C-3",
+      "intakeDate": "2026-10-24",
+      "dateAdded": "2026-10-24T11:15:00.000Z",
+      "status": "active",
+      "sizes": {"shirt": "2X", "pants": "2X", "pantsColor": "Green/White", "shoe": "9"},
+      "riskLevel": "routine",
+      "highRisk": false,
+      "hasProperty": false,
+      "notes": ""
+    }
+  ],
+  "requests": [
+    {
+      "id": "R901",
+      "inmateId": "i901",
+      "date": "2026-10-28",
+      "type": "Inmate Request",
+      "officer": "",
+      "notes": "Pending example for the newest date group.",
+      "status": "pending",
+      "created": "2026-10-28T08:30:00.000Z",
+      "history": []
+    },
+    {
+      "id": "R902",
+      "inmateId": "i902",
+      "date": "2026-10-28",
+      "type": "Administrative",
+      "officer": "",
+      "notes": "Completed example on the same date.",
+      "status": "approved",
+      "created": "2026-10-28T09:15:00.000Z",
+      "history": []
+    },
+    {
+      "id": "R903",
+      "inmateId": "i903",
+      "date": "2026-10-27",
+      "type": "Medical",
+      "officer": "",
+      "notes": "Approved request waiting to be issued.",
+      "status": "approved",
+      "created": "2026-10-27T13:00:00.000Z",
+      "history": []
+    },
+    {
+      "id": "R904",
+      "inmateId": "i901",
+      "date": "2026-10-24",
+      "type": "Officer",
+      "officer": "Example Officer",
+      "notes": "Denied example to show another status.",
+      "status": "denied",
+      "created": "2026-10-24T15:45:00.000Z",
+      "history": []
+    }
+  ],
+  "requestItems": [
+    {
+      "id": "RI901",
+      "requestId": "R901",
+      "itemId": "shirt",
+      "size": "L",
+      "qty": 1,
+      "decision": "pending",
+      "reason": "",
+      "decisionReason": "",
+      "issuedQty": 0
+    },
+    {
+      "id": "RI902",
+      "requestId": "R902",
+      "itemId": "shirt",
+      "size": "XL",
+      "qty": 1,
+      "decision": "approved",
+      "reason": "",
+      "decisionReason": "",
+      "issuedQty": 1
+    },
+    {
+      "id": "RI903",
+      "requestId": "R903",
+      "itemId": "towel",
+      "size": "N/A",
+      "qty": 2,
+      "decision": "approved",
+      "reason": "",
+      "decisionReason": "",
+      "issuedQty": 0
+    },
+    {
+      "id": "RI904",
+      "requestId": "R904",
+      "itemId": "shoes",
+      "size": "10",
+      "qty": 1,
+      "decision": "denied",
+      "reason": "",
+      "decisionReason": "Testing only",
+      "issuedQty": 0
+    }
+  ],
+  "issues": [
+    {
+      "id": "I901",
+      "date": "2026-10-28",
+      "issuedAt": "2026-10-28T10:00:00.000Z",
+      "inmateId": "i902",
+      "requestId": "R902",
+      "itemId": "shirt",
+      "itemName": "Shirt",
+      "size": "XL",
+      "qty": 1,
+      "zone": "B-2",
+      "issuedBy": "Test User",
+      "voided": false,
+      "notes": "Synthetic test record."
+    }
+  ],
+  "txns": [
+    {"id": "T901", "date": "2026-10-01", "by": "Test User", "itemId": "shirt", "size": "L", "qty": 8, "type": "Starting stock", "notes": "Synthetic test stock."},
+    {"id": "T902", "date": "2026-10-01", "by": "Test User", "itemId": "shirt", "size": "XL", "qty": 6, "type": "Starting stock", "notes": "Synthetic test stock."},
+    {"id": "T903", "date": "2026-10-01", "by": "Test User", "itemId": "towel", "size": "N/A", "qty": 12, "type": "Starting stock", "notes": "Synthetic test stock."},
+    {"id": "T904", "date": "2026-10-01", "by": "Test User", "itemId": "shoes", "size": "10", "qty": 4, "type": "Starting stock", "notes": "Synthetic test stock."},
+    {"id": "T905", "date": "2026-10-28", "by": "Test User", "itemId": "shirt", "size": "XL", "qty": -1, "type": "Issue", "issueId": "I901", "notes": "Synthetic test issue."},
+    {"id": "T906", "date": "2026-10-20", "by": "Test User", "itemId": "shoes", "size": "10", "qty": 3, "type": "Stock adjustment", "notes": "Synthetic test adjustment."}
+  ],
+  "deletions": [],
+  "reminders": [],
+  "inventoryChecks": [],
+  "settings": {
+    "lastBackup": null,
+    "minStock": {"shirt|XL": 6, "towel|N/A": 4},
+    "targetStock": {"shirt|XL": 12, "towel|N/A": 10},
+    "displayName": "Test User"
+  },
+  "comments": [],
+  "messages": [],
+  "feedback": [],
+  "_backup": {
+    "app": "StateIssue",
+    "created": "2026-10-28T14:00:00.000Z",
+    "items": 4,
+    "inmates": 3,
+    "requests": 4,
+    "requestItems": 4,
+    "issues": 1,
+    "txns": 6,
+    "deletions": 0,
+    "reminders": 0,
+    "inventoryChecks": 0,
+    "comments": 0,
+    "messages": 0,
+    "feedback": 0
+  }
+}

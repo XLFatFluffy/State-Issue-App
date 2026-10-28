@@ -501,6 +501,20 @@ class T(unittest.TestCase):
             base + "/api/messages/status",
             data=json.dumps({
                 "id": message["id"],
+                "status": "in_progress",
+                "who": "Admin",
+            }).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            claimed = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(claimed["message"]["status"], "in_progress")
+
+        req = urllib.request.Request(
+            base + "/api/messages/status",
+            data=json.dumps({
+                "id": message["id"],
                 "status": "completed",
                 "who": "Admin",
             }).encode("utf-8"),
@@ -521,6 +535,29 @@ class T(unittest.TestCase):
             deleted = json.loads(response.read().decode("utf-8"))
         self.assertEqual(deleted["message"]["id"], message["id"])
         self.assertEqual(deleted["state"]["messages"], [])
+
+    def test_work_item_can_move_through_handoff_statuses(self):
+        _, message, _ = srv.add_work_item({
+            "title": "Check the request",
+            "body": "Confirm the requested size.",
+            "kind": "action",
+        }, "host", "Sam")
+        self.assertEqual(message["kind"], "action")
+
+        rev, updated, state = srv.update_work_item_status(
+            message["id"], "in_progress", "host", "Alex"
+        )
+        self.assertEqual(rev, 2)
+        self.assertEqual(updated["status"], "in_progress")
+        self.assertEqual(updated["updatedBy"], "Alex")
+        self.assertEqual(state["messages"][0]["updatedBy"], "Alex")
+
+        rev, updated, _ = srv.update_work_item_status(message["id"], "waiting", "host", "Sam")
+        self.assertEqual(rev, 3)
+        self.assertEqual(updated["status"], "waiting")
+
+        with self.assertRaises(ValueError):
+            srv.update_work_item_status(message["id"], "unknown")
 
     def test_http_feedback_submission_and_status_update(self):
         import urllib.request
@@ -815,30 +852,44 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn("esc(fmtDateTime(c.at))", compact)
         self.assertIn("esc(fmtDateTime(m.created||m.at))", compact)
 
-    def test_messages_are_simple_threads_with_record_links(self):
+    def test_messages_support_handoffs_updates_and_record_links(self):
         compact = re.sub(r"\s+", "", self.html)
         self.assertIn('id="msgText"', compact)
+        self.assertIn('id="msgType"', compact)
+        self.assertIn('Postedby:', compact)
         self.assertIn('id="msgRequestLink"', compact)
         self.assertIn('id="msgInmateLink"', compact)
         self.assertIn('commentsHTML("message",m.id,true)', compact)
         self.assertIn('<detailsclass="card"><summary', compact)
-        self.assertIn('buttonLabel=conversation?"SENDREPLY":"ADDCOMMENT"', compact)
+        self.assertIn('buttonLabel=conversation?"POSTUPDATE":"ADDCOMMENT"', compact)
         self.assertNotIn('id="msgSubject"', compact)
         self.assertNotIn('id="msgPriority"', compact)
         self.assertNotIn('id="msgCategory"', compact)
+        self.assertNotIn("assignedTo", compact)
         self.assertNotIn("window.resolveMessage", compact)
 
     def test_messages_can_be_completed_deleted_and_shown_on_linked_records(self):
         compact = re.sub(r"\s+", "", self.html)
         self.assertIn('id="msgFilter"', compact)
-        self.assertIn('value="completed">Completedmessages</option>', compact)
+        self.assertIn('value="completed">Completedarchive</option>', compact)
+        self.assertIn('value="cleanup">90+daysold</option>', compact)
         self.assertIn('data-message-action="status"', compact)
+        self.assertIn('data-message-status="in_progress"', compact)
         self.assertIn('data-message-action="delete"', compact)
         self.assertIn('"/api/messages/status"', compact)
         self.assertIn('"/api/messages/delete"', compact)
         self.assertIn('linkedMessagesHTML("request",id)', compact)
         self.assertIn('linkedMessagesHTML("inmate",id)', compact)
         self.assertIn('commentsHTML("message",message.id,true)', compact)
+
+    def test_old_handoffs_have_review_reminder_and_manual_cleanup_only(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn("functionmessageIsOlderThan90Days(message)", compact)
+        self.assertIn('id="handoffCleanupNotice"', compact)
+        self.assertIn("90-daycleanupreminder:", compact)
+        self.assertIn("Nothingisdeletedautomatically.", compact)
+        self.assertIn('id="reviewOldHandoffs"', compact)
+        self.assertIn('id:"oldMessages"', compact)
 
     def test_work_item_post_falls_back_for_servers_without_message_endpoint(self):
         compact = re.sub(r"\s+", "", self.html)

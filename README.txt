@@ -53,10 +53,10 @@ HOW IT WORKS
 FEATURES
 --------
 - Dashboard, inmate profiles, request review and fulfillment.
-- Dashboard priority queue for requests, stock alerts, and open messages;
+- Dashboard priority queue for requests, stock alerts, and active handoffs;
   live inmate search (press / to focus); alphabetical inmate and inventory lists.
 - Unified prioritized work queue for pending requests, outstanding issues,
-  overdue reminders, open messages, and stock exceptions; shared search across
+  overdue reminders, active handoffs, and stock exceptions; shared search across
   inmates, requests, messages, reminders, and inventory.
 - Inmate activity timeline combining requests, issues, comments, messages, and
   review-level history. Request saves warn about likely duplicates and stock
@@ -65,14 +65,19 @@ FEATURES
   targets. Inventory guidance compares recent issues and approved outstanding
   demand with current stock, and shows the quantity needed to reach the target;
   it never changes stock or places an order automatically.
-- In-app alert count and action panel for pending work; alerts remain until the
-  related request, stock issue, reminder, or message is handled. The app must be
+- In-app alert count and action panel for pending work and 90-day handoff
+  cleanup reminders. Work alerts remain until the related item is handled; old
+  handoffs are never deleted automatically. The app must be
   open and connected to receive current updates; these are not OS push alerts.
 - Each browser remembers its last tab and common list filters locally.
 - Item and size catalog, inventory tracking, stock history, and low-stock alerts.
 - Reports and CSV export.
-- Shared messages with replies, completion and deletion controls, and optional
-  links that also appear on the related request or inmate record.
+- Shared team handoffs with Action needed, Question, and FYI types; editable
+  display-name attribution; Open, In progress, Waiting, and Done statuses; and
+  concise updates. Completed handoffs are separate in an accessible archive.
+  Handoffs can link to requests or inmates and appear on those records.
+- A 90-day reminder helps staff review and delete old handoffs; no records are
+  deleted automatically.
 - Comments, request snapshots, and an audit view of recent changes.
 - Staff-set Routine, Needs review, and High risk inmate levels are color-coded
   on profiles and linked requests. Request activity brings together saved
@@ -88,6 +93,9 @@ IMPORTANT LIMITATIONS
   who can reach the app can view and change shared records.
 - Each browser requires a display name before the app can be used. Names are
   user-editable attribution labels, not verified identities or authentication.
+  Changing a display name affects new activity; existing posts retain the name
+  recorded when they were made. Handoff status changes show the display name of
+  the person who made the latest update.
 - Risk levels are staff-set review cues, not automatic decisions or a verified
   risk assessment. "Routine" means no additional flag is set, not that the
   inmate has never had an issue. Record factual reasons for review/high-risk.

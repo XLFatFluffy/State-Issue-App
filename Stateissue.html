@@ -1404,7 +1404,7 @@
       <button data-t="inventory">Inventory</button>
       <button data-t="reports">Reports</button>
       <span class="nav-caption">Team &amp; tools</span>
-      <button data-t="messages">Messages</button>
+      <button data-t="messages">Handoffs</button>
       <button data-t="setup">Setup &amp; data</button>
     </nav>
 
@@ -1526,19 +1526,26 @@
       </section>
 
       <section id="messages">
-        <h2>Messages</h2>
+        <h2>Team Handoffs</h2>
         <p class="note">
-          Use this board to keep everyone up to date. Link a message to a request
-          or inmate so it also appears when someone opens that record. You can
-          mark messages complete or delete ones you no longer need.
+          Post a clear next step, question, or FYI. The name shown is who posted
+          it; status updates show who most recently moved the work along. Link a
+          request or inmate to keep the handoff with the record.
         </p>
         <div class="card" style="background: #eef5ff; border-color: #1f3a5f">
-          <h3 style="margin-top: 0">Send a message</h3>
+          <h3 style="margin-top: 0">Create a handoff</h3>
+          <label>Type
+            <select id="msgType">
+              <option value="action">Action needed</option>
+              <option value="question">Question</option>
+              <option value="fyi">FYI</option>
+            </select>
+          </label>
           <label
-            >Message<textarea
+            >What needs to happen?<textarea
               id="msgText"
               maxlength="2000"
-              placeholder="For example: Request R123 is ready for review. Can someone check the size?"
+              placeholder="Be direct: what needs doing, by whom, or what should the other person know?"
             ></textarea>
           </label>
           <div class="grid">
@@ -1562,25 +1569,29 @@
             >
           </div>
           <div class="row" style="margin: 10px 0 0">
-            <button class="btn green" id="msgSend">SEND MESSAGE</button>
+            <button class="btn green" id="msgSend">POST HANDOFF</button>
           </div>
         </div>
+        <div id="handoffCleanupNotice"></div>
         <div class="row">
           <input
             type="text"
             id="msgSearch"
-            placeholder="Search messages and replies"
-            aria-label="Search messages and replies"
+            placeholder="Search handoffs and updates"
+            aria-label="Search handoffs and updates"
           />
           <select id="msgFilter" aria-label="Filter messages" style="max-width: 220px">
-            <option value="open">Open messages</option>
-            <option value="all">All messages</option>
-            <option value="completed">Completed messages</option>
+            <option value="open">Active handoffs</option>
+            <option value="completed">Completed archive</option>
+            <option value="cleanup">90+ days old</option>
+            <option value="all">All handoffs</option>
           </select>
         </div>
         <div id="msgList"></div>
         <p class="note">
-          Everyone who can open the app can read messages and replies.
+          Names are editable display labels, not logins. Changing a name affects
+          new activity; older posts keep the name recorded when they were made.
+          Completed handoffs stay in the archive until someone deletes them.
         </p>
       </section>
 
@@ -1803,7 +1814,6 @@
             tab: uiPrefs.tab || "dashboard",
             requestFilter: $("requestFilter").value,
             inventoryFilter: $("invFilter").value || uiPrefs.inventoryFilter || "all",
-            messageFilter: $("msgFilter").value,
           };
           lsSet(UI_PREF_KEY, JSON.stringify(uiPrefs));
         }
@@ -3298,7 +3308,7 @@
               commentList("message", message.id).forEach(function (comment) {
                 events.push({
                   at: comment.at || "",
-                  title: "Message reply",
+                  title: "Handoff update",
                   detail:
                     (comment.author ? comment.author + " · " : "") +
                     (comment.text || ""),
@@ -4342,13 +4352,13 @@
             });
           });
           db.messages.forEach(function (m) {
-            if ((m.status || "open") !== "open") return;
+            if ((m.status || "open") === "completed") return;
             queue.push({
               priority: 4,
               date: (m.created || m.at || "").slice(0, 10),
-              kind: "Open message",
+              kind: "Handoff",
               person: m.author || "",
-              detail: m.title || m.body || "Message needs follow-up",
+              detail: m.title || m.body || "Handoff needs follow-up",
               action: "messages",
               target: m.id,
             });
@@ -4459,7 +4469,7 @@
             return reminderOpen(r);
           }).length;
           var openMessages = db.messages.filter(function (m) {
-            return (m.status || "open") === "open";
+            return (m.status || "open") !== "completed";
           }).length;
           $("dashboardStats").innerHTML =
             '<div class="stat">REQUESTS NEEDING A DECISION<b>' +
@@ -4468,7 +4478,7 @@
             awaiting +
             '</b></div><div class="stat">LOW-STOCK ALERTS<b>' +
             low +
-            '</b></div><div class="stat">OPEN MESSAGES<b>' +
+            '</b></div><div class="stat">ACTIVE HANDOFFS<b>' +
             openMessages +
             '</b></div><div class="stat">OPEN REMINDERS<b>' +
             rem +
@@ -7978,20 +7988,20 @@
         }
         function commentsHTML(type, id, conversation) {
           var cs = commentList(type, id),
-            heading = conversation ? "Replies" : "Comments",
-            emptyMessage = conversation ? "No replies yet." : "No comments yet.",
-            inputLabel = conversation ? "Reply" : "Add a comment",
+            heading = conversation ? "Updates" : "Comments",
+            emptyMessage = conversation ? "No updates yet." : "No comments yet.",
+            inputLabel = conversation ? "Add an update" : "Add a comment",
             inputPlaceholder = conversation
-              ? "Write a reply to keep the conversation going"
+              ? "What changed, and what happens next?"
               : "Add useful context or an update",
-            buttonLabel = conversation ? "SEND REPLY" : "ADD COMMENT",
+            buttonLabel = conversation ? "POST UPDATE" : "ADD COMMENT",
             field = "commentText_" + type + "_" + id,
             opening = conversation
               ? '<details class="card"><summary style="cursor:pointer;font-weight:600">' +
                 heading +
                 " (" +
                 cs.length +
-                ') - click to reply</summary><div style="margin-top:10px">'
+                ') - click to add an update</summary><div style="margin-top:10px">'
               : '<div class="card"><h3 style="margin-top:0">' +
                 heading +
                 " (" +
@@ -8078,10 +8088,37 @@
                   " · " +
                   esc(fmtDateTime(message.created || message.at)) +
                   " · " +
+                  '<span class="badge">' +
+                  (message.kind === "action"
+                    ? "ACTION NEEDED"
+                    : message.kind === "question"
+                      ? "QUESTION"
+                      : message.kind === "fyi"
+                        ? "FYI"
+                        : "UPDATE") +
+                  '</span> <span class="badge ' +
+                  (message.status === "completed" ? "green" : message.status === "waiting" ? "orange" : "") +
+                  '">' +
                   (message.status === "completed"
-                    ? '<span class="badge green">COMPLETED</span>'
-                    : '<span class="badge orange">OPEN</span>') +
+                    ? "DONE"
+                    : message.status === "in_progress"
+                      ? "IN PROGRESS"
+                      : message.status === "waiting"
+                        ? "WAITING"
+                        : "OPEN") +
+                  "</span>" +
                   "</div>" +
+                  '<p class="note"><b>Posted by:</b> ' +
+                  esc(message.author || "Name not provided") +
+                  "</p>" +
+                  (message.updatedBy
+                    ? '<p class="note"><b>Last update by:</b> ' +
+                      esc(message.updatedBy) +
+                      (message.updated
+                        ? " · " + esc(fmtDateTime(message.updated))
+                        : "") +
+                      "</p>"
+                    : "") +
                   (message.title
                     ? "<p><b>" + esc(message.title) + "</b></p>"
                     : "") +
@@ -8109,17 +8146,27 @@
           }
           if (
             tx(function () {
+              var at = iso();
               db.comments.push({
                 id: "C" + next("comment"),
                 parentType: type,
                 parentId: id,
                 text: text,
                 author: displayName(),
-                at: iso(),
+                at: at,
               });
+              if (type === "message") {
+                var message = db.messages.find(function (item) {
+                  return item.id === id;
+                });
+                if (message) {
+                  message.updated = at;
+                  message.updatedBy = displayName();
+                }
+              }
             })
           ) {
-            toast(type === "message" ? "Reply sent." : "Comment added.");
+            toast(type === "message" ? "Handoff update posted." : "Comment added.");
             if (type === "inmate") showInmate(id);
             else if (type === "request") viewRequest(id);
             else if (type === "issue") showIssueComments(id);
@@ -8167,8 +8214,16 @@
           }
           return "";
         }
+        function messageIsOlderThan90Days(message) {
+          var created = message.created || message.at,
+            timestamp = created ? new Date(created).getTime() : NaN;
+          return (
+            isFinite(timestamp) &&
+            timestamp <= Date.now() - 90 * 24 * 60 * 60 * 1000
+          );
+        }
         function renderMessages() {
-          // Keep the newest conversation first and search messages plus replies.
+          // Keep the newest handoffs first and search both posts and updates.
           $("msgRequestOptions").innerHTML = db.requests
             .slice()
             .sort(function (a, b) {
@@ -8204,6 +8259,16 @@
               );
             })
             .join("");
+          var oldMessages = db.messages.filter(messageIsOlderThan90Days);
+          $("handoffCleanupNotice").innerHTML = oldMessages.length
+            ? '<div class="card"><b>90-day cleanup reminder:</b> ' +
+              oldMessages.length +
+              (oldMessages.length === 1
+                ? " handoff is"
+                : " handoffs are") +
+              " 90 days old or older. Review and delete records you no longer need. Nothing is deleted automatically. " +
+              '<button class="btn small grey" id="reviewOldHandoffs">REVIEW 90+ DAY OLD</button></div>'
+            : "";
           var q = ($("msgSearch") ? $("msgSearch").value : "")
             .trim()
             .toLowerCase(),
@@ -8223,6 +8288,7 @@
                 status = m.status || "open",
                 matchesStatus =
                   filter === "all" ||
+                  (filter === "cleanup" && messageIsOlderThan90Days(m)) ||
                   (filter === "open" && status !== "completed") ||
                   (filter === "completed" && status === "completed");
               return (
@@ -8232,6 +8298,10 @@
                     m.id +
                     " " +
                     status +
+                    " " +
+                    (m.kind || "update") +
+                    " " +
+                    (m.author || "") +
                     " " +
                     (m.title || m.subject || "") +
                     " " +
@@ -8255,6 +8325,19 @@
                     body = m.body || m.text || "",
                     oldTitle = m.title || m.subject || "",
                     status = m.status || "open",
+                    kind = m.kind || "update",
+                    statusLabel = {
+                      open: "OPEN",
+                      in_progress: "IN PROGRESS",
+                      waiting: "WAITING",
+                      completed: "DONE",
+                    }[status] || "OPEN",
+                    kindLabel = {
+                      action: "ACTION NEEDED",
+                      question: "QUESTION",
+                      fyi: "FYI",
+                      update: "UPDATE",
+                    }[kind] || "UPDATE",
                     showOldTitle =
                       oldTitle &&
                       body
@@ -8266,14 +8349,28 @@
                     '" style="border-left:4px solid ' +
                     (status === "completed" ? "#2e7d32" : "#1f3a5f") +
                     '"><div class="note">' +
-                    esc(m.author || "Name not provided") +
+                    esc(m.id) +
                     " · " +
                     esc(fmtDateTime(m.created || m.at)) +
                     " · " +
-                    (status === "completed"
-                      ? '<span class="badge green">COMPLETED</span>'
-                      : '<span class="badge orange">OPEN</span>') +
+                    '<span class="badge">' +
+                    kindLabel +
+                    '</span> <span class="badge ' +
+                    (status === "completed" ? "green" : status === "waiting" ? "orange" : "") +
+                    '">' +
+                    statusLabel +
+                    "</span>" +
                     "</div>" +
+                    '<p class="note"><b>Posted by:</b> ' +
+                    esc(m.author || "Name not provided") +
+                    (m.updatedBy
+                      ? " · <b>Last update:</b> " +
+                        esc(m.updatedBy) +
+                        (m.updated
+                          ? " · " + esc(fmtDateTime(m.updated))
+                          : "")
+                      : "") +
+                    "</p>" +
                     (showOldTitle
                       ? "<p><b>" + esc(oldTitle) + "</b></p>"
                       : "") +
@@ -8324,24 +8421,33 @@
                         "</p>"
                       : "") +
                     commentsHTML("message", m.id, true) +
-                    '<div class="row noPrint" style="margin-top:12px"><button class="btn small ' +
-                    (status === "completed" ? "grey" : "green") +
-                    '" data-message-action="status" data-message-id="' +
+                    '<div class="row noPrint" style="margin-top:12px">' +
+                    (status === "completed"
+                      ? '<button class="btn small grey" data-message-action="status" data-message-id="' +
+                        esc(m.id) +
+                        '" data-message-status="open">REOPEN</button>'
+                      : (status !== "in_progress"
+                          ? '<button class="btn small green" data-message-action="status" data-message-id="' +
+                        esc(m.id) +
+                        '" data-message-status="in_progress">' +
+                            (status === "waiting" ? "RESUME WORK" : "START WORK") +
+                            "</button>"
+                          : "") +
+                        '<button class="btn small grey" data-message-action="status" data-message-id="' +
+                        esc(m.id) +
+                        '" data-message-status="waiting">WAITING</button><button class="btn small green" data-message-action="status" data-message-id="' +
+                        esc(m.id) +
+                        '" data-message-status="completed">MARK DONE</button>') +
+                    '<button class="btn small red" data-message-action="delete" data-message-id="' +
                     esc(m.id) +
-                    '" data-message-status="' +
-                    (status === "completed" ? "open" : "completed") +
-                    '">' +
-                    (status === "completed" ? "REOPEN MESSAGE" : "MARK COMPLETED") +
-                    '</button><button class="btn small red" data-message-action="delete" data-message-id="' +
-                    esc(m.id) +
-                    '">DELETE MESSAGE</button></div>' +
+                    '">DELETE</button></div>' +
                     "</div>"
                   );
                 })
                 .join("")
             : db.messages.length
-              ? '<div class="empty">No messages match your search or filter.</div>'
-              : '<div class="empty">No messages yet. Start a conversation when you have something to share.</div>';
+              ? '<div class="empty">No handoffs match your search or filter.</div>'
+              : '<div class="empty">No handoffs yet. Add an action, question, or FYI when there is something the other person needs to know.</div>';
         }
         function saveWorkItemAction(path, payload, successMessage) {
           if (!storageOK || offlineConflict || offlinePending || !navigator.onLine) {
@@ -8423,8 +8529,10 @@
               "/api/messages/status",
               { id: id, status: status },
               status === "completed"
-                ? "Message marked completed."
-                : "Message reopened.",
+                ? "Handoff marked done."
+                : status === "waiting"
+                  ? "Handoff marked waiting."
+                  : "Handoff reopened.",
             );
           }
         });
@@ -8439,8 +8547,14 @@
           renderMessages();
           saveUIPrefs();
         };
+        $("handoffCleanupNotice").addEventListener("click", function (event) {
+          if (!event.target || event.target.id !== "reviewOldHandoffs") return;
+          $("msgFilter").value = "cleanup";
+          renderMessages();
+        });
         $("msgSend").onclick = function () {
           var text = $("msgText").value.trim(),
+            kind = $("msgType").value,
             requestSearch = $("msgRequestLink").value.trim(),
             inmateSearch = $("msgInmateLink").value.trim(),
             rid = dataListRecordId("msgRequestLink", "msgRequestOptions"),
@@ -8456,7 +8570,7 @@
             return;
           }
           if (!text) {
-            toast("Write a message first.", true);
+            toast("Describe the action, question, or information first.", true);
             return;
           }
           if (requestSearch && !rid) {
@@ -8474,6 +8588,8 @@
           var m = {
             created: iso(),
             author: displayName(),
+            kind: kind,
+            status: "open",
             // Keep a short legacy title for older server versions; the message
             // board displays the message itself rather than a separate title.
             title: text.split(/\r?\n/)[0].slice(0, 120),
@@ -8500,7 +8616,7 @@
             $("msgRequestLink").value = "";
             $("msgInmateLink").value = "";
             renderAll();
-            toast("Message saved on this computer; it will sync when connected.");
+            toast("Handoff saved on this computer; it will sync when connected.");
             return;
           }
 
@@ -8594,7 +8710,7 @@
               $("msgRequestLink").value = "";
               $("msgInmateLink").value = "";
               renderAll();
-              toast("Message sent.");
+              toast("Handoff posted.");
             })
             .catch(function (err) {
               setSaved(false, "⚠ MESSAGE NOT SAVED");
@@ -8642,8 +8758,9 @@
               );
             }).length,
             messages = db.messages.filter(function (m) {
-              return (m.status || "open") === "open";
-            }).length;
+              return (m.status || "open") !== "completed";
+            }).length,
+            oldMessages = db.messages.filter(messageIsOlderThan90Days).length;
           return [
             {
               id: "review",
@@ -8682,10 +8799,18 @@
             },
             {
               id: "messages",
-              title: "Open messages",
+              title: "Active handoffs",
               count: messages,
-              detail: "Messages still need a follow-up.",
-              action: "VIEW MESSAGES",
+              detail: "Handoffs are still active.",
+              action: "VIEW HANDOFFS",
+            },
+            {
+              id: "oldMessages",
+              title: "Review handoffs 90+ days old",
+              count: oldMessages,
+              detail:
+                "Review older records and delete any that are no longer needed. Nothing is deleted automatically.",
+              action: "REVIEW 90+ DAY OLD",
             },
           ].filter(function (item) {
             return item.count > 0;
@@ -8714,7 +8839,7 @@
         function openNotifications() {
           var notifications = appNotifications();
           var html = notifications.length
-            ? '<p class="note">These alerts come from saved app records and remain here until the underlying work is completed. Closing this panel does not clear them.</p>' +
+            ? '<p class="note">These alerts come from saved app records. Closing this panel does not clear them.</p>' +
               notifications
                 .map(function (item) {
                   return (
@@ -8754,6 +8879,10 @@
                 } else if (action === "messages") {
                   $("msgFilter").value = "open";
                   selectTab("messages");
+                } else if (action === "oldMessages") {
+                  $("msgFilter").value = "cleanup";
+                  selectTab("messages");
+                  renderMessages();
                 } else {
                   var reminder = db.reminders.find(function (r) {
                     return r.id === result.id;
@@ -8790,11 +8919,6 @@
           $("requestFilter").value = uiPrefs.requestFilter;
           if ($("requestFilter").value !== uiPrefs.requestFilter)
             $("requestFilter").value = "all";
-        }
-        if (uiPrefs.messageFilter) {
-          $("msgFilter").value = uiPrefs.messageFilter;
-          if ($("msgFilter").value !== uiPrefs.messageFilter)
-            $("msgFilter").value = "open";
         }
         Array.prototype.forEach.call(
           document.querySelectorAll("#tabs button"),

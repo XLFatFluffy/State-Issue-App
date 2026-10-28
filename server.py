@@ -161,7 +161,12 @@ def add_work_item(message, workstation="unknown", who=""):
         raise ValueError("work item title is required")
     if not isinstance(message.get("body"), str) or not message["body"].strip():
         raise ValueError("work item details are required")
-
+    kind = message.get("kind", "update")
+    if not isinstance(kind, str) or kind not in {"action", "question", "fyi", "update"}:
+        raise ValueError("invalid work item type")
+    status = message.get("status", "open")
+    if not isinstance(status, str) or status not in {"open", "in_progress", "waiting", "completed"}:
+        raise ValueError("invalid work item status")
     c = dbconn()
     try:
         # SQLite serializes this write transaction. Reading the counter and
@@ -187,6 +192,8 @@ def add_work_item(message, workstation="unknown", who=""):
             if existing_id.startswith("M") and existing_id[1:].isdigit():
                 last_id = max(last_id, int(existing_id[1:]))
         item = dict(message)
+        item["status"] = status
+        item["kind"] = kind
         item["id"] = "M%d" % (last_id + 1)
         state["seq"]["message"] = last_id + 1
         state["messages"].append(item)
@@ -216,14 +223,13 @@ def add_work_item(message, workstation="unknown", who=""):
         c.close()
 
 def update_work_item_status(message_id, status, workstation="unknown", who=""):
-    """Mark a shared message complete or reopen it without replacing app state."""
+    """Update a shared work item's status without replacing app state."""
     if not isinstance(message_id, str) or len(message_id) > 30:
         raise ValueError("invalid message ID")
-    if not isinstance(status, str) or status not in {"open", "completed"}:
+    if not isinstance(status, str) or status not in {"open", "in_progress", "waiting", "completed"}:
         raise ValueError("invalid message status")
     if not isinstance(who, str):
         who = ""
-
     c = dbconn()
     try:
         c.execute("BEGIN IMMEDIATE")
