@@ -54,7 +54,8 @@ version, steps to reproduce, and sanitized error text instead.
 ------------------------------------
 The host computer runs the server on TCP port 8787. Workstations connect using
 the host address configured in OPEN_STATE_ISSUE.bat. All computers must be able
-to communicate through the same approved local network or VPN.
+to communicate through the same approved private network. The current
+workstation address is http://10.9.50.171:8787/.
 
 Normal app use on an already configured local network does not require internet.
 Internet access is needed for optional online Python installation, downloading
@@ -69,11 +70,10 @@ offline operation. For workstations use OPEN_STATE_ISSUE.bat or the exact URL
 configured inside that file. Opening Stateissue.html directly from a folder
 does not connect to shared data.
 
-If the host's local network/VPN address changes, update OPEN_STATE_ISSUE.bat on
-each workstation and the matching host/local-address restrictions in
-SETUP_NEW_COMPUTER.bat. Re-run the setup script as administrator and test from
-a workstation. Keep firewall access limited to the approved private network;
-never disable the firewall as a troubleshooting shortcut.
+If the host's private-network address changes, update OPEN_STATE_ISSUE.bat on
+each workstation. Re-run SETUP_NEW_COMPUTER.bat on the host as administrator
+and test from a workstation. Keep firewall access limited to the approved
+private network; never disable the firewall as a troubleshooting shortcut.
 
 3. INITIAL HOST SETUP
 ---------------------

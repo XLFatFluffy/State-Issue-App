@@ -6,13 +6,14 @@ CONNECTION ADDRESSES
 Host computer: run START_STATE_ISSUE.bat. It opens:
     http://127.0.0.1:8787/
 
-Workstation: connect to the approved network/VPN, then run
+Workstation: connect to the host's approved private network, then run
 OPEN_STATE_ISSUE.bat. The host URL is configured in that file. You can also
-enter that exact URL directly in the browser.
+enter http://10.9.50.171:8787/ directly in the browser.
 
 The host and workstation must be able to reach each other over the approved
-private network. The server listens on TCP port 8787. Opening Stateissue.html
-directly from a folder does not connect to shared data.
+private network. The server listens on TCP port 8787. The current host address
+is 10.9.50.171. Opening Stateissue.html directly from a folder does not connect
+to shared data.
 
 INTERNET VS. LOCAL CONNECTIVITY
 -------------------------------
@@ -21,9 +22,9 @@ workstations do need their local network/VPN path to the server. Internet is
 needed for online setup downloads, first-time pywin32 installation, and the
 GitHub update utility. A loss of internet alone does not stop local-network use.
 
-If the host's network/VPN address changes, update OPEN_STATE_ISSUE.bat on each
-workstation and the matching firewall configuration in SETUP_NEW_COMPUTER.bat.
-Run the setup script as administrator, then test the new URL.
+If the host's private-network address changes, update OPEN_STATE_ISSUE.bat on
+each workstation. Run SETUP_NEW_COMPUTER.bat on the host as administrator, then
+test the new URL.
 
 TROUBLESHOOTING
 ---------------

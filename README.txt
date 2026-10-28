@@ -23,8 +23,9 @@ QUICK START
    Administrator permission is needed to configure Windows Firewall.
 3. Run INSTALL_STATE_ISSUE_SERVICE.bat as administrator. The first service
    installation downloads the pywin32 dependency and therefore needs internet.
-4. On the host, run START_STATE_ISSUE.bat. On each workstation, run
-   OPEN_STATE_ISSUE.bat after connecting to the host network or VPN.
+4. On the host, run START_STATE_ISSUE.bat. On each workstation connected to the
+   host's private network, run OPEN_STATE_ISSUE.bat or open
+   http://10.9.50.171:8787/.
 
 Read ADMIN_GUIDE.txt before putting operational data into the app. It covers
 offline behavior, backups, recovery, updates, network access, and troubleshooting.

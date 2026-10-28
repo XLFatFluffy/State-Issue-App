@@ -72,7 +72,7 @@ echo Running automated checks...
 if errorlevel 1 goto TESTERROR
 
 echo.
-echo Configuring Windows Firewall for private networks and the host VPN address.
+echo Configuring Windows Firewall for private networks.
 net session >nul 2>nul
 if errorlevel 1 (
   echo Not running as administrator. Firewall rule was not changed.
@@ -81,13 +81,13 @@ if errorlevel 1 (
   netsh advfirewall firewall add rule name="State Issue TCP 8787" dir=in action=allow protocol=TCP localport=8787 profile=private >nul
   if errorlevel 1 (echo Private-network firewall rule could not be added. Check firewall settings.) else (echo Private-network firewall rule is ready.)
   netsh advfirewall firewall delete rule name="State Issue VPN TCP 8787" >nul 2>nul
-  netsh advfirewall firewall add rule name="State Issue VPN TCP 8787" dir=in action=allow protocol=TCP localport=8787 localip=25.34.230.125 remoteip=25.0.0.0/8 profile=any >nul
-  if errorlevel 1 (echo VPN firewall rule could not be added. Check the host VPN address and firewall settings.) else (echo VPN firewall rule is limited to host 25.34.230.125 and VPN addresses in 25.0.0.0/8.)
+  echo Removed any obsolete Hamachi-only firewall rule.
 )
 
 echo.
 echo Setup checks completed.
 echo On the host computer, run INSTALL_STATE_ISSUE_SERVICE.bat as administrator.
+echo Workstations should connect to http://10.9.50.171:8787/
 pause
 exit /b 0
 :PYERROR
