@@ -9,6 +9,11 @@ os.environ["STATE_ISSUE_DATA"] = TMP
 HERE = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("srv", os.path.join(HERE, "server.py"))
 srv = importlib.util.module_from_spec(spec); spec.loader.exec_module(srv)
+updater_spec = importlib.util.spec_from_file_location(
+    "state_issue_updater", os.path.join(HERE, "update_state_issue.py")
+)
+updater = importlib.util.module_from_spec(updater_spec)
+updater_spec.loader.exec_module(updater)
 
 class T(unittest.TestCase):
     """Server tests use an isolated database and never touch live application data."""
@@ -40,6 +45,23 @@ class T(unittest.TestCase):
     def test_migrate_is_idempotent(self):
         srv.migrate(); srv.migrate()
         self.assertEqual(srv.load_state()[0], 0)
+
+    def test_updater_distinguishes_certificate_failure_from_network_failure(self):
+        import ssl
+        import urllib.error
+
+        certificate_error = urllib.error.URLError(
+            ssl.SSLCertVerificationError("certificate verify failed")
+        )
+        certificate_message = updater.download_error_message(certificate_error)
+        self.assertIn("TLS certificate could not be verified", certificate_message)
+        self.assertIn("Do not disable certificate verification", certificate_message)
+
+        network_message = updater.download_error_message(
+            urllib.error.URLError("connection refused")
+        )
+        self.assertIn("internet connection, firewall, or proxy", network_message)
+        self.assertNotIn("TLS certificate", network_message)
 
     def test_migrates_schema_v2_to_v3(self):
         c = sqlite3.connect(srv.DB_PATH)

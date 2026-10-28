@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -72,6 +73,29 @@ def wait_for_service(expected, timeout=60):
     )
 
 
+def download_error_message(error):
+    reason = error.reason if isinstance(error, urllib.error.URLError) else error
+    if isinstance(reason, ssl.SSLCertVerificationError) or (
+        isinstance(reason, ssl.SSLError)
+        and "CERTIFICATE_VERIFY_FAILED" in str(reason)
+    ):
+        return (
+            "GitHub's TLS certificate could not be verified. This is a "
+            "certificate trust problem, not proof that the computer is "
+            "offline. Check that Windows date and time are correct. If "
+            "this computer uses an organization proxy or HTTPS inspection, "
+            "ask IT to configure its trusted certificate for the Python "
+            "used by this updater, or approve an update route that does "
+            "not intercept HTTPS. Do not disable certificate verification.\n"
+            + str(error)
+        )
+    return (
+        "Could not download the published update. Check the host's internet "
+        "connection, firewall, or proxy settings and try again.\n"
+        + str(error)
+    )
+
+
 def download_archive(destination):
     request = urllib.request.Request(
         REPOSITORY_ZIP,
@@ -82,10 +106,7 @@ def download_archive(destination):
             with open(destination, "wb") as archive:
                 shutil.copyfileobj(response, archive)
     except (OSError, urllib.error.URLError) as error:
-        raise RuntimeError(
-            "Could not download the published update. Check the host's internet "
-            "connection and try again.\n" + str(error)
-        )
+        raise RuntimeError(download_error_message(error))
     if not zipfile.is_zipfile(destination):
         raise RuntimeError("GitHub did not return a valid update archive.")
 

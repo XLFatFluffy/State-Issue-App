@@ -255,6 +255,14 @@ Internet unavailable
   not work until internet access is restored. Do not remove Python or the
   service; record the pending maintenance and retry later.
 
+Updater reports a certificate verification error
+- This is a TLS certificate trust problem, not necessarily a loss of internet.
+- Check that Windows date and time are correct, then try the updater again.
+- If the computer uses an organization proxy or HTTPS inspection, ask IT to
+  configure its approved trusted certificate for the Python used by the
+  updater, or provide an approved route that does not intercept HTTPS.
+- Do not disable certificate checks or install an unverified update archive.
+
 Page looks old or does not update
 - Reload the page; if necessary, use Ctrl+F5 to reload the application shell.
 - Do not clear browser site data while the host shows pending offline changes.
