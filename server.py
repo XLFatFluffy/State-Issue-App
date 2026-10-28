@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 3.3.0
+State Issue server, version 3.3.1
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
@@ -16,8 +16,9 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "3.3.0"
+APP_VERSION = "3.3.1"
 SCHEMA_VERSION = 3
+AUDIT_KEEP_DAYS = 7
 # Keep program files separate from the database location so the server can
 # continue using a chosen data folder without moving the application itself.
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -501,7 +502,19 @@ def wait_for_revision(since, timeout):
         with CHANGED:
             CHANGED.wait(min(remaining, 1.0))
 
+def prune_audit():
+    cutoff = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - datetime.timedelta(days=AUDIT_KEEP_DAYS)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    c = dbconn()
+    try:
+        c.execute("DELETE FROM audit_log WHERE at < ?", (cutoff,))
+    finally:
+        c.close()
+
 def recent_audit(limit=500):
+    prune_audit()
     c = dbconn()
     try:
         rows = c.execute("SELECT at,workstation,revision,summary,who FROM audit_log ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
@@ -653,6 +666,10 @@ def backup_loop():
             run_backups_if_due()
         except Exception as e:
             print("[backup] ERROR:", e)
+        try:
+            prune_audit()
+        except Exception as e:
+            print("[audit] Cleanup failed:", e)
         time.sleep(BACKUP_CHECK_SECONDS)
 
 def initialize():
@@ -662,6 +679,10 @@ def initialize():
         run_backups_if_due()
     except Exception as e:
         print("Backup warning:", e)
+    try:
+        prune_audit()
+    except Exception as e:
+        print("Audit log cleanup warning:", e)
     threading.Thread(target=backup_loop, daemon=True).start()
 
 def local_ip():

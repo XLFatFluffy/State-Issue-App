@@ -183,6 +183,29 @@ class T(unittest.TestCase):
         row = srv.recent_audit(1)[0]
         self.assertEqual(row["who"], "")
 
+    def test_audit_entries_older_than_seven_days_are_deleted(self):
+        now = srv.datetime.datetime.now(srv.datetime.timezone.utc)
+        old_at = (now - srv.datetime.timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        recent_at = (now - srv.datetime.timedelta(days=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        c = sqlite3.connect(srv.DB_PATH)
+        c.executemany(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            [
+                (old_at, "old", 1, "old change", ""),
+                (recent_at, "recent", 2, "recent change", ""),
+            ],
+        )
+        c.commit()
+        c.close()
+
+        rows = srv.recent_audit()
+
+        self.assertEqual([row["workstation"] for row in rows], ["recent"])
+        c = sqlite3.connect(srv.DB_PATH)
+        remaining = c.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+        c.close()
+        self.assertEqual(remaining, 1)
+
     def test_backup_is_consistent_copy(self):
         rev, st = srv.load_state()
         srv.save_state(rev, json.loads(json.dumps(st)), "a")

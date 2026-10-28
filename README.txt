@@ -1,4 +1,4 @@
-STATE ISSUE 3.3.0
+STATE ISSUE 3.3.1
 Official operational release
 =============================
 
@@ -7,11 +7,14 @@ requests, inventory, issue history, and staff messages. One Windows computer
 hosts the app and its shared database. Other computers connect to that host
 through a trusted local network or VPN.
 
-Version 3.3 adds three staff-set inmate review levels, color-coded profiles and
-requests, and a combined request activity timeline. Version 3.2 added message
-completion and deletion and shows linked messages on related records. Version
-3.1 added the shared, structured feedback inbox in Setup. These features do not
-add user accounts, role-based permissions, or a security certification.
+Version 3.3.1 groups Setup tools into collapsed sections and removes
+saved-change logs from the active database after seven days. Existing database
+backups may retain earlier log entries. Version 3.3 adds three staff-set inmate
+review levels, color-coded profiles and requests, and a combined request
+activity timeline. Version 3.2 added message completion and deletion and shows
+linked messages on related records. Version 3.1 added the shared, structured
+feedback inbox in Setup. These features do not add user accounts, role-based
+permissions, or a security certification.
 
 Project repository:
 https://github.com/XLFatFluffy/State-Issue-App

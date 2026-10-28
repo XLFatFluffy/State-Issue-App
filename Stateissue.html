@@ -124,6 +124,24 @@
         background: #fafbfd;
         margin-bottom: 8px;
       }
+      .setup-group {
+        border: 1px solid #c3ccd6;
+        border-radius: 6px;
+        background: #fafbfd;
+        margin-bottom: 10px;
+      }
+      .setup-group > summary {
+        cursor: pointer;
+        font-size: 20px;
+        font-weight: bold;
+        padding: 14px;
+      }
+      .setup-group[open] > summary {
+        border-bottom: 1px solid #c3ccd6;
+      }
+      .setup-group-content {
+        padding: 0 14px 14px;
+      }
       label {
         font-weight: bold;
         display: block;
@@ -1597,162 +1615,193 @@
 
       <section id="setup">
         <h2>Setup & Data</h2>
-        <div class="card">
-          <h3 style="margin-top: 0">Display Name</h3>
-          <p class="note">
-            Set a name for this browser so coworkers can tell who added or
-            updated a record. A name is required to use the app; it is not a
-            login or verified identity.
-          </p>
-          <div class="row">
-            <input
-              type="text"
-              id="displayName"
-              maxlength="80"
-              placeholder="Your name"
-              style="max-width: 420px"
-            /><button class="btn green" id="saveDisplayName">SAVE NAME</button>
+        <details class="setup-group">
+          <summary>Display Name</summary>
+          <div class="setup-group-content">
+            <div class="card">
+              <p class="note">
+                Set a name for this browser so coworkers can tell who added or
+                updated a record. A name is required to use the app; it is not a
+                login or verified identity.
+              </p>
+              <div class="row">
+                <input
+                  type="text"
+                  id="displayName"
+                  maxlength="80"
+                  placeholder="Your name"
+                  style="max-width: 420px"
+                /><button class="btn green" id="saveDisplayName">SAVE NAME</button>
+              </div>
+            </div>
           </div>
-        </div>
-        <hr />
-        <h3>Report a Problem or Suggestion</h3>
-        <p class="note">
-          Tell us what went wrong or what would make the app better. Point to
-          the screen or button, and include a request ID—or a name or MDOC
-          number if that helps us find the right record. Reports are shared
-          with everyone who can open the app. You'll need a connection to send
-          one; reports aren't saved offline.
-        </p>
-        <div class="card">
-          <div class="grid">
-            <label>Report type
-              <select id="feedbackType">
-                <option>Bug / problem</option>
-                <option>Improvement suggestion</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <label>App area
-              <select id="feedbackArea">
-                <option value="">Choose an area</option>
-                <option>Dashboard</option>
-                <option>Inmates</option>
-                <option>Requests</option>
-                <option>Inventory</option>
-                <option>Reports</option>
-                <option>Messages</option>
-                <option>Setup</option>
-                <option>Other</option>
-              </select>
-            </label>
-            <label>Specific button, field, or part of the screen
-              <input type="text" id="feedbackTarget" maxlength="120"
-                placeholder="For example: Approve button on the request details" />
-            </label>
-            <label>Related request ID (optional)
-              <input type="text" id="feedbackRequestId" maxlength="40"
-                placeholder="For example: R1042" />
-            </label>
+        </details>
+        <details class="setup-group">
+          <summary>Report a Problem or Suggestion</summary>
+          <div class="setup-group-content">
+            <p class="note">
+              Tell us what went wrong or what would make the app better. Point to
+              the screen or button, and include a request ID—or a name or MDOC
+              number if that helps us find the right record. Reports are shared
+              with everyone who can open the app. You'll need a connection to send
+              one; reports aren't saved offline.
+            </p>
+            <div class="card">
+              <div class="grid">
+                <label>Report type
+                  <select id="feedbackType">
+                    <option>Bug / problem</option>
+                    <option>Improvement suggestion</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+                <label>App area
+                  <select id="feedbackArea">
+                    <option value="">Choose an area</option>
+                    <option>Dashboard</option>
+                    <option>Inmates</option>
+                    <option>Requests</option>
+                    <option>Inventory</option>
+                    <option>Reports</option>
+                    <option>Messages</option>
+                    <option>Setup</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+                <label>Specific button, field, or part of the screen
+                  <input type="text" id="feedbackTarget" maxlength="120"
+                    placeholder="For example: Approve button on the request details" />
+                </label>
+                <label>Related request ID (optional)
+                  <input type="text" id="feedbackRequestId" maxlength="40"
+                    placeholder="For example: R1042" />
+                </label>
+              </div>
+              <label>Short summary
+                <input type="text" id="feedbackTitle" maxlength="160"
+                  placeholder="A few words describing the issue or idea" />
+              </label>
+              <label>What happened or what would you like changed?
+                <textarea id="feedbackDetails" maxlength="3000" required
+                  placeholder="Describe the problem or suggestion. What were you trying to do?"></textarea>
+              </label>
+              <label>Steps to reproduce (optional)
+                <textarea id="feedbackSteps" maxlength="2000"
+                  placeholder="1. Open Requests. 2. Select a request. 3. Press ..."></textarea>
+              </label>
+              <div class="grid">
+                <label>What did you expect to happen? (optional)
+                  <textarea id="feedbackExpected" maxlength="1500"></textarea>
+                </label>
+                <label>What happened instead? (optional)
+                  <textarea id="feedbackActual" maxlength="1500"></textarea>
+                </label>
+              </div>
+              <button class="btn green" id="sendFeedback">SEND REPORT</button>
+            </div>
           </div>
-          <label>Short summary
-            <input type="text" id="feedbackTitle" maxlength="160"
-              placeholder="A few words describing the issue or idea" />
-          </label>
-          <label>What happened or what would you like changed?
-            <textarea id="feedbackDetails" maxlength="3000" required
-              placeholder="Describe the problem or suggestion. What were you trying to do?"></textarea>
-          </label>
-          <label>Steps to reproduce (optional)
-            <textarea id="feedbackSteps" maxlength="2000"
-              placeholder="1. Open Requests. 2. Select a request. 3. Press ..."></textarea>
-          </label>
-          <div class="grid">
-            <label>What did you expect to happen? (optional)
-              <textarea id="feedbackExpected" maxlength="1500"></textarea>
-            </label>
-            <label>What happened instead? (optional)
-              <textarea id="feedbackActual" maxlength="1500"></textarea>
-            </label>
+        </details>
+        <details class="setup-group">
+          <summary>Shared Feedback Inbox</summary>
+          <div class="setup-group-content">
+            <p class="note">
+              Reports show up on every connected computer. Update the status as
+              you review each one. Names shown here are workstation labels.
+            </p>
+            <div class="grid">
+              <label>Search reports
+                <input type="text" id="feedbackSearch"
+                  placeholder="Search ID, button, request ID, or report text" />
+              </label>
+              <label>Show
+                <select id="feedbackFilter">
+                  <option value="all">All statuses</option>
+                  <option value="open">Open and planned</option>
+                  <option value="completed">Completed</option>
+                  <option value="not-planned">Not planned</option>
+                </select>
+              </label>
+            </div>
+            <div id="feedbackSummary" class="note"></div>
+            <div id="feedbackInbox"></div>
           </div>
-          <button class="btn green" id="sendFeedback">SEND REPORT</button>
-        </div>
-        <h3>Shared Feedback Inbox</h3>
-        <p class="note">
-          Reports show up on every connected computer. Update the status as
-          you review each one. Names shown here are workstation labels.
-        </p>
-        <div class="grid">
-          <label>Search reports
-            <input type="text" id="feedbackSearch"
-              placeholder="Search ID, button, request ID, or report text" />
-          </label>
-          <label>Show
-            <select id="feedbackFilter">
-              <option value="all">All statuses</option>
-              <option value="open">Open and planned</option>
-              <option value="completed">Completed</option>
-              <option value="not-planned">Not planned</option>
-            </select>
-          </label>
-        </div>
-        <div id="feedbackSummary" class="note"></div>
-        <div id="feedbackInbox"></div>
-        <div id="offlineStatus"></div>
-        <hr />
-        <div class="row noPrint">
-          <button class="btn" id="backup">BACK UP TO HOST</button>
-          <button class="btn grey" id="jsonExport">DOWNLOAD JSON EXPORT</button>
-          <button class="btn red" id="restore">RESTORE DATA</button>
-          <input type="file" id="file" accept=".json" style="display: none" />
-        </div>
-        <p class="note">
-          Routine backups are SQLite snapshots saved on the host in the
-          application's <b>backups</b> folder, not downloads on this workstation.
-          Daily and monthly copies are automatic. Download a JSON export only
-          when you deliberately need a portable copy. Keep a separate secure
-          copy outside the host in case that computer fails.
-        </p>
-        <div id="safety"></div>
-        <hr />
-        <h3>Recent Changes</h3>
-        <p class="note">
-          We keep a log of saved changes with the time, workstation name (if
-          set), and computer. It shows counts of records changed, not their
-          names or details.
-        </p>
-        <div id="auditBox"></div>
-        <hr />
-        <h3>Export to Excel (CSV files)</h3>
-        <p class="note">
-          These buttons download spreadsheets you can open in Excel. They may
-          include names and other record details, so store them securely and
-          remove them from shared computers when you're done.
-        </p>
-        <div class="row noPrint">
-          <button class="btn grey" id="exInmates">INMATES</button
-          ><button class="btn grey" id="exIssues">ISSUES</button
-          ><button class="btn grey" id="exStock">STOCK HISTORY</button
-          ><button class="btn grey" id="exInv">CURRENT INVENTORY</button
-          ><button class="btn grey" id="exRequests">REQUESTS</button>
-        </div>
-        <hr />
-        <h3>Stock Targets &amp; Reorder Alerts</h3>
-        <p class="note">
-          Set the on-hand quantity you aim to keep and a separate reorder
-          trigger. The app flags stock at or below the trigger and suggests how
-          many units would bring it back to target. Set a value to 0 to disable
-          that target or alert.
-        </p>
-        <div id="minStockTable"></div>
-        <hr />
-        <h3>Manage Items</h3>
-        <div class="row noPrint">
-          <button class="btn green" id="newItem">+ ADD ITEM</button>
-        </div>
-        <div id="itemTable"></div>
-        <hr />
-        <h3>Application Information</h3>
-        <div class="note" id="versionNote"></div>
+        </details>
+        <details class="setup-group">
+          <summary>Back Up and Restore Data</summary>
+          <div class="setup-group-content">
+            <div id="offlineStatus"></div>
+            <div class="row noPrint">
+              <button class="btn" id="backup">BACK UP TO HOST</button>
+              <button class="btn grey" id="jsonExport">DOWNLOAD JSON EXPORT</button>
+              <button class="btn red" id="restore">RESTORE DATA</button>
+              <input type="file" id="file" accept=".json" style="display: none" />
+            </div>
+            <p class="note">
+              Routine backups are SQLite snapshots saved on the host in the
+              application's <b>backups</b> folder, not downloads on this workstation.
+              Daily and monthly copies are automatic. Download a JSON export only
+              when you deliberately need a portable copy. Keep a separate secure
+              copy outside the host in case that computer fails.
+            </p>
+            <div id="safety"></div>
+          </div>
+        </details>
+        <details class="setup-group">
+          <summary>Recent Changes</summary>
+          <div class="setup-group-content">
+            <p class="note">
+              Saved-change logs are kept for seven days, then automatically
+              deleted. They show the time, workstation name (if set), computer,
+              and counts of records changed—not names or details. Older
+              database backups may contain earlier log entries.
+            </p>
+            <div id="auditBox"></div>
+          </div>
+        </details>
+        <details class="setup-group">
+          <summary>Export to Excel (CSV files)</summary>
+          <div class="setup-group-content">
+            <p class="note">
+              These buttons download spreadsheets you can open in Excel. They may
+              include names and other record details, so store them securely and
+              remove them from shared computers when you're done.
+            </p>
+            <div class="row noPrint">
+              <button class="btn grey" id="exInmates">INMATES</button
+              ><button class="btn grey" id="exIssues">ISSUES</button
+              ><button class="btn grey" id="exStock">STOCK HISTORY</button
+              ><button class="btn grey" id="exInv">CURRENT INVENTORY</button
+              ><button class="btn grey" id="exRequests">REQUESTS</button>
+            </div>
+          </div>
+        </details>
+        <details class="setup-group">
+          <summary>Stock Targets &amp; Reorder Alerts</summary>
+          <div class="setup-group-content">
+            <p class="note">
+              Set the on-hand quantity you aim to keep and a separate reorder
+              trigger. The app flags stock at or below the trigger and suggests how
+              many units would bring it back to target. Set a value to 0 to disable
+              that target or alert.
+            </p>
+            <div id="minStockTable"></div>
+          </div>
+        </details>
+        <details class="setup-group">
+          <summary>Manage Items</summary>
+          <div class="setup-group-content">
+            <div class="row noPrint">
+              <button class="btn green" id="newItem">+ ADD ITEM</button>
+            </div>
+            <div id="itemTable"></div>
+          </div>
+        </details>
+        <details class="setup-group">
+          <summary>Application Information</summary>
+          <div class="setup-group-content">
+            <div class="note" id="versionNote"></div>
+          </div>
+        </details>
       </section>
     </main>
 
@@ -1788,7 +1837,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "3.3.0",
+        var APP_VERSION = "3.3.1",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",

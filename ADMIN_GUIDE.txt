@@ -1,4 +1,4 @@
-STATE ISSUE 3.3.0 — ADMINISTRATOR GUIDE
+STATE ISSUE 3.3.1 — ADMINISTRATOR GUIDE
 ========================================
 
 Inmate profiles have three staff-set review levels:
@@ -104,6 +104,8 @@ the browser does not stop the service. To check or control it, open Services
 - Workstations: connect to the host network/VPN, then use OPEN_STATE_ISSUE.bat.
 - Confirm the app's save/connection status before relying on a change.
 - Review Dashboard / Today's Changes and Setup / Recent Changes as appropriate.
+- The active change log is automatically cleaned up after seven days. Database
+  backups may contain older log entries until those backups expire.
 - Use the separate CONNECT_AND_TROUBLESHOOT.txt for step-by-step diagnostics.
 
 Host-only offline work: the host's localhost tab can continue using browser-
