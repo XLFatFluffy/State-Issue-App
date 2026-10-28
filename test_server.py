@@ -712,10 +712,24 @@ class ClientSourceChecks(unittest.TestCase):
         compact = re.sub(r"\s+", "", self.html)
         self.assertIn('varDISPLAY_NAME_KEY="stateIssueWorkstationName"', compact)
         self.assertIn("localStorage.setItem(DISPLAY_NAME_KEY,name)", compact)
-        idx = compact.index('$("saveDisplayName").onclick=function(){')
-        body = compact[idx:idx + 700]
-        self.assertIn("workstationDisplayName=name", body)
-        self.assertNotIn("db.settings.displayName=name", body)
+        self.assertIn("functionsaveDisplayName(value)", compact)
+        self.assertIn("workstationDisplayName=name", compact)
+        self.assertNotIn("db.settings.displayName", compact)
+        self.assertIn("functionshowRequiredName()", compact)
+        self.assertIn("showRequiredName();", compact)
+        self.assertIn("if(!displayName()){showRequiredName();", compact)
+        self.assertIn("Adisplaynameisrequired.", compact)
+
+    def test_request_details_show_compact_attribution_and_history(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn("functionrequestAttributionHTML(r)", compact)
+        self.assertIn('"Enteredby"', compact)
+        self.assertIn("Lastupdatedby", compact)
+        self.assertIn("requestAttributionHTML(r)", compact)
+        self.assertIn("inmate.profileHistory", compact)
+        self.assertIn("obj.createdBy=displayName()", compact)
+        self.assertIn("Recorded by", self.html)
+        self.assertIn('esc(x.by || "Name not provided")', self.html)
 
     def test_profile_review_levels_and_request_activity_are_available(self):
         compact = re.sub(r"\s+", "", self.html)

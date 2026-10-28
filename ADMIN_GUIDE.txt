@@ -17,6 +17,8 @@ decisions and reasons, item issues and voids, timestamps, staff labels, and requ
 comments in chronological order. Older requests may not have a full activity
 history if details were not retained at the time; older item labels may reflect
 the current catalog name if the item was not snapshotted before a rename.
+The request detail also shows who entered it and, when applicable, who last
+updated it. Profile activity and stock history show their available staff labels.
 
 Purpose
 -------
@@ -38,8 +40,9 @@ version, steps to reproduce, and sanitized error text instead.
 ----------------------------------------
 - The app has no login, authentication, or role-based access. Every person
   who can reach it has the same access to view and change records.
-- Display names are optional and can be changed by the user. They are labels,
-  not verified identities or a security audit trail.
+- Each browser requires a display name before the app can be used. Names can
+  be changed by the user and are labels, not verified identities or a security
+  audit trail.
 - Run the server only on a trusted private network/VPN. Never forward its port
   from a router or expose it directly to the public internet.
 - Treat the database, its backups, offline browser data, and CSV/JSON exports

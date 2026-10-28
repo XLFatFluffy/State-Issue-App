@@ -86,8 +86,8 @@ IMPORTANT LIMITATIONS
 ---------------------
 - There are no user accounts, authentication, or per-user permissions. Anyone
   who can reach the app can view and change shared records.
-- Workstation display names are optional, user-editable attribution labels;
-  they do not identify or authenticate a person.
+- Each browser requires a display name before the app can be used. Names are
+  user-editable attribution labels, not verified identities or authentication.
 - Risk levels are staff-set review cues, not automatic decisions or a verified
   risk assessment. "Routine" means no additional flag is set, not that the
   inmate has never had an issue. Record factual reasons for review/high-risk.

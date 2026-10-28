@@ -1431,13 +1431,17 @@
         <p class="note">Items that may need attention are grouped below with shortcuts to the next step.</p>
         <div id="dashboardActions"></div>
         <div id="dashMessages"></div>
-        <h3>Today's Changes</h3>
-        <p class="note">
-          Changes saved today appear here as they happen. You'll see the
-          workstation name if one is set. This list starts over at midnight;
-          older changes are in Setup under Recent Changes.
-        </p>
-        <div id="dashboardToday"></div>
+        <details class="card">
+          <summary style="cursor: pointer; font-weight: 600">
+            Today's Changes
+          </summary>
+          <p class="note">
+            Changes saved today appear here as they happen. You'll see the
+            workstation name if one is set. This list starts over at midnight;
+            older changes are in Setup under Recent Changes.
+          </p>
+          <div id="dashboardToday"></div>
+        </details>
         <h3>Reminders</h3>
         <div class="row noPrint">
           <button class="btn green" id="newReminder">+ NEW REMINDER</button
@@ -1499,9 +1503,14 @@
           </button>
         </div>
         <div id="inventoryTable"></div>
-        <h3>Stock History (every change is recorded)</h3>
-        <select id="invFilter" style="max-width: 300px"></select>
-        <div id="invHistory"></div>
+        <details class="card">
+          <summary style="cursor: pointer; font-weight: 600">
+            Stock History (every change is recorded)
+          </summary>
+          <p class="note">Filter by item to review recorded stock changes.</p>
+          <select id="invFilter" style="max-width: 300px"></select>
+          <div id="invHistory"></div>
+        </details>
       </section>
 
       <section id="reports">
@@ -1580,9 +1589,9 @@
         <div class="card">
           <h3 style="margin-top: 0">Display Name</h3>
           <p class="note">
-            Set a name for this browser so coworkers can tell who added a
-            message or record. It's optional and isn't a login or verified
-            identity.
+            Set a name for this browser so coworkers can tell who added or
+            updated a record. A name is required to use the app; it is not a
+            login or verified identity.
           </p>
           <div class="row">
             <input
@@ -1774,7 +1783,8 @@
           KEYP = "stateIssueData_prev",
           REVK = "stateIssueRev";
         var DISPLAY_NAME_KEY = "stateIssueWorkstationName",
-          workstationDisplayName = null;
+          workstationDisplayName = null,
+          requiredNameGate = false;
         var UI_PREF_KEY = "stateIssueUIPreferences",
           uiPrefs = {};
         try {
@@ -2224,6 +2234,11 @@
           return true;
         }
         function save(rollbackState) {
+          if (!displayName()) {
+            showRequiredName();
+            setSaved(false, "⚠ ENTER YOUR NAME BEFORE SAVING");
+            return false;
+          }
           if (!storageOK) {
             setSaved(false, "⚠ DATA NOT LOADED — NOT SAVED");
             return false;
@@ -2499,6 +2514,7 @@
           $("modal").className = "modal on";
         }
         window.closeModal = function () {
+          if (requiredNameGate) return;
           linkedRecordContext = null;
           $("modal").className = "modal";
         };
@@ -3167,8 +3183,20 @@
             events.push({
               at: inmate.dateAdded,
               title: "Inmate added to roster",
-              detail: "MDOC " + inmate.mdoc,
+              detail:
+                "MDOC " +
+                inmate.mdoc +
+                (inmate.createdBy ? " · By " + inmate.createdBy : ""),
               link: "",
+            });
+          (Array.isArray(inmate.profileHistory) ? inmate.profileHistory : [])
+            .forEach(function (entry) {
+              events.push({
+                at: entry.at || "",
+                title: "Profile updated",
+                detail: entry.by ? "By " + entry.by : "Name not provided",
+                link: "",
+              });
             });
           db.requests
             .filter(function (r) {
@@ -3179,6 +3207,9 @@
                 at: r.created || r.date || "",
                 title: "Request " + r.id + " created",
                 detail:
+                  (r.history && r.history.length && r.history[0].by
+                    ? "By " + r.history[0].by + " · "
+                    : "") +
                   (r.type || "Request") +
                   " · " +
                   (r.status || "pending") +
@@ -3281,6 +3312,7 @@
               title: entry.action || "Review level updated",
               detail:
                 (entry.level ? riskLabel({ riskLevel: entry.level }) + " · " : "") +
+                (entry.by ? "By " + entry.by + " · " : "") +
                 (entry.reason || ""),
               link: "",
             });
@@ -3485,6 +3517,13 @@
             dateAdded: iso(),
             status: "active",
           };
+          if (!existing) obj.createdBy = displayName();
+          else {
+            obj.profileHistory = Array.isArray(obj.profileHistory)
+              ? obj.profileHistory
+              : [];
+            obj.profileHistory.push({ at: iso(), by: displayName() });
+          }
           obj.mdoc = m;
           obj.first = f;
           obj.last = l;
@@ -4566,6 +4605,7 @@
               db.txns.push({
                 id: "T" + next("txn"),
                 date: today(),
+                by: displayName(),
                 itemId: r.itemId,
                 size: r.size,
                 qty: -q2,
@@ -4749,6 +4789,7 @@
                     db.txns.push({
                       id: "T" + next("txn"),
                       date: d,
+                      by: displayName(),
                       itemId: x.itemId,
                       size: x.size,
                       qty: x.diff,
@@ -4928,6 +4969,7 @@
                   db.txns.push({
                     id: "T" + next("txn"),
                     date: d,
+                    by: displayName(),
                     itemId: l.itemId,
                     size: l.size,
                     qty: -l.qty,
@@ -5008,6 +5050,7 @@
                 db.txns.push({
                   id: "T" + next("txn"),
                   date: d,
+                  by: displayName(),
                   itemId: y.itemId,
                   size: y.size,
                   qty: y.qty,
@@ -5620,39 +5663,68 @@
               '<div class="empty">No requests match these filters.</div>';
             return;
           }
+          var visibleList = list.slice(0, 200),
+            groups = [],
+            groupsByDate = Object.create(null);
+          visibleList.forEach(function (r) {
+            var dateKey = r.date || "__undated__",
+              group = groupsByDate[dateKey];
+            if (!group) {
+              group = { date: r.date || "", rows: [] };
+              groupsByDate[dateKey] = group;
+              groups.push(group);
+            }
+            group.rows.push(r);
+          });
           $("requestList").innerHTML =
-            "<table><thead><tr><th>#</th><th>Date</th><th>MDOC</th><th>Inmate</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>" +
-            list
-              .slice(0, 200)
-              .map(function (r) {
-                var i = inmateById(r.inmateId);
+            groups
+              .map(function (group, index) {
+                var heading = group.date
+                  ? "Request date: " + fmt(group.date)
+                  : "Date not recorded";
                 return (
-                  '<tr class="risk-row ' +
-                  (i ? riskClass(i) : "risk-routine") +
-                  '"><td>' +
-                  recordLink("request", r.id) +
-                  "</td><td>" +
-                  fmt(r.date) +
-                  "</td><td>" +
-                  (i ? recordLink("inmate", i.id, i.mdoc) : "—") +
-                  "</td><td>" +
-                  (i
-                    ? recordLink("inmate", i.id, i.first + " " + i.last) +
-                      " " +
-                      riskBadge(i)
-                    : "Removed inmate") +
-                  "</td><td>" +
-                  esc(r.type) +
-                  "</td><td>" +
-                  statusBadge(r.status) +
-                  fulfilledBadge(r) +
-                  '</td><td><button class="btn small" onclick="viewRequest(\'' +
-                  r.id +
-                  "')\">OPEN</button></td></tr>"
+                  '<details class="card request-date-group"' +
+                  (index === 0 ? " open" : "") +
+                  '><summary style="cursor:pointer;font-weight:600">' +
+                  esc(heading) +
+                  " · " +
+                  group.rows.length +
+                  (group.rows.length === 1 ? " request" : " requests") +
+                  "</summary>" +
+                  "<table><thead><tr><th>#</th><th>Date</th><th>MDOC</th><th>Inmate</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>" +
+                  group.rows
+                    .map(function (r) {
+                      var i = inmateById(r.inmateId);
+                      return (
+                        '<tr class="risk-row ' +
+                        (i ? riskClass(i) : "risk-routine") +
+                        '"><td>' +
+                        recordLink("request", r.id) +
+                        "</td><td>" +
+                        fmt(r.date) +
+                        "</td><td>" +
+                        (i ? recordLink("inmate", i.id, i.mdoc) : "—") +
+                        "</td><td>" +
+                        (i
+                          ? recordLink("inmate", i.id, i.first + " " + i.last) +
+                            " " +
+                            riskBadge(i)
+                          : "Removed inmate") +
+                        "</td><td>" +
+                        esc(r.type) +
+                        "</td><td>" +
+                        statusBadge(r.status) +
+                        fulfilledBadge(r) +
+                        '</td><td><button class="btn small" onclick="viewRequest(\'' +
+                        r.id +
+                        "')\">OPEN</button></td></tr>"
+                      );
+                    })
+                    .join("") +
+                  "</tbody></table></details>"
                 );
               })
               .join("") +
-            "</tbody></table>" +
             (list.length > 200
               ? '<p class="note">Showing the 200 most recent requests.</p>'
               : "");
@@ -5798,6 +5870,27 @@
             "</ol></details>"
           );
         }
+        function requestAttributionHTML(r) {
+          var history = Array.isArray(r.history) ? r.history : [],
+            created = history.find(function (entry) {
+              return entry.action === "Created";
+            }),
+            latest = history.length ? history[history.length - 1] : null;
+          return (
+            '<div class="note">' +
+            "Entered by " +
+            esc((created && created.by) || "Name not provided") +
+            (created && created.at
+              ? " · " + esc(fmtDateTime(created.at))
+              : "") +
+            (latest && latest !== created
+              ? "<br>Last updated by " +
+                esc(latest.by || "Name not provided") +
+                (latest.at ? " · " + esc(fmtDateTime(latest.at)) : "")
+              : "") +
+            "</div>"
+          );
+        }
         window.viewRequest = function (id) {
           var r = db.requests.find(function (x) {
             return x.id === id;
@@ -5879,6 +5972,7 @@
               "<br><b>Status:</b> " +
               statusBadge(r.status) +
               fulfilledBadge(r) +
+              requestAttributionHTML(r) +
               "</div>" +
               riskNotice(i) +
               (i
@@ -6045,6 +6139,7 @@
               db.txns.push({
                 id: "T" + next("txn"),
                 date: d,
+                by: displayName(),
                 itemId: it.id,
                 size: ri.size,
                 qty: -q,
@@ -6204,7 +6299,7 @@
                   : parseInt(b.id.slice(1), 10) - parseInt(a.id.slice(1), 10);
             });
           $("invHistory").innerHTML = t.length
-            ? '<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th class="n">Change</th><th>Type</th><th>Notes</th></tr></thead><tbody>' +
+            ? '<table><thead><tr><th>Date</th><th>Item</th><th>Size</th><th class="n">Change</th><th>Type</th><th>Recorded by</th><th>Notes</th></tr></thead><tbody>' +
               t
                 .slice(0, 150)
                 .map(function (x) {
@@ -6241,6 +6336,8 @@
                     x.qty +
                     "</td><td>" +
                     esc(x.type) +
+                    "</td><td>" +
+                    esc(x.by || "Name not provided") +
                     "</td><td>" +
                     esc(x.notes || "") +
                     linkedRecords +
@@ -6470,6 +6567,7 @@
                 db.txns.push({
                   id: "T" + next("txn"),
                   date: d,
+                  by: displayName(),
                   itemId: itemId,
                   size: size,
                   qty: dir * q,
@@ -6634,6 +6732,7 @@
                   db.txns.push({
                     id: "T" + next("txn"),
                     date: d,
+                    by: displayName(),
                     itemId: x.id,
                     size: x.size,
                     qty: x.df,
@@ -7526,7 +7625,7 @@
         $("exStock").onclick = function () {
           downloadCSV(
             "StateIssue_Stock_History.csv",
-            ["Date", "Item", "Size", "Change", "Type", "Notes"],
+            ["Date", "Item", "Size", "Change", "Type", "Recorded by", "Notes"],
             db.txns
               .slice()
               .sort(byDate)
@@ -7537,6 +7636,7 @@
                   x.size,
                   x.qty,
                   x.type,
+                  x.by || "",
                   x.notes || "",
                 ];
               }),
@@ -7821,16 +7921,51 @@
             workstationDisplayName = saved.trim();
             return workstationDisplayName;
           }
-          workstationDisplayName = (
-            (db.settings && db.settings.displayName) ||
-            ""
-          ).trim();
-          if (workstationDisplayName) {
-            lsSet(DISPLAY_NAME_KEY, workstationDisplayName);
-            var migrated = lsGet(DISPLAY_NAME_KEY);
-            if (migrated !== null) workstationDisplayName = migrated.trim();
+          workstationDisplayName = "";
+          return "";
+        }
+        function showRequiredName() {
+          if (displayName() || requiredNameGate) return;
+          requiredNameGate = true;
+          openModal(
+            "Set your name",
+            '<p class="note">Enter your name to continue. It will appear on records you add or update.</p><div class="row"><input type="text" id="requiredDisplayName" maxlength="80" placeholder="Your name" style="max-width:420px" autocomplete="name"><button class="btn green" id="saveRequiredDisplayName">CONTINUE</button></div>',
+          );
+          $("saveRequiredDisplayName").onclick = function () {
+            var input = $("requiredDisplayName");
+            if (saveDisplayName(input.value)) {
+              requiredNameGate = false;
+              $("modal").className = "modal";
+              renderAll();
+              if (freshInstall) save();
+            }
+          };
+          $("requiredDisplayName").onkeydown = function (event) {
+            if (isEnter(event)) $("saveRequiredDisplayName").click();
+          };
+          $("requiredDisplayName").focus();
+        }
+        function saveDisplayName(value) {
+          var name = value.trim();
+          if (!name) {
+            toast("A display name is required.", true);
+            return false;
           }
-          return workstationDisplayName;
+          try {
+            localStorage.setItem(DISPLAY_NAME_KEY, name);
+            if (localStorage.getItem(DISPLAY_NAME_KEY) !== name) {
+              throw new Error("The browser did not retain the saved name.");
+            }
+          } catch (e) {
+            toast(
+              "Name was not saved on this workstation. Check browser storage and try again. " +
+                e.message,
+              true,
+            );
+            return false;
+          }
+          workstationDisplayName = name;
+          return true;
         }
         function commentList(type, id) {
           return db.comments
@@ -8476,22 +8611,9 @@
         };
         $("saveDisplayName").onclick = function () {
           var name = $("displayName").value.trim();
-          try {
-            localStorage.setItem(DISPLAY_NAME_KEY, name);
-            if (localStorage.getItem(DISPLAY_NAME_KEY) !== name) {
-              throw new Error("The browser did not retain the saved name.");
-            }
-          } catch (e) {
-            toast(
-              "Name was not saved on this workstation. Check browser storage and try again. " +
-                e.message,
-              true,
-            );
-            return;
-          }
-          workstationDisplayName = name;
+          if (!saveDisplayName(name)) return;
           renderSetup();
-          toast(name ? "Workstation name saved." : "Workstation name cleared.");
+          toast("Workstation name saved.");
         };
         function renderAll() {
           renderDashboard();
@@ -8705,6 +8827,7 @@
           $("globalSearch").focus();
         });
         renderAll();
+        showRequiredName();
         if (initialTab === "setup") loadAudit();
         if (initialTab === "dashboard") loadTodayActivity();
         if (!storageOK) setSaved(false);
