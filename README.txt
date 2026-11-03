@@ -76,6 +76,7 @@ FEATURES
 - Each browser remembers its last tab and common list filters locally.
 - Item and size catalog, inventory tracking, stock history, and low-stock alerts.
 - Reports and CSV export.
+- Printable issue lists grouped by request, with staff-set ASAP or upcoming-Friday timing.
 - Shared team handoffs with Action needed, Question, and FYI types; editable
   display-name attribution; Open, In progress, Waiting, and Done statuses; and
   concise updates. Completed handoffs are separate in an accessible archive.
