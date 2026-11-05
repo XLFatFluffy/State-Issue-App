@@ -1,4 +1,4 @@
-STATE ISSUE 3.3.1
+STATE ISSUE 3.3.2
 Official operational release
 =============================
 
@@ -7,9 +7,13 @@ requests, inventory, issue history, and staff messages. One Windows computer
 hosts the app and its shared database. Other computers connect to that host
 through a trusted local network or VPN.
 
-Version 3.3.1 groups Setup tools into collapsed sections and removes
-saved-change logs from the active database after seven days. Existing database
-backups may retain earlier log entries. Version 3.3 adds three staff-set inmate
+Version 3.3.2 saves new requests atomically on the shared server, preventing
+simultaneous workstations from reusing request numbers or overwriting each
+other's new requests. Update the host and reload each workstation; the existing
+LAN server and database remain in use. Version 3.3.1 groups Setup tools into
+collapsed sections and removes saved-change logs from the active database after
+seven days. Existing database backups may retain earlier log entries. Version
+3.3 adds three staff-set inmate
 review levels, color-coded profiles and requests, and a combined request
 activity timeline. Version 3.2 added message completion and deletion and shows
 linked messages on related records. Version 3.1 added the shared, structured
@@ -65,6 +69,9 @@ FEATURES
 - Inmate activity timeline combining requests, issues, comments, messages, and
   review-level history. Request saves warn about likely duplicates and stock
   shortages; issue flows keep approved and available quantities explicit.
+  When an item has already been physically issued but stock was not recorded,
+  staff can explicitly override stock checks; the negative balance remains
+  visible until reconciled through Adjust Inventory.
 - Setup lets staff set per-size reorder triggers and desired on-hand stock
   targets. Inventory guidance compares recent issues and approved outstanding
   demand with current stock, and shows the quantity needed to reach the target;

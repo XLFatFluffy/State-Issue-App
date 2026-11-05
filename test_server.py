@@ -271,6 +271,125 @@ class T(unittest.TestCase):
         self.assertEqual(rev, 12)
         self.assertEqual(len(state["messages"]), 12)
 
+    def test_concurrent_requests_get_unique_ids_and_preserve_each_entry(self):
+        rev, state = srv.load_state()
+        state["inmates"] = [{"id": "i1001", "first": "Alex", "last": "Example"}]
+        self.assertTrue(srv.save_state(rev, state, "setup")[0])
+        results = []
+        errors = []
+        lock = threading.Lock()
+
+        def add(index):
+            try:
+                result = srv.add_request(
+                    {
+                        "inmateId": "i1001",
+                        "date": "2026-11-05",
+                        "type": "Inmate Request",
+                        "officer": "",
+                        "notes": "Entry %d" % index,
+                    },
+                    [{
+                        "itemId": "shirt",
+                        "size": "L",
+                        "qty": index + 1,
+                        "decision": "pending",
+                        "reason": "",
+                        "decisionReason": "",
+                        "issuedQty": 0,
+                    }],
+                    "submission-%d" % index,
+                    "workstation-%d" % index,
+                )
+                with lock:
+                    results.append(result[1]["id"])
+            except Exception as error:
+                with lock:
+                    errors.append(error)
+
+        threads = [threading.Thread(target=add, args=(i,)) for i in range(12)]
+        [thread.start() for thread in threads]
+        [thread.join() for thread in threads]
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(results), 12)
+        self.assertEqual(len(set(results)), 12)
+        rev, state = srv.load_state()
+        self.assertEqual(rev, 13)
+        self.assertEqual(len(state["requests"]), 12)
+        self.assertEqual(len(state["requestItems"]), 12)
+        by_note = {request["notes"]: request for request in state["requests"]}
+        for index in range(12):
+            request = by_note["Entry %d" % index]
+            line = next(
+                item for item in state["requestItems"]
+                if item["requestId"] == request["id"]
+            )
+            self.assertEqual(line["qty"], index + 1)
+            self.assertTrue(line["id"].startswith("RI"))
+        self.assertEqual(len({line["id"] for line in state["requestItems"]}), 12)
+
+    def test_request_submission_retry_is_idempotent(self):
+        rev, state = srv.load_state()
+        state["inmates"] = [{"id": "i1001"}]
+        self.assertTrue(srv.save_state(rev, state, "setup")[0])
+        request = {
+            "inmateId": "i1001",
+            "date": "2026-11-05",
+            "type": "Inmate Request",
+            "officer": "",
+            "notes": "Retry-safe request",
+        }
+        items = [{
+            "itemId": "shirt",
+            "size": "L",
+            "qty": 1,
+            "decision": "pending",
+            "reason": "",
+            "decisionReason": "",
+            "issuedQty": 0,
+        }]
+        first = srv.add_request(request, items, "same-submission")
+        second = srv.add_request(request, items, "same-submission")
+        self.assertEqual(first[0], second[0])
+        self.assertEqual(first[1]["id"], second[1]["id"])
+        self.assertEqual(len(second[2]["requests"]), 1)
+
+    def test_stale_full_state_save_cannot_replace_a_concurrent_request(self):
+        rev, state = srv.load_state()
+        state["inmates"] = [{"id": "i1001"}]
+        self.assertTrue(srv.save_state(rev, state, "setup")[0])
+        base_rev, stale_state = srv.load_state()
+        stale_state["issues"] = [{"id": "I1001", "qty": 1}]
+        srv.add_request(
+            {
+                "inmateId": "i1001",
+                "date": "2026-11-05",
+                "type": "Inmate Request",
+                "officer": "",
+                "notes": "Preserve this concurrent request",
+            },
+            [{
+                "itemId": "shirt",
+                "size": "L",
+                "qty": 1,
+                "decision": "pending",
+                "reason": "",
+                "decisionReason": "",
+                "issuedQty": 0,
+            }],
+            "concurrent-request",
+        )
+
+        saved, current_rev = srv.save_state(base_rev, stale_state, "stale-editor")
+
+        self.assertFalse(saved)
+        self.assertEqual(current_rev, base_rev + 1)
+        current_rev, current_state = srv.load_state()
+        self.assertEqual(len(current_state["requests"]), 1)
+        self.assertEqual(current_state["requests"][0]["notes"], "Preserve this concurrent request")
+        self.assertEqual(current_state["issues"], [])
+
     def test_work_item_can_be_completed_reopened_and_deleted_with_replies(self):
         rev, state = srv.load_state()
         state["messages"] = [{
@@ -477,6 +596,44 @@ class T(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 409)
         self.assertEqual(json.loads(ctx.exception.read().decode("utf-8"))["error"], "CONFLICT")
         ctx.exception.close()
+
+    def test_http_post_creates_request_with_server_assigned_ids(self):
+        import urllib.request
+        rev, state = srv.load_state()
+        state["inmates"] = [{"id": "i1001", "first": "Alex", "last": "Example"}]
+        self.assertTrue(srv.save_state(rev, state, "setup")[0])
+        base = self._start_http_server()
+        payload = json.dumps({
+            "submissionId": "http-request-1",
+            "request": {
+                "inmateId": "i1001",
+                "date": "2026-11-05",
+                "type": "Inmate Request",
+                "officer": "",
+                "notes": "HTTP request",
+            },
+            "items": [{
+                "itemId": "shirt",
+                "size": "L",
+                "qty": 1,
+                "decision": "pending",
+                "reason": "",
+                "decisionReason": "",
+                "issuedQty": 0,
+            }],
+            "who": "Worker",
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            base + "/api/requests", data=payload,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["request"]["id"], "R1001")
+        self.assertEqual(body["state"]["requests"][0]["id"], "R1001")
+        self.assertEqual(body["state"]["requestItems"][0]["requestId"], "R1001")
+        self.assertEqual(body["rev"], body["state"]["rev"])
 
     def test_http_post_rejects_invalid_state_shape(self):
         import urllib.request, urllib.error
@@ -942,12 +1099,31 @@ class ClientSourceChecks(unittest.TestCase):
         self.assertIn('if(r.status===409&&retries>0)returnpostViaState(retries-1);', compact)
         self.assertIn('fetch("/api/state",{cache:"no-store"})', compact)
 
+    def test_request_creation_uses_atomic_server_endpoint(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('fetch("/api/requests",{', compact)
+        self.assertIn("submissionId:submissionId", compact)
+        self.assertIn("requestSaving=true", compact)
+
+    def test_request_issue_stock_override_is_explicit_and_audited(self):
+        compact = re.sub(r"\s+", "", self.html)
+        self.assertIn('id="issueStockOverride"', compact)
+        self.assertIn('id="outStockOverride"', compact)
+        self.assertIn("(!stockOverride&&q>getInventory(it.id,ri.size))", compact)
+        self.assertIn("(!stockOverride&&q2>getInventory(r.itemId,r.size))", compact)
+        self.assertIn('stockoverrideused', compact.lower())
+        self.assertIn("functionstockForm(adjust,preferredItemId,preferredSize)", compact)
+        self.assertIn('type:adjust?"Adjustment":"StockReceived"', compact)
+
     def test_failed_async_state_save_restores_the_pre_change_state(self):
         compact = re.sub(r"\s+", "", self.html)
         self.assertIn("functionsave(rollbackState)", compact)
         self.assertIn("if(rollbackState){db=JSON.parse(rollbackState);db.rev=serverRev;renderAll();", compact)
         self.assertIn('if(saveBusy){toast("Waitforthecurrentsavetofinish,thentryagain.",true);returnfalse;}', compact)
-        self.assertGreaterEqual(compact.count("if(messageSaving||saveBusy){"), 2)
+        self.assertGreaterEqual(
+            compact.count("if(messageSaving||requestSaving||feedbackSaving||saveBusy){"),
+            2,
+        )
 
     def test_html_has_one_real_body_and_no_duplicate_ids(self):
         class Structure(HTMLParser):

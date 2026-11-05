@@ -1,5 +1,11 @@
-STATE ISSUE 3.3.1 — ADMINISTRATOR GUIDE
+STATE ISSUE 3.3.2 — ADMINISTRATOR GUIDE
 ========================================
+
+New requests are assigned unique request and item-line numbers by the shared
+server in one SQLite transaction. This supports simultaneous request entry from
+different workstations without moving the app off the approved LAN or VPN.
+Install the current update on the host and reload the app on workstations to
+enable this behavior.
 
 Inmate profiles have three staff-set review levels:
 - Routine (green): no additional review flag is currently set.
@@ -19,6 +25,14 @@ history if details were not retained at the time; older item labels may reflect
 the current catalog name if the item was not snapshotted before a rename.
 The request detail also shows who entered it and, when applicable, who last
 updated it. Profile activity and stock history show their available staff labels.
+
+When recording an issue from an approved request or outstanding reminder, staff
+may explicitly check "Override available stock" if the item was physically
+handed out but the stock ledger is incomplete (for example, an unrecorded
+return). The override is recorded in issue and stock history and can make the
+on-hand balance negative. Verify the count, then use Adjust Inventory to bring
+the ledger back to the verified quantity; do not use the override for items not
+actually handed out.
 
 Purpose
 -------

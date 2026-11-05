@@ -1877,7 +1877,7 @@
           };
         }
         var showCompletedRem = false;
-        var APP_VERSION = "3.3.1",
+        var APP_VERSION = "3.3.2",
           lastReport = null;
         var KEY = "stateIssueData",
           KEYP = "stateIssueData_prev",
@@ -1931,7 +1931,9 @@
           saveAgain = false;
         var offlinePending = false,
           offlineConflict = false,
-          messageSaving = false;
+          messageSaving = false,
+          requestSaving = false,
+          feedbackSaving = false;
         function lsGet(k) {
           try {
             return localStorage.getItem(k);
@@ -2469,7 +2471,13 @@
           } else setSaved(false, "⚠ SERVER CONNECTION LOST");
         }
         function isEditing() {
-          return $("modal").className.indexOf("on") > -1 || saveBusy;
+          return (
+            $("modal").className.indexOf("on") > -1 ||
+            saveBusy ||
+            requestSaving ||
+            messageSaving ||
+            feedbackSaving
+          );
         }
         /* Only replace the data while nobody is typing in a form or a save is in progress. */
         function applyServerUpdate() {
@@ -2614,6 +2622,10 @@
         }
         window.closeModal = function () {
           if (requiredNameGate) return;
+          if (requestSaving) {
+            toast("Wait for the request to finish saving, then try again.", true);
+            return;
+          }
           linkedRecordContext = null;
           $("modal").className = "modal";
         };
@@ -3592,7 +3604,7 @@
             toast("Enter the date as YYYY-MM-DD, for example 2026-09-30.", true);
             return;
           }
-          if (messageSaving || saveBusy) {
+          if (messageSaving || requestSaving || feedbackSaving || saveBusy) {
             toast("Wait for the current save to finish, then try again.", true);
             return;
           }
@@ -3745,8 +3757,12 @@
           // Keep related edits together (for example, an issue plus its stock
           // transaction). The snapshot also lets save() undo the change if the
           // server rejects it after the request finishes.
-          if (messageSaving) {
-            toast("Wait for the work item to finish saving, then try again.", true);
+          if (messageSaving || feedbackSaving) {
+            toast("Wait for the current server update to finish, then try again.", true);
+            return false;
+          }
+          if (requestSaving) {
+            toast("Wait for the request to finish saving, then try again.", true);
             return false;
           }
           if (saveBusy) {
@@ -4410,12 +4426,7 @@
               detail:
                 (r.message || reminderLabel(r.type)) +
                 (r.qtyOwed ? " · " + r.qtyOwed + " owed" : ""),
-              action:
-                r.type === "outstanding"
-                  ? getInventory(r.itemId, r.size) > 0
-                    ? "outstanding"
-                    : "stock"
-                  : "reminders",
+              action: r.type === "outstanding" ? "outstanding" : "reminders",
               target: r.id,
               stockTarget: r.itemId + "|" + r.size,
             });
@@ -4597,13 +4608,9 @@
           if (!r) return;
           var i = inmateById(r.inmateId),
             avail = getInventory(r.itemId, r.size),
-            q = Math.min(r.qtyOwed, avail);
+            q = Math.min(r.qtyOwed, Math.max(0, avail));
           if (!i || i.status !== "active") {
             toast("This inmate is not on the active roster.", true);
-            return;
-          }
-          if (!q) {
-            toast("No stock is currently available.", true);
             return;
           }
           openModal(
@@ -4628,20 +4635,34 @@
               '</b></div><label>Quantity to issue<input type="number" id="outQty" min="1" max="' +
               q +
               '" value="' +
-              q +
-              '"></label><div class="row"><button class="btn green" id="doOut">RECORD ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>',
+              (q || 1) +
+              '"' +
+              (q ? "" : " disabled") +
+              '></label><label class="wide"><input type="checkbox" id="outStockOverride"> Override available stock for an issue already handed out</label><p class="note">Use only when the item was physically issued but the system stock is incomplete (for example, an unrecorded return). The stock ledger will go negative until you correct inventory.</p><div class="row"><button class="btn green" id="doOut">RECORD ISSUE</button><button class="btn grey" onclick="closeModal()">CANCEL</button></div>',
           );
+          $("outStockOverride").onchange = function () {
+            var input = $("outQty"),
+              max = this.checked ? r.qtyOwed : Math.min(r.qtyOwed, Math.max(0, avail));
+            input.disabled = !this.checked && max < 1;
+            input.max = max;
+            if (parseInt(input.value, 10) > max) input.value = String(max);
+            else if (this.checked && parseInt(input.value, 10) < 1)
+              input.value = String(Math.min(r.qtyOwed, Math.max(1, avail)));
+          };
           $("doOut").onclick = function () {
             if (busy) return;
-            var q2 = posInt($("outQty").value);
+            var q2 = posInt($("outQty").value),
+              stockOverride = $("outStockOverride").checked;
             if (
               isNaN(q2) ||
               q2 < 1 ||
               q2 > r.qtyOwed ||
-              q2 > getInventory(r.itemId, r.size)
+              (!stockOverride && q2 > getInventory(r.itemId, r.size))
             ) {
               toast(
-                "Enter a quantity within the available stock and amount owed.",
+                stockOverride
+                  ? "Enter a quantity within the amount owed."
+                  : "Enter a quantity within the available stock and amount owed.",
                 true,
               );
               return;
@@ -4678,7 +4699,12 @@
                   i.first +
                   " " +
                   i.last +
-                  "?",
+                  "?" +
+                  (stockOverride
+                    ? "\n\nSTOCK OVERRIDE: the stock balance will become " +
+                      (getInventory(r.itemId, r.size) - q2) +
+                      ". Verify and correct inventory later."
+                    : ""),
               )
             )
               return;
@@ -4698,7 +4724,10 @@
                 size: r.size,
                 qty: q2,
                 reason: "Outstanding issue",
-                notes: "Reminder " + r.id,
+                notes:
+                  "Reminder " +
+                  r.id +
+                  (stockOverride ? " - stock override used" : ""),
               };
               db.issues.push(iss);
               db.txns.push({
@@ -4710,7 +4739,10 @@
                 qty: -q2,
                 type: "Issue",
                 issueId: iss.id,
-                notes: "Outstanding issue to MDOC " + i.mdoc,
+                notes:
+                  "Outstanding issue to MDOC " +
+                  i.mdoc +
+                  (stockOverride ? " (stock override used)" : ""),
               });
               r.qtyOwed -= q2;
               if (r.requestId) {
@@ -5548,7 +5580,10 @@
               ? db.requests.find(function (x) {
                   return x.id === reqId;
                 })
-              : null;
+              : null,
+            submissionId = reqId
+              ? ""
+              : Date.now() + "-" + Math.floor(Math.random() * 1000000000);
           if (!i) return;
           reqInmate = i;
           var its = r
@@ -5596,10 +5631,10 @@
             bindLines();
           };
           $("saveRequest").onclick = function () {
-            saveRequest(inmateId, r ? r.id : null);
+            saveRequest(inmateId, r ? r.id : null, submissionId);
           };
         }
-        function saveRequest(inmateId, reqId) {
+        function saveRequest(inmateId, reqId, submissionId) {
           var d = $("reqDate").value.trim(),
             type = $("reqType").value,
             off = $("reqOfficer").value.trim();
@@ -5750,6 +5785,79 @@
             )
           )
             return;
+          if (!reqId && !offlinePending && navigator.onLine) {
+            if (!displayName()) {
+              showRequiredName();
+              setSaved(false, "⚠ ENTER YOUR NAME BEFORE SAVING");
+              return;
+            }
+            if (!storageOK || offlineConflict) {
+              setSaved(false, "⚠ DATA NOT READY — NOT SAVED");
+              return;
+            }
+            if (requestSaving || saveBusy || messageSaving || feedbackSaving) {
+              toast("Wait for the current save to finish, then try again.", true);
+              return;
+            }
+            requestSaving = true;
+            $("saveRequest").disabled = true;
+            fetch("/api/requests", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                submissionId: submissionId,
+                request: {
+                  inmateId: inmateId,
+                  date: d,
+                  type: type,
+                  officer: type === "Officer" ? off : "",
+                  notes: $("reqNotes").value.trim(),
+                },
+                items: items,
+                who: displayName(),
+              }),
+              cache: "no-store",
+            })
+              .then(function (response) {
+                if (response.status === 404)
+                  throw new Error(
+                    "The shared server needs the latest State Issue update before requests can be saved safely.",
+                  );
+                return response.json().then(function (result) {
+                  if (!response.ok)
+                    throw new Error(result.error || "The server rejected the request.");
+                  if (!result.state || !result.request || typeof result.rev !== "number")
+                    throw new Error("The server returned an incomplete save confirmation.");
+                  return result;
+                });
+              })
+              .then(function (result) {
+                serverRev = result.rev;
+                db = fixupSafe(result.state);
+                db.rev = serverRev;
+                offlinePending = false;
+                persistLocalCopy(false);
+                setSaved(true);
+                loadTodayActivity();
+                renderAll();
+                toast("Request saved.");
+                viewRequest(result.request.id);
+              })
+              .catch(function (error) {
+                setSaved(false, "⚠ REQUEST NOT SAVED");
+                toast(
+                  "Request was not saved. Your entries are still in the form. " +
+                    (error.message || "Check the server connection and try again."),
+                  true,
+                );
+              })
+              .then(function () {
+                requestSaving = false;
+                var button = $("saveRequest");
+                if (button) button.disabled = false;
+              });
+            return;
+          }
           var rid = reqId;
           if (
             tx(function () {
@@ -6306,25 +6414,46 @@
                   "</p>"
                 : '<p class="note">There are no earlier issues for this item and size.</p>') +
               '<div class="grid"><label>Quantity handed out now<input type="number" id="isQty" min="1" max="' +
-              Math.min(rem, avail) +
+              Math.min(rem, Math.max(0, avail)) +
               '" value="' +
-              Math.min(rem, avail) +
-              '"></label></div><div class="row"><button class="btn green" id="doIssue">RECORD ISSUE</button><button class="btn grey" onclick="viewRequest(\'' +
+              (Math.min(rem, Math.max(0, avail)) || 1) +
+              '"' +
+              (avail > 0 ? "" : " disabled") +
+              '></label><label class="wide"><input type="checkbox" id="issueStockOverride"> Override available stock for an issue already handed out</label></div><p class="note">Use only when the item was physically issued but the system stock is incomplete (for example, an unrecorded return). The stock ledger will go negative until you correct inventory.</p><div class="row"><button class="btn green" id="doIssue">RECORD ISSUE</button><button class="btn grey" onclick="viewRequest(\'' +
               r.id +
               "')\">CANCEL</button></div>",
           );
+          $("issueStockOverride").onchange = function () {
+            var input = $("isQty"),
+              max = this.checked ? rem : Math.min(rem, Math.max(0, avail));
+            input.disabled = !this.checked && max < 1;
+            input.max = max;
+            if (parseInt(input.value, 10) > max) input.value = String(max);
+            else if (this.checked && parseInt(input.value, 10) < 1)
+              input.value = String(Math.min(rem, Math.max(1, avail)));
+          };
           $("doIssue").onclick = function () {
             if (busy) return;
-            var q = posInt($("isQty").value);
-            if (isNaN(q) || q < 1 || q > rem || q > avail) {
+            var q = posInt($("isQty").value),
+              stockOverride = $("issueStockOverride").checked;
+            if (
+              isNaN(q) ||
+              q < 1 ||
+              q > rem ||
+              (!stockOverride && q > getInventory(it.id, ri.size))
+            ) {
               toast(
-                "Quantity cannot exceed the approved amount remaining (" +
-                  rem +
-                  ") or available stock (" +
-                  avail +
-                  "). Enter 1 to " +
-                  Math.min(rem, avail) +
-                  ".",
+                stockOverride
+                  ? "Quantity cannot exceed the approved amount remaining (" +
+                      rem +
+                      ")."
+                  : "Quantity cannot exceed the approved amount remaining (" +
+                      rem +
+                      ") or available stock (" +
+                      getInventory(it.id, ri.size) +
+                      "). Enter 1 to " +
+                      Math.min(rem, Math.max(0, getInventory(it.id, ri.size))) +
+                      ".",
                 true,
               );
               return;
@@ -6355,6 +6484,11 @@
                   (same
                     ? "\n\nNOTE: this inmate already received this item and size TODAY."
                     : "") +
+                  (stockOverride
+                    ? "\n\nSTOCK OVERRIDE: the stock balance will become " +
+                      (getInventory(it.id, ri.size) - q) +
+                      ". Verify and correct inventory later."
+                    : "") +
                   (lowStockLevel(it.id, ri.size) > 0 &&
                   avail - q <= lowStockLevel(it.id, ri.size)
                     ? "\n\nStock will be at or below its configured minimum (" +
@@ -6380,7 +6514,7 @@
                 size: ri.size,
                 qty: q,
                 reason: ri.reason || "",
-                notes: "",
+                notes: stockOverride ? "Stock override used" : "",
               };
               db.issues.push(iss);
               db.txns.push({
@@ -6392,7 +6526,13 @@
                 qty: -q,
                 type: "Issue",
                 issueId: iss.id,
-                notes: "Issued to MDOC " + i.mdoc + " (request " + r.id + ")",
+                notes:
+                  "Issued to MDOC " +
+                  i.mdoc +
+                  " (request " +
+                  r.id +
+                  ")" +
+                  (stockOverride ? " - stock override used" : ""),
               });
               var x = db.requestItems.find(function (z) {
                 return z.id === riId;
@@ -7661,7 +7801,7 @@
               )
             )
               return;
-            if (messageSaving || saveBusy) {
+            if (messageSaving || requestSaving || feedbackSaving || saveBusy) {
               toast("Wait for the current save to finish before restoring.", true);
               return;
             }
@@ -8055,7 +8195,14 @@
             toast("Reports are unavailable because app data could not be read.", true);
             return false;
           }
-          if (offlinePending || offlineConflict || saveBusy || messageSaving) {
+          if (
+            offlinePending ||
+            offlineConflict ||
+            saveBusy ||
+            messageSaving ||
+            requestSaving ||
+            feedbackSaving
+          ) {
             toast(
               "Wait for this computer's changes to sync before submitting or updating a report.",
               true,
@@ -8077,6 +8224,7 @@
           toast(successMessage);
         }
         function feedbackPost(path, payload, successMessage) {
+          feedbackSaving = true;
           return fetch(path, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -8101,6 +8249,10 @@
                 true,
               );
               return false;
+            })
+            .then(function (saved) {
+              feedbackSaving = false;
+              return saved;
             });
         }
         $("sendFeedback").onclick = function () {
@@ -8694,7 +8846,7 @@
             );
             return;
           }
-          if (messageSaving || saveBusy) {
+          if (messageSaving || requestSaving || feedbackSaving || saveBusy) {
             toast("Wait for the current save to finish, then try again.", true);
             return;
           }
@@ -8818,7 +8970,7 @@
             toast("Choose an inmate from the suggestions or clear the inmate field.", true);
             return;
           }
-          if (messageSaving || saveBusy) {
+          if (messageSaving || requestSaving || feedbackSaving || saveBusy) {
             toast("Wait for the current save to finish, then try again.", true);
             return;
           }

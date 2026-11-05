@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-State Issue server, version 3.3.1
+State Issue server, version 3.3.2
 - Python standard library only (Python 3.8 or newer)
 - SQLite database with a schema version and a migration step
 - Serves the State Issue web application to computers on the local network
@@ -16,7 +16,7 @@ Set STATE_ISSUE_DATA to put the database and backups in another folder.
 import http.server, socketserver, sqlite3, json, os, socket, webbrowser, threading, time, datetime
 from urllib.parse import urlparse, parse_qs
 
-APP_VERSION = "3.3.1"
+APP_VERSION = "3.3.2"
 SCHEMA_VERSION = 3
 AUDIT_KEEP_DAYS = 7
 # Keep program files separate from the database location so the server can
@@ -214,6 +214,208 @@ def add_work_item(message, workstation="unknown", who=""):
         with CHANGED:
             CHANGED.notify_all()
         return newrev, item, state
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
+
+def add_request(request, lines, submission_id, workstation="unknown", who=""):
+    """Append a request and allocate its IDs atomically from shared state."""
+    if not isinstance(request, dict):
+        raise ValueError("invalid request")
+    inmate_id = request.get("inmateId")
+    if not isinstance(inmate_id, str) or not inmate_id or len(inmate_id) > 80:
+        raise ValueError("invalid inmate ID")
+    if not isinstance(submission_id, str) or not submission_id or len(submission_id) > 80:
+        raise ValueError("invalid request submission ID")
+    date = request.get("date")
+    if not isinstance(date, str):
+        raise ValueError("invalid request date")
+    try:
+        if datetime.date.fromisoformat(date).isoformat() != date:
+            raise ValueError()
+    except ValueError:
+        raise ValueError("invalid request date")
+    request_type = request.get("type")
+    if not isinstance(request_type, str) or request_type not in (
+        "Medical", "Administrative", "Officer", "Inmate Request", "Other"
+    ):
+        raise ValueError("invalid request type")
+    officer = request.get("officer", "")
+    notes = request.get("notes", "")
+    if not isinstance(officer, str) or not isinstance(notes, str):
+        raise ValueError("invalid request details")
+    if request_type == "Officer" and not officer.strip():
+        raise ValueError("officer name is required")
+    if not isinstance(lines, list) or not lines:
+        raise ValueError("add at least one request item")
+
+    clean_lines = []
+    seen = set()
+    for line in lines:
+        if not isinstance(line, dict):
+            raise ValueError("invalid request item")
+        item_id = line.get("itemId")
+        size = line.get("size")
+        qty = line.get("qty")
+        decision = line.get("decision", "pending")
+        reason = line.get("reason", "")
+        decision_reason = line.get("decisionReason", "")
+        issued_qty = line.get("issuedQty", 0)
+        if not isinstance(item_id, str) or not item_id or len(item_id) > 80:
+            raise ValueError("invalid item ID")
+        if not isinstance(size, str) or len(size) > 80:
+            raise ValueError("invalid item size")
+        if type(qty) is not int or qty < 1:
+            raise ValueError("invalid request quantity")
+        if not isinstance(decision, str) or decision not in ("pending", "approved", "denied"):
+            raise ValueError("invalid item decision")
+        if not isinstance(reason, str) or reason not in (
+            "", "Turned In", "Lost", "Damaged", "New Arrival", "Other"
+        ):
+            raise ValueError("invalid replacement reason")
+        if not isinstance(decision_reason, str) or len(decision_reason) > 500:
+            raise ValueError("invalid decision notes")
+        if type(issued_qty) is not int or issued_qty != 0:
+            raise ValueError("new request items cannot have issued quantities")
+        key = (item_id, size)
+        if key in seen:
+            raise ValueError("duplicate request item")
+        seen.add(key)
+        clean_lines.append({
+            "itemId": item_id,
+            "size": size,
+            "qty": qty,
+            "decision": decision,
+            "reason": reason,
+            "decisionReason": decision_reason,
+            "issuedQty": 0,
+        })
+
+    if not isinstance(who, str):
+        who = ""
+    c = dbconn()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        row = c.execute("SELECT revision,state_json FROM app_state WHERE id=1").fetchone()
+        if not row:
+            raise RuntimeError("application state is not initialized")
+        current, raw = row
+        old = json.loads(raw)
+        state = json.loads(raw)
+        requests = state.get("requests", [])
+        request_items = state.get("requestItems", [])
+        inmates = state.get("inmates", [])
+        catalog = state.get("items", [])
+        if not all(isinstance(value, list) for value in (requests, request_items, inmates, catalog)):
+            raise ValueError("invalid request data")
+        previous = next(
+            (record for record in requests
+             if isinstance(record, dict) and record.get("clientSubmissionId") == submission_id),
+            None,
+        )
+        if previous is not None:
+            c.execute("COMMIT")
+            return current, previous, state
+        inmate = next(
+            (record for record in inmates if isinstance(record, dict) and record.get("id") == inmate_id),
+            None,
+        )
+        if inmate is None:
+            raise ValueError("inmate not found")
+        item_names = {
+            record.get("id"): record.get("name", record.get("id"))
+            for record in catalog
+            if isinstance(record, dict)
+        }
+        seq = state.setdefault("seq", {})
+        if not isinstance(seq, dict):
+            raise ValueError("invalid sequence data")
+
+        def last_sequence(key, prefix, records):
+            last_id = seq.get(key, 1000)
+            if type(last_id) is not int or last_id < 0:
+                last_id = 1000
+            for record in records:
+                existing_id = str(record.get("id", "")) if isinstance(record, dict) else ""
+                if existing_id.startswith(prefix) and existing_id[len(prefix):].isdigit():
+                    last_id = max(last_id, int(existing_id[len(prefix):]))
+            return last_id
+
+        request_id = "R%d" % (last_sequence("request", "R", requests) + 1)
+        seq["request"] = int(request_id[1:])
+        for line in clean_lines:
+            line["id"] = "RI%d" % (last_sequence("ri", "RI", request_items) + 1)
+            seq["ri"] = int(line["id"][2:])
+            line["requestId"] = request_id
+
+        if any(line["decision"] not in {"approved", "denied"} for line in clean_lines):
+            status = "pending"
+        elif all(line["decision"] == "approved" for line in clean_lines):
+            status = "approved"
+        elif all(line["decision"] == "denied" for line in clean_lines):
+            status = "denied"
+        else:
+            status = "partial"
+        risk_level = inmate.get("riskLevel")
+        if risk_level not in ("review", "high", "routine"):
+            risk_level = "high" if inmate.get("highRisk") else "routine"
+        created_at = now()
+        record = {
+            "id": request_id,
+            "clientSubmissionId": submission_id,
+            "inmateId": inmate_id,
+            "date": date,
+            "type": request_type,
+            "officer": officer if request_type == "Officer" else "",
+            "notes": notes.strip(),
+            "status": status,
+            "created": created_at,
+            "history": [{
+                "at": created_at,
+                "by": who[:80],
+                "action": "Created",
+                "date": date,
+                "type": request_type,
+                "officer": officer if request_type == "Officer" else "",
+                "notes": notes.strip(),
+                "status": status,
+                "riskLevelAtTime": risk_level,
+                "highRiskAtTime": risk_level == "high",
+                "highRiskReasonAtTime": inmate.get("highRiskReason", ""),
+                "items": [{
+                    "itemId": line["itemId"],
+                    "itemName": item_names.get(line["itemId"], line["itemId"]),
+                    "size": line["size"],
+                    "qty": line["qty"],
+                    "decision": line["decision"],
+                    "reason": line["reason"],
+                    "decisionReason": line["decisionReason"],
+                    "issuedQty": 0,
+                } for line in clean_lines],
+            }],
+        }
+        state["requests"] = requests + [record]
+        state["requestItems"] = request_items + clean_lines
+        newrev = current + 1
+        state["rev"] = newrev
+        ts = now()
+        c.execute(
+            "UPDATE app_state SET revision=?,state_json=?,updated_at=? WHERE id=1 AND revision=?",
+            (newrev, json.dumps(state, separators=(",", ":")), ts, current),
+        )
+        c.execute(
+            "INSERT INTO audit_log(at,workstation,revision,summary,who) VALUES(?,?,?,?,?)",
+            (ts, workstation, newrev, summarize(old, state), who[:40]),
+        )
+        c.execute("COMMIT")
+        with CHANGED:
+            CHANGED.notify_all()
+        return newrev, record, state
     except Exception:
         try:
             c.execute("ROLLBACK")
@@ -805,6 +1007,28 @@ class Handler(http.server.BaseHTTPRequestHandler):
                         who,
                     )
                 self.send_json(200, {"ok": True, "rev": rev, "report": report, "state": state})
+            except Exception as e:
+                self.send_json(400, {"ok": False, "error": str(e)})
+            return
+        if path == "/api/requests":
+            try:
+                n = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(n).decode("utf-8"))
+                who = payload.get("who", "")
+                if not isinstance(who, str):
+                    who = ""
+                who = who[:80]
+                rev, request, state = add_request(
+                    payload.get("request"),
+                    payload.get("items"),
+                    payload.get("submissionId"),
+                    self.client_address[0],
+                    who,
+                )
+                self.send_json(
+                    200,
+                    {"ok": True, "rev": rev, "request": request, "state": state},
+                )
             except Exception as e:
                 self.send_json(400, {"ok": False, "error": str(e)})
             return

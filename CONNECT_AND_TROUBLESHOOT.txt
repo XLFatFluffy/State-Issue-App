@@ -50,6 +50,9 @@ TROUBLESHOOTING
 4. Page loads but data will not save
    - Check the page's connection/save status and verify the host service is
      running. Workstations cannot save while disconnected.
+   - If simultaneous new requests have been getting conflicts or mixed-up
+     numbers, update the host application and reload each workstation. New
+     requests are then numbered and appended atomically by the shared server.
    - Host-only offline changes are held in that browser. Keep its browser
      profile and site data intact until it reconnects and syncs.
    - If RECONNECT CONFLICT appears, export/save the local copy, compare it with
