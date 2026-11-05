@@ -68,8 +68,10 @@ version, steps to reproduce, and sanitized error text instead.
 ------------------------------------
 The host computer runs the server on TCP port 8787. Workstations connect using
 the host address configured in OPEN_STATE_ISSUE.bat. All computers must be able
-to communicate through the same approved private network. The current
-workstation address is http://10.9.50.171:8787/.
+to communicate through the same approved private network. The configured host
+address is http://10.9.50.171:8787/. Reserve 10.9.50.171 for the host on the
+network or configure it as a static private-network address. The server listens
+on all host interfaces, including this address when it is assigned.
 
 Normal app use on an already configured local network does not require internet.
 Internet access is needed for optional online Python installation, downloading
@@ -84,10 +86,11 @@ offline operation. For workstations use OPEN_STATE_ISSUE.bat or the exact URL
 configured inside that file. Opening Stateissue.html directly from a folder
 does not connect to shared data.
 
-If the host's private-network address changes, update OPEN_STATE_ISSUE.bat on
-each workstation. Re-run SETUP_NEW_COMPUTER.bat on the host as administrator
-and test from a workstation. Keep firewall access limited to the approved
-private network; never disable the firewall as a troubleshooting shortcut.
+SETUP_NEW_COMPUTER.bat checks whether 10.9.50.171 is assigned to the host and
+warns if it is not. If the host's address changes, update OPEN_STATE_ISSUE.bat
+on each workstation and reserve the new address so it remains stable. Keep
+firewall access limited to the approved private network; never disable the
+firewall as a troubleshooting shortcut.
 
 3. INITIAL HOST SETUP
 ---------------------
@@ -229,7 +232,9 @@ Before an update:
 Run UPDATE_STATE_ISSUE.bat as administrator on the host. It downloads the
 published repository files, stages them, runs the server tests, and only then
 replaces changed application files. It does not replace the live database or
-backups. If an update or service restart fails, it attempts to restore the
+backups. It preserves the host URL configured in that installation's
+OPEN_STATE_ISSUE.bat, so updates do not reset that shortcut to the published
+default. If an update or service restart fails, it attempts to restore the
 previous program files. Afterward reload the host and workstation browsers,
 check the displayed version and test a normal workflow.
 

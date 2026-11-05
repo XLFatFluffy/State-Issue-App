@@ -87,6 +87,13 @@ if errorlevel 1 (
 echo.
 echo Setup checks completed.
 echo On the host computer, run INSTALL_STATE_ISSUE_SERVICE.bat as administrator.
+ipconfig | findstr /L /C:"10.9.50.171" >nul
+if errorlevel 1 (
+  echo WARNING: This computer does not currently have host IP 10.9.50.171.
+  echo Configure that address on the host network adapter or ask IT to reserve it.
+) else (
+  echo Confirmed: this host currently has IP 10.9.50.171.
+)
 echo Workstations should connect to http://10.9.50.171:8787/
 pause
 exit /b 0

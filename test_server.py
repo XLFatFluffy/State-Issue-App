@@ -63,6 +63,45 @@ class T(unittest.TestCase):
         self.assertIn("internet connection, firewall, or proxy", network_message)
         self.assertNotIn("TLS certificate", network_message)
 
+    def test_updater_preserves_configured_workstation_host_address(self):
+        with tempfile.TemporaryDirectory() as install_dir, tempfile.TemporaryDirectory() as stage_dir:
+            with open(
+                os.path.join(install_dir, "OPEN_STATE_ISSUE.bat"),
+                "w",
+                encoding="utf-8",
+                newline="",
+            ) as file:
+                file.write(
+                    '@echo off\r\nset "STATE_ISSUE_ADDRESS=http://10.9.50.222:8787/"\r\n'
+                    'start "State Issue" "%STATE_ISSUE_ADDRESS%"\r\n'
+                )
+            with open(
+                os.path.join(stage_dir, "OPEN_STATE_ISSUE.bat"),
+                "w",
+                encoding="utf-8",
+                newline="",
+            ) as file:
+                file.write(
+                    '@echo off\r\nset "STATE_ISSUE_ADDRESS=http://10.9.50.171:8787/"\r\n'
+                    'start "State Issue" "%STATE_ISSUE_ADDRESS%"\r\n'
+                )
+
+            updater.preserve_workstation_address(stage_dir, install_dir)
+
+            with open(
+                os.path.join(stage_dir, "OPEN_STATE_ISSUE.bat"),
+                "r",
+                encoding="utf-8",
+                newline="",
+            ) as file:
+                updated_shortcut = file.read()
+            self.assertIn(
+                'set "STATE_ISSUE_ADDRESS=http://10.9.50.222:8787/"',
+                updated_shortcut,
+            )
+            self.assertNotIn("10.9.50.171", updated_shortcut)
+            self.assertNotIn("\n", updated_shortcut.replace("\r\n", ""))
+
     def test_migrates_schema_v2_to_v3(self):
         c = sqlite3.connect(srv.DB_PATH)
         c.execute("UPDATE schema_meta SET value='2' WHERE key='schema_version'")
@@ -905,6 +944,16 @@ class ClientSourceChecks(unittest.TestCase):
     def setUpClass(cls):
         with open(os.path.join(HERE, "Stateissue.html"), "r", encoding="utf-8") as f:
             cls.html = f.read()
+
+    def test_workstations_target_the_host_ip_and_server_accepts_network_connections(self):
+        with open(
+            os.path.join(HERE, "OPEN_STATE_ISSUE.bat"), "r", encoding="utf-8"
+        ) as file:
+            shortcut = file.read()
+        self.assertIn(
+            'STATE_ISSUE_ADDRESS=http://10.9.50.171:8787/', shortcut
+        )
+        self.assertEqual(srv.HOST, "0.0.0.0")
 
     def test_message_body_preserves_typed_line_breaks(self):
         # CSS preserves the message's original newlines without converting them

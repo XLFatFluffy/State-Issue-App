@@ -1415,6 +1415,20 @@
         section {
           overflow: visible;
         }
+        body.printDenials > :not(main) {
+          display: none !important;
+        }
+        body.printDenials main > :not(#denialPrintView) {
+          display: none !important;
+        }
+        body.printDenials #denialPrintView {
+          display: block !important;
+          max-width: none;
+          margin: 0;
+          padding: 0;
+          border: 0;
+          box-shadow: none;
+        }
       }
     </style>
   </head>
@@ -1540,12 +1554,20 @@
         <h2>Issue Lists</h2>
         <div class="row noPrint">
           <button class="btn grey" id="printIssueLists">PRINT ISSUE LISTS</button>
+          <label>
+            Denial request dates
+            <input type="date" id="denialStartDate" aria-label="Denial request start date" />
+            to
+            <input type="date" id="denialEndDate" aria-label="Denial request end date" />
+          </label>
+          <button class="btn grey" id="printDenials">PRINT DENIALS &amp; REASONS</button>
         </div>
         <h3>ASAP</h3>
         <div id="asapIssueList"></div>
         <h3 id="fridayIssueHeading">Friday</h3>
         <div id="fridayIssueList"></div>
       </section>
+      <section id="denialPrintView" hidden></section>
 
       <section id="inventory">
         <h2>Inventory</h2>
@@ -5263,6 +5285,94 @@
         function upcomingFridayDate() {
           return addDays(today(), (5 - new Date().getDay() + 7) % 7);
         }
+        function defaultDenialDateRange() {
+          var currentDate = today(),
+            weekday = new Date(
+              currentDate.slice(0, 4),
+              Number(currentDate.slice(5, 7)) - 1,
+              Number(currentDate.slice(8, 10)),
+            ).getDay(),
+            monday = addDays(currentDate, weekday === 0 ? -6 : 1 - weekday);
+          return { start: monday, end: addDays(monday, 4) };
+        }
+        function denialPrintRows(startDate, endDate) {
+          var rows = [];
+          db.requests.forEach(function (request) {
+            if (
+              !isDate(request.date) ||
+              request.date < startDate ||
+              request.date > endDate
+            )
+              return;
+            var inmate = inmateById(request.inmateId);
+            reqItems(request)
+              .filter(function (item) {
+                return item.decision === "denied";
+              })
+              .forEach(function (item) {
+                rows.push({
+                  date: request.date,
+                  requestId: request.id,
+                  inmate: inmate,
+                  item: item,
+                });
+              });
+          });
+          rows.sort(function (a, b) {
+            var nameA = a.inmate
+                ? a.inmate.last + " " + a.inmate.first
+                : "",
+              nameB = b.inmate
+                ? b.inmate.last + " " + b.inmate.first
+                : "";
+            return (
+              a.date.localeCompare(b.date) ||
+              nameA.localeCompare(nameB, undefined, { sensitivity: "base" }) ||
+              a.requestId.localeCompare(b.requestId)
+            );
+          });
+          return rows;
+        }
+        function renderDenialPrintView(startDate, endDate) {
+          var rows = denialPrintRows(startDate, endDate);
+          $("denialPrintView").innerHTML =
+            "<h1>Denied Items &amp; Reasons</h1><p>Request dates: " +
+            esc(fmt(startDate)) +
+            " – " +
+            esc(fmt(endDate)) +
+            "</p>" +
+            (rows.length
+              ? "<table><thead><tr><th>Request date / ID</th><th>Inmate</th><th>MDOC</th><th>Denied item</th><th>Qty</th><th>Denial reason</th></tr></thead><tbody>" +
+                rows
+                  .map(function (row) {
+                    return (
+                      "<tr><td>" +
+                      esc(fmt(row.date)) +
+                      "<br>" +
+                      esc(row.requestId) +
+                      "</td><td>" +
+                      esc(
+                        row.inmate
+                          ? row.inmate.first + " " + row.inmate.last
+                          : "Removed inmate",
+                      ) +
+                      "</td><td>" +
+                      esc((row.inmate && row.inmate.mdoc) || "—") +
+                      "</td><td>" +
+                      esc(itemName(row.item.itemId)) +
+                      " · " +
+                      esc(row.item.size || "—") +
+                      "</td><td>" +
+                      esc(row.item.qty) +
+                      "</td><td>" +
+                      esc(row.item.decisionReason || "No reason recorded") +
+                      "</td></tr>"
+                    );
+                  })
+                  .join("") +
+                "</tbody></table>"
+              : '<p>No denied items for these request dates.</p>');
+        }
         function issueQueueTable(requests, fridayDate) {
           if (!requests.length)
             return '<div class="empty">No requests need issuing.</div>';
@@ -5346,7 +5456,14 @@
             }),
             asap = ready.filter(function (r) {
               return r.issueDate !== fridayDate;
-            });
+            }),
+            denialStart = $("denialStartDate"),
+            denialEnd = $("denialEndDate");
+          if (!denialStart.value || !denialEnd.value) {
+            var dateRange = defaultDenialDateRange();
+            denialStart.value = dateRange.start;
+            denialEnd.value = dateRange.end;
+          }
           $("asapIssueList").innerHTML = issueQueueTable(asap, fridayDate);
           $("fridayIssueHeading").textContent =
             "Friday, " + fmt(fridayDate) + " (" + friday.length + ")";
@@ -5388,6 +5505,28 @@
             },
           );
           $("printIssueLists").onclick = function () {
+            window.print();
+          };
+          $("printDenials").onclick = function () {
+            var startDate = denialStart.value,
+              endDate = denialEnd.value;
+            if (
+              !isDate(startDate) ||
+              !isDate(endDate) ||
+              startDate > endDate
+            ) {
+              toast("Choose a valid denial request date range.");
+              return;
+            }
+            renderDenialPrintView(startDate, endDate);
+            document.body.classList.add("printDenials");
+            window.addEventListener(
+              "afterprint",
+              function () {
+                document.body.classList.remove("printDenials");
+              },
+              { once: true },
+            );
             window.print();
           };
         }

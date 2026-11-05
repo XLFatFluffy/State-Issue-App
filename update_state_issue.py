@@ -140,6 +140,37 @@ def stage_archive(archive_path, stage_dir):
             )
 
 
+def preserve_workstation_address(stage_dir, install_dir):
+    """Keep the workstation's configured host URL when applying an update."""
+    filename = "OPEN_STATE_ISSUE.bat"
+    current_path = os.path.join(install_dir, filename)
+    staged_path = os.path.join(stage_dir, filename)
+    address_line = re.compile(
+        r'^(set "STATE_ISSUE_ADDRESS=)(http://[A-Za-z0-9.-]+:8787/)("\r?)$',
+        re.MULTILINE | re.IGNORECASE,
+    )
+    with open(current_path, "r", encoding="utf-8", newline="") as file:
+        current = file.read()
+    current_match = address_line.search(current)
+    if not current_match:
+        return
+    with open(staged_path, "r", encoding="utf-8", newline="") as file:
+        staged = file.read()
+    if not address_line.search(staged):
+        raise RuntimeError(
+            "Could not preserve the workstation address in OPEN_STATE_ISSUE.bat."
+        )
+    staged = address_line.sub(
+        lambda match: match.group(1)
+        + current_match.group(2)
+        + match.group(3),
+        staged,
+        count=1,
+    )
+    with open(staged_path, "w", encoding="utf-8", newline="") as file:
+        file.write(staged)
+
+
 def run_update_tests(stage_dir):
     result = subprocess.run(
         [sys.executable, "test_server.py"],
@@ -219,6 +250,7 @@ def main():
         print("Checking the downloaded application...")
         stage_archive(archive_path, extracted_dir)
         run_update_tests(extracted_dir)
+        preserve_workstation_address(extracted_dir, install_dir)
         version = check_server_version(extracted_dir)
         changed_files = [
             name
